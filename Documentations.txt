@@ -1,0 +1,83 @@
+# 🚀 Cursor AI Core Docs
+https://docs.cursor.sh                              # Cursor Getting Started
+https://docs.cursor.sh/docs/knowledge-management/docs      # Cursor @Docs Usage Guide
+https://docs.cursor.sh/docs/knowledge-management/rules     # Cursor Rules System
+https://github.com/getcursor/docs                          # Cursor GitHub Docs
+
+# 💙 Flutter & Dart Core
+https://docs.flutter.dev/ui                                # Flutter UI Overview
+https://docs.flutter.dev/testing                           # Flutter Testing Guide
+https://docs.flutter.dev/testing/errors                    # Flutter Error Handling
+https://dart.dev/guides/language/language-tour             # Dart Language Tour
+https://pub.dev/packages/flutter_lints                     # Dart/Flutter Lint Rules
+
+# 🧭 Routing with GoRouter
+https://pub.dev/documentation/go_router/latest/index.html  # GoRouter Docs
+https://codewithandrea.com/articles/flutter-navigation-gorouter/  # GoRouter Best Practices
+https://github.com/flutter/packages/tree/main/packages/go_router # GoRouter GitHub
+
+# 🎨 UI/UX & Design Patterns
+https://m3.material.io/foundations/overview                # Material Design 3 Guidelines
+https://flutter.dev/docs/cookbook/design/themes            # Flutter Theming Cookbook
+https://flutterawesome.com/tag/ui/                         # Flutter UI Inspiration
+https://dribbble.com/search/flutter                        # Flutter UI References
+https://uxdesign.cc/                                       # UX/UI Strategy + Patterns
+
+# 🧩 Architecture & Page Logic
+https://codewithandrea.com/articles/flutter-app-architecture/  # Clean Architecture for Flutter
+https://pub.dev/packages/flutter_bloc                     # BLoC State Management Package
+https://riverpod.dev/docs/introduction                    # Riverpod State Management
+https://pub.dev/packages/provider                         # Provider Package
+https://flutter.dev/docs/development/data-and-backend/state-mgmt # Official State Management Guide
+
+# 🧪 Testing & Debugging
+https://docs.flutter.dev/testing/unit                     # Unit Testing
+https://docs.flutter.dev/testing/widget                   # Widget Testing
+https://docs.flutter.dev/testing/integration-tests        # Integration Testing
+https://flutter.dev/docs/testing/debugging                # Debugging Flutter Apps
+
+# 🧱 FlutterFlow Debugging
+https://docs.flutterflow.io/getting-started/troubleshooting       # FlutterFlow Troubleshooting
+https://docs.flutterflow.io/run-and-test/debug-console            # Debug Console Guide
+https://docs.flutterflow.io/run-and-test/debug-custom-actions     # Debug Custom Actions
+https://rapiddev.dev/blog/how-to-debug-flutterflow-apps           # External Debugging Tutorial
+
+# ☁️ Supabase (Dart & Flutter)
+https://supabase.com/docs/reference/dart/introduction      # Supabase Dart Client Reference
+https://supabase.com/docs/guides/getting-started/quickstarts/flutter  # Supabase Flutter Quickstart
+https://pub.dev/packages/supabase_flutter                  # Supabase Flutter Package
+https://supabase.com/docs/guides/platform/logs             # Supabase Logs Explorer
+https://supabase.com/docs/guides/cli/inspect               # Supabase CLI Inspect DB
+https://supabase.com/docs/guides/platform/logs/postgres-logs  # Query Postgres Logs
+https://supabase.com/docs/guides/functions/logs            # Edge Function Logging
+https://supabase.com/docs/guides/auth/redirect-urls        # Auth Redirect URLs Guide
+
+# 🐝 Hive (Local DB)
+https://pub.dev/packages/hive_shell                      # Hive Shell CLI Tool
+https://github.com/dennisss/hive_studio                 # Hive Studio GUI
+https://stackoverflow.com/questions/tagged/hive         # Hive Troubleshooting (StackOverflow)
+https://medium.flutterdevs.com/hive-database-in-flutter-47b2059b465b  # Hive Intro & Guide
+https://codewithandrea.com/articles/hive-nosql-database-flutter/      # Hive Architecture & Patterns
+
+# 🧠 YOLOv5 / ML Debugging
+https://docs.ultralytics.com/guides/train-best-practices/           # YOLOv5 Best Training Practices
+https://github.com/ultralytics/yolov5/discussions                   # YOLOv5 Community Discussion
+https://wandb.ai/site/articles/train-and-evaluate-your-model-with-yolov5-and-w-b  # W&B Integration Guide
+https://colab.research.google.com/github/wandb/examples/blob/master/colabs/ultralytics/yolov5.ipynb  # YOLOv5 Colab Example
+
+# 🎥 Multimedia & API Tools
+https://pub.dev/packages/video_trimmer                   # Flutter Video Trimmer Plugin
+https://swagger.io/docs/                                 # Swagger API Documentation
+https://www.uvicorn.org/                                 # Uvicorn FastAPI Server
+
+# 🔄 DevOps, Build & CI/CD
+https://docs.flutter.dev/deployment/cd                   # Flutter Continuous Deployment Guide
+https://docs.flutter.dev/deployment/android              # Flutter Android Release Guide
+https://docs.flutter.dev/deployment/ios                  # Flutter iOS Release Guide
+https://github.com/invertase/melos                       # Melos: Flutter Monorepo Tool
+https://fastlane.tools/                                  # Fastlane (iOS/Android release automation)
+
+# 🔐 Authentication & Security
+https://supabase.com/docs/guides/auth                    # Supabase Auth Guide
+https://docs.flutter.dev/development/data-and-backend/networking  # Flutter API & Networking Guide
+https://owasp.org/www-project-mobile-security/           # OWASP Mobile Security Best Practices
