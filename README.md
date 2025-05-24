@@ -90,15 +90,15 @@ FurSpeak AI is an innovative mobile application that uses artificial intelligenc
 Here are some screenshots of the FurSpeak AI app:
 
 <div align="center">
-  <img src="assets/screenshots/screenshot_1.png" alt="Screenshot 1" width="200"/>
-  <img src="assets/screenshots/screenshot_2.png" alt="Screenshot 2" width="200"/>
-  <img src="assets/screenshots/screenshot_3.png" alt="Screenshot 3" width="200"/>
-  <img src="assets/screenshots/screenshot_4.png" alt="Screenshot 4" width="200"/>
-  <img src="assets/screenshots/screenshot_5.png" alt="Screenshot 5" width="200"/>
-  <img src="assets/screenshots/screenshot_6.png" alt="Screenshot 6" width="200"/>
-  <img src="assets/screenshots/screenshot_7.png" alt="Screenshot 7" width="200"/>
-  <img src="assets/screenshots/screenshot_8.png" alt="Screenshot 8" width="200"/>
-  <img src="assets/screenshots/screenshot_9.png" alt="Screenshot 9" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_1.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_2.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_3.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_4.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_5.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_6.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_7.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_8.png" width="200"/>
+  <img src="https://raw.githubusercontent.com/Abhijeet999-beep/FurSpeak-AI_android-build/main/assets/screenshots/screenshot_9.png" width="200"/>
 </div>
 
 ## 🏗️ Project Structure
