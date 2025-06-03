@@ -81,7 +81,7 @@ FurSpeak AI is an innovative mobile application that uses artificial intelligenc
 
 ### Backend
 - FastAPI
-- YOLOv5 (ML Model)
+- YOLOv11 (ML Model)
 - OpenCV
 - PyTorch
 
