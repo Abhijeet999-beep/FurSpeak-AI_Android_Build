@@ -278,7 +278,7 @@ backend/
 ### Backend
 - Python 3.8+
 - FastAPI 0.68.0+
-- YOLOv5
+- YOLOv11
 - Required packages in requirements.txt:
   ```
   fastapi==0.68.0
