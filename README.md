@@ -156,7 +156,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [YOLOv5](https://github.com/ultralytics/yolov5) for the ML model
+- [YOLOv11](https://github.com/ultralytics/yolov5) for the ML model
 - [Flutter](https://flutter.dev) for the UI framework
 - [FastAPI](https://fastapi.tiangolo.com) for the backend framework
 - [Supabase](https://supabase.com) for the backend services
