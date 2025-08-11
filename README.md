@@ -8,8 +8,8 @@
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.68.0+-blue.svg)](https://fastapi.tiangolo.com)
   [![YOLOv5](https://img.shields.io/badge/YOLOv5-Latest-orange.svg)](https://github.com/ultralytics/yolov5)
   [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-  [![CI/CD](https://github.com/Abhijeet999-beep/FurSpeak-AI_android-build/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhijeet999-beep/FurSpeak-AI_android-build/actions/workflows/ci.yml)
-  [![Codecov](https://codecov.io/gh/Abhijeet999-beep/FurSpeak-AI_android-build/branch/main/graph/badge.svg)](https://codecov.io/gh/Abhijeet999-beep/FurSpeak-AI_android-build)
+  [![CI/CD](https://github.com/Abhijeet999-beep/FurSpeak-AI_Android_Build/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhijeet999-beep/FurSpeak-AI_Android_Build/actions/workflows/ci.yml)
+  [![Codecov](https://codecov.io/gh/Abhijeet999-beep/FurSpeak-AI_Android_Build/branch/main/graph/badge.svg)](https://codecov.io/gh/Abhijeet999-beep/FurSpeak-AI_Android_Build)
   [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 </div>
 
@@ -39,8 +39,8 @@ FurSpeak AI is an innovative mobile application that uses artificial intelligenc
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/Abhijeet999-beep/FurSpeak-AI_android-build.git
-   cd FurSpeak-AI_android-build
+   git clone https://github.com/Abhijeet999-beep/FurSpeak-AI_Android_Build.git
+   cd FurSpeak-AI_Android_Build
    ```
 
 2. Frontend Setup
@@ -144,7 +144,7 @@ flake8 backend/
 
 ## 📈 Contributing
 
-1. Fork the repository: `https://github.com/Abhijeet999-beep/FurSpeak-AI_android-build.git`
+1. Fork the repository: `https://github.com/Abhijeet999-beep/FurSpeak-AI_Android_Build.git`
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
@@ -164,7 +164,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Contact
 
 Abhijeet Singh - [@linkedin](https://www.linkedin.com/public-profile/settings)
-Project Link: [https://github.com/Abhijeet999-beep/FurSpeak-AI_android-build](https://github.com/Abhijeet999-beep/FurSpeak-AI_android-build)
+Project Link: [https://github.com/Abhijeet999-beep/FurSpeak-AI_Android_Build](https://github.com/Abhijeet999-beep/FurSpeak-AI_Android_Build)
 
 ---
 

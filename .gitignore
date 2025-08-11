@@ -2,7 +2,11 @@
 *.class
 *.log
 *.pyc
+*.pyo
+*.pyd
 *.swp
+*.swo
+*~
 .DS_Store
 .atom/
 .build/
@@ -14,6 +18,10 @@ migrate_working_dir/
 
 # Environment variables
 .env
+.env.local
+.env.development
+.env.test
+.env.production
 
 # IntelliJ related
 *.iml
@@ -21,10 +29,9 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/
+*.code-workspace
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -35,6 +42,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+*.lock
 
 # Symbolication related
 app.*.symbols
@@ -47,6 +55,19 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/local.properties
+/android/.gradle
+/android/captures/
+/android/gradlew
+/android/gradlew.bat
+/android/key.properties
+/android/app/google-services.json
+
+# iOS
+/ios/Pods/
+/ios/Runner.xcworkspace/xcshareddata/
+/ios/Runner.xcworkspace/xcuserdata/
+/ios/Runner.xcodeproj/xcuserdata/
+/ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
 
 # Temporary and local directories
 /backup/
@@ -54,3 +75,97 @@ app.*.map.json
 /temp_debug/
 /temp/
 /venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# ML Models (if too large for git)
+# *.pt
+# *.pth
+# *.onnx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
