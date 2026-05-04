@@ -1,0 +1,83 @@
+warning - Unused import: 'package:flutter/foundation.dart' - lib\config\api_config.dart:3:8 - unused_import
+warning - Unused import: 'dart:io' - lib\config\api_config.dart:4:8 - unused_import
+warning - A value for optional parameter 'errorLogger' isn't ever given - lib\data\api\furspeak_api.g.dart:15:10 - unused_element_parameter
+warning - 'getByIndex' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:267:12 - experimental_member_use
+warning - 'getByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:271:12 - experimental_member_use
+warning - 'deleteByIndex' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:275:12 - experimental_member_use
+warning - 'deleteByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:279:12 - experimental_member_use
+warning - 'getAllByIndex' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:284:12 - experimental_member_use
+warning - 'getAllByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:289:12 - experimental_member_use
+warning - 'deleteAllByIndex' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:294:12 - experimental_member_use
+warning - 'deleteAllByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:299:12 - experimental_member_use
+warning - 'putByIndex' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:303:12 - experimental_member_use
+warning - 'putByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:307:12 - experimental_member_use
+warning - 'putAllByIndex' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:311:12 - experimental_member_use
+warning - 'putAllByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\detection_result.g.dart:316:12 - experimental_member_use
+warning - 'getByIndex' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:176:12 - experimental_member_use
+warning - 'getByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:180:12 - experimental_member_use
+warning - 'deleteByIndex' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:184:12 - experimental_member_use
+warning - 'deleteByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:188:12 - experimental_member_use
+warning - 'getAllByIndex' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:193:12 - experimental_member_use
+warning - 'getAllByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:198:12 - experimental_member_use
+warning - 'deleteAllByIndex' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:203:12 - experimental_member_use
+warning - 'deleteAllByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:208:12 - experimental_member_use
+warning - 'putByIndex' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:212:12 - experimental_member_use
+warning - 'putByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:216:12 - experimental_member_use
+warning - 'putAllByIndex' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:220:12 - experimental_member_use
+warning - 'putAllByIndexSync' is experimental and could be removed or changed at any time - lib\data\models\dog_profile.g.dart:225:12 - experimental_member_use
+warning - The value of the local variable 'error' isn't used - lib\data\services\api_service.dart:72:17 - unused_local_variable
+warning - A value for optional parameter 'errorLogger' isn't ever given - lib\data\services\api_service.g.dart:15:10 - unused_element_parameter
+warning - The value of the field '_isInitialized' isn't used - lib\presentation\screens\camera_screen.dart:27:8 - unused_field
+   info - The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\presentation\screens\guest_mode_warning_screen.dart:2:8 - unnecessary_import
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\guest_mode_warning_screen.dart:3:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\guest_mode_warning_screen.dart:60:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\guest_mode_warning_screen.dart:66:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\guest_mode_warning_screen.dart:72:15 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\screens\guest_mode_warning_screen.dart:138:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\screens\guest_mode_warning_screen.dart:141:24 - deprecated_member_use
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\home_screen.dart:5:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/services/auth_service.dart' - lib\presentation\screens\home_screen.dart:7:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/media/services/media_compressor.dart' - lib\presentation\screens\home_screen.dart:16:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/services/api_service.dart' - lib\presentation\screens\home_screen.dart:20:8 - unused_import
+warning - The value of the local variable 'isIdle' isn't used - lib\presentation\screens\home_screen.dart:294:11 - unused_local_variable
+warning - Unused import: 'package:furspeak_ai/config/app_routes.dart' - lib\presentation\screens\onboarding_screen.dart:5:8 - unused_import
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\onboarding_screen.dart:6:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/widgets/root_nav_shell.dart' - lib\presentation\screens\onboarding_screen.dart:8:8 - unused_import
+warning - The value of the field '_showSkip' isn't used - lib\presentation\screens\onboarding_screen.dart:23:8 - unused_field
+warning - Unused import: 'package:furspeak_ai/config/app_routes.dart' - lib\presentation\screens\otp_verification_screen.dart:9:8 - unused_import
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\permission_screen.dart:2:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/config/app_routes.dart' - lib\presentation\screens\permission_screen.dart:7:8 - unused_import
+warning - The value of the local variable 'status' isn't used - lib\presentation\screens\permission_screen.dart:22:11 - unused_local_variable
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\profile_setup_screen.dart:7:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/services/auth_service.dart' - lib\presentation\screens\profile_setup_screen.dart:10:8 - unused_import
+warning - Unused import: 'package:furspeak_ai/config/app_routes.dart' - lib\presentation\screens\profile_setup_screen.dart:12:8 - unused_import
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\result_screen.dart:9:8 - unused_import
+warning - Unused import: 'dart:convert' - lib\presentation\screens\result_screen.dart:19:8 - unused_import
+warning - The value of the field '_isPlaying' isn't used - lib\presentation\screens\result_screen.dart:37:8 - unused_field
+warning - The value of the field '_isVideoReady' isn't used - lib\presentation\screens\result_screen.dart:39:8 - unused_field
+warning - The value of the field '_bgColor' isn't used - lib\presentation\screens\result_screen.dart:47:22 - unused_field
+warning - The value of the field '_primaryColor' isn't used - lib\presentation\screens\result_screen.dart:48:22 - unused_field
+warning - The value of the field '_accentColor' isn't used - lib\presentation\screens\result_screen.dart:49:22 - unused_field
+warning - The value of the field '_tertiaryColor' isn't used - lib\presentation\screens\result_screen.dart:50:22 - unused_field
+warning - The value of the field '_successColor' isn't used - lib\presentation\screens\result_screen.dart:51:22 - unused_field
+warning - The declaration '_getEmotionColor' isn't referenced - lib\presentation\screens\result_screen.dart:53:9 - unused_element
+warning - The declaration '_buildTimelineSection' isn't referenced - lib\presentation\screens\result_screen.dart:288:10 - unused_element
+warning - The value of the field '_noteController' isn't used - lib\presentation\screens\result_screen.dart:346:31 - unused_field
+warning - The declaration '_confidenceBadge' isn't referenced - lib\presentation\screens\result_screen.dart:348:10 - unused_element
+warning - The declaration '_sectionTitle' isn't referenced - lib\presentation\screens\result_screen.dart:374:10 - unused_element
+warning - The declaration '_generateContextualCaption' isn't referenced - lib\presentation\screens\result_screen.dart:393:10 - unused_element
+warning - The value of the local variable 'isGuest' isn't used - lib\presentation\screens\result_screen.dart:489:11 - unused_local_variable
+warning - The value of the local variable 'unique' isn't used - lib\presentation\screens\result_screen.dart:860:11 - unused_local_variable
+warning - The value of the field '_autoClearTemp' isn't used - lib\presentation\screens\settings_screen.dart:14:8 - unused_field
+warning - The value of the field '_autoSaveHistory' isn't used - lib\presentation\screens\settings_screen.dart:15:8 - unused_field
+warning - The value of the field '_pushNotifications' isn't used - lib\presentation\screens\settings_screen.dart:16:8 - unused_field
+warning - The value of the field '_dailySummaries' isn't used - lib\presentation\screens\settings_screen.dart:17:8 - unused_field
+warning - The value of the field '_defaultDog' isn't used - lib\presentation\screens\settings_screen.dart:19:10 - unused_field
+warning - The value of the field '_dogProfiles' isn't used - lib\presentation\screens\settings_screen.dart:20:22 - unused_field
+warning - The declaration '_pickSummaryTime' isn't referenced - lib\presentation\screens\settings_screen.dart:44:16 - unused_element
+warning - The declaration '_showAboutDialog' isn't referenced - lib\presentation\screens\settings_screen.dart:55:8 - unused_element
+warning - The declaration '_showPrivacyPolicy' isn't referenced - lib\presentation\screens\settings_screen.dart:74:8 - unused_element
+warning - The declaration '_showContactSupport' isn't referenced - lib\presentation\screens\settings_screen.dart:93:8 - unused_element
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\splash_screen.dart:5:8 - unused_import
+warning - Unused import: 'package:go_router/go_router.dart' - lib\presentation\screens\welcome_screen.dart:3:8 - unused_import
+warning - This default clause is covered by the previous cases - lib\utils\auth_error_mapper.dart:20:7 - unreachable_switch_default

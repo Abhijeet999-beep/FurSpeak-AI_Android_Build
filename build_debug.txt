@@ -1,0 +1,83 @@
+Running Gradle task 'assembleRelease'...                        
+Warning: The plugin app_links requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin camera_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin flutter_plugin_android_lifecycle requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin image_picker_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin local_auth_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin path_provider_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin permission_handler_android requires Android SDK version 35 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin shared_preferences_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin url_launcher_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin video_player_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Your project is configured to compile against Android SDK 34, but the following plugin(s) require to be compiled against a higher Android SDK version:
+- app_links compiles against Android SDK 36
+- camera_android compiles against Android SDK 36
+- flutter_plugin_android_lifecycle compiles against Android SDK 36
+- image_picker_android compiles against Android SDK 36
+- local_auth_android compiles against Android SDK 36
+- path_provider_android compiles against Android SDK 36
+- permission_handler_android compiles against Android SDK 35
+- shared_preferences_android compiles against Android SDK 36
+- url_launcher_android compiles against Android SDK 36
+- video_player_android compiles against Android SDK 36
+Both build.gradle and build.gradle.kts exist, so
+build.gradle.kts is ignored. This is likely a mistake.
+Fix this issue by compiling against the highest Android SDK version (they are backward compatible).
+Add the following to D:\GeminiCLI\FurSpeak-AI_Android_Build\android\app\build.gradle:
+
+    android {
+        compileSdk = 36
+        ...
+    }
+Checking the license for package Android SDK Platform 30 in C:\Users\VICTUS\AppData\Local\Android\sdk\licenses
+License for package Android SDK Platform 30 accepted.
+Preparing "Install Android SDK Platform 30 (revision 3)".
+"Install Android SDK Platform 30 (revision 3)" ready.
+Installing Android SDK Platform 30 in C:\Users\VICTUS\AppData\Local\Android\sdk\platforms\android-30
+"Install Android SDK Platform 30 (revision 3)" complete.
+"Install Android SDK Platform 30 (revision 3)" finished.
+Checking the license for package Android SDK Platform 35 in C:\Users\VICTUS\AppData\Local\Android\sdk\licenses
+License for package Android SDK Platform 35 accepted.
+Preparing "Install Android SDK Platform 35 (revision 2)".
+"Install Android SDK Platform 35 (revision 2)" ready.
+Installing Android SDK Platform 35 in C:\Users\VICTUS\AppData\Local\Android\sdk\platforms\android-35
+"Install Android SDK Platform 35 (revision 2)" complete.
+"Install Android SDK Platform 35 (revision 2)" finished.
+lib/theme/app_theme.dart:84:18: Error: The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.
+ - 'CardTheme' is from 'package:flutter/src/material/card_theme.dart' ('flutter/packages/flutter/lib/src/material/card_theme.dart').
+ - 'CardThemeData' is from 'package:flutter/src/material/card_theme.dart' ('flutter/packages/flutter/lib/src/material/card_theme.dart').
+      cardTheme: CardTheme(
+                 ^
+lib/config/app_config.dart:119:16: Error: The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.
+ - 'CardTheme' is from 'package:flutter/src/material/card_theme.dart' ('flutter/packages/flutter/lib/src/material/card_theme.dart').
+ - 'CardThemeData' is from 'package:flutter/src/material/card_theme.dart' ('flutter/packages/flutter/lib/src/material/card_theme.dart').
+    cardTheme: CardTheme(
+               ^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildRelease'.
+> Process 'command 'D:\GeminiCLI\FurSpeak-AI_Android_Build\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 11m 14s
+Running Gradle task 'assembleRelease'...                          674.7s
+Gradle task assembleRelease failed with exit code 1

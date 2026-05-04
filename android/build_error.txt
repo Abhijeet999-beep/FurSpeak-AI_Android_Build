@@ -1,0 +1,1153 @@
+Configuration on demand is an incubating feature.
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :app
+Warning: Flutter support for your project's Android Gradle Plugin version (Android Gradle Plugin version 8.1.1) will soon be dropped. Please upgrade your Android Gradle Plugin version to a version of at least Android Gradle Plugin version 8.6.0 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's AGP version is typically defined in the plugins block of the `settings.gradle` file (D:\GeminiCLI\FurSpeak-AI_Android_Build\android/settings.gradle), by a plugin with the id of com.android.application. 
+If you don't see a plugins block, your project was likely created with an older template version. In this case it is most likely defined in the top-level build.gradle file (D:\GeminiCLI\FurSpeak-AI_Android_Build\android/build.gradle) by the following line in the dependencies block of the buildscript: "classpath 'com.android.tools.build:gradle:<version>'".
+
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+
+> Task :cloud_firestore:preBuild UP-TO-DATE
+> Task :connectivity_plus:preBuild UP-TO-DATE
+> Task :camera_android:preBuild UP-TO-DATE
+> Task :flutter_native_video_trimmer:preBuild UP-TO-DATE
+> Task :app:DebugMinSdkCheck
+> Task :cloud_firestore:preDebugBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :flutter_image_compress_common:preBuild UP-TO-DATE
+> Task :firebase_storage:preBuild UP-TO-DATE
+> Task :firebase_core:preBuild UP-TO-DATE
+> Task :firebase_auth:preBuild UP-TO-DATE
+> Task :file_picker:preBuild UP-TO-DATE
+> Task :camera_android:preDebugBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:preBuild UP-TO-DATE
+> Task :device_info_plus:preBuild UP-TO-DATE
+> Task :firebase_auth:preDebugBuild UP-TO-DATE
+> Task :firebase_core:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :cloud_firestore:writeDebugAarMetadata UP-TO-DATE
+> Task :firebase_storage:preDebugBuild UP-TO-DATE
+> Task :camera_android:writeDebugAarMetadata UP-TO-DATE
+> Task :connectivity_plus:preDebugBuild UP-TO-DATE
+> Task :firebase_auth:writeDebugAarMetadata UP-TO-DATE
+> Task :firebase_core:writeDebugAarMetadata UP-TO-DATE
+> Task :connectivity_plus:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_secure_storage:preBuild UP-TO-DATE
+> Task :flutter_tts:preBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preBuild UP-TO-DATE
+> Task :flutter_secure_storage:preDebugBuild UP-TO-DATE
+> Task :flutter_tts:preDebugBuild UP-TO-DATE
+> Task :flutter_image_compress_common:preDebugBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:preDebugBuild UP-TO-DATE
+> Task :get_thumbnail_video:preBuild UP-TO-DATE
+> Task :firebase_storage:writeDebugAarMetadata UP-TO-DATE
+> Task :google_sign_in_android:preBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :get_thumbnail_video:preDebugBuild UP-TO-DATE
+> Task :device_info_plus:preDebugBuild UP-TO-DATE
+> Task :flutter_tts:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_image_compress_common:writeDebugAarMetadata UP-TO-DATE
+> Task :google_sign_in_android:preDebugBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:writeDebugAarMetadata UP-TO-DATE
+> Task :get_thumbnail_video:writeDebugAarMetadata UP-TO-DATE
+> Task :isar_flutter_libs:preBuild UP-TO-DATE
+> Task :google_sign_in_android:writeDebugAarMetadata UP-TO-DATE
+> Task :isar_flutter_libs:preDebugBuild UP-TO-DATE
+> Task :device_info_plus:writeDebugAarMetadata UP-TO-DATE
+> Task :file_picker:preDebugBuild UP-TO-DATE
+> Task :local_auth_android:preBuild UP-TO-DATE
+> Task :local_auth_android:preDebugBuild UP-TO-DATE
+> Task :isar_flutter_libs:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_native_video_trimmer:preDebugBuild UP-TO-DATE
+> Task :permission_handler_android:preBuild UP-TO-DATE
+> Task :local_auth_android:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_secure_storage:writeDebugAarMetadata UP-TO-DATE
+> Task :path_provider_android:preBuild UP-TO-DATE
+> Task :permission_handler_android:preDebugBuild UP-TO-DATE
+> Task :shared_preferences_android:preBuild UP-TO-DATE
+> Task :shared_preferences_android:preDebugBuild UP-TO-DATE
+> Task :file_picker:writeDebugAarMetadata UP-TO-DATE
+> Task :image_picker_android:preBuild UP-TO-DATE
+> Task :sqflite_android:preBuild UP-TO-DATE
+> Task :image_picker_android:preDebugBuild UP-TO-DATE
+> Task :permission_handler_android:writeDebugAarMetadata UP-TO-DATE
+> Task :video_player_android:preBuild UP-TO-DATE
+> Task :video_player_android:preDebugBuild UP-TO-DATE
+> Task :shared_preferences_android:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preDebugBuild UP-TO-DATE
+> Task :path_provider_android:preDebugBuild UP-TO-DATE
+> Task :flutter_native_video_trimmer:writeDebugAarMetadata UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:writeDebugAarMetadata UP-TO-DATE
+> Task :sqflite_android:preDebugBuild UP-TO-DATE
+> Task :image_picker_android:writeDebugAarMetadata UP-TO-DATE
+> Task :camera_android:mergeDebugShaders UP-TO-DATE
+> Task :sqflite_android:writeDebugAarMetadata UP-TO-DATE
+> Task :device_info_plus:mergeDebugShaders UP-TO-DATE
+> Task :camera_android:compileDebugShaders NO-SOURCE
+> Task :ffmpeg_kit_flutter_new_min_gpl:mergeDebugShaders UP-TO-DATE
+> Task :camera_android:generateDebugAssets UP-TO-DATE
+> Task :connectivity_plus:mergeDebugShaders UP-TO-DATE
+> Task :device_info_plus:compileDebugShaders NO-SOURCE
+> Task :ffmpeg_kit_flutter_new_min_gpl:compileDebugShaders NO-SOURCE
+> Task :device_info_plus:generateDebugAssets UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:generateDebugAssets UP-TO-DATE
+> Task :connectivity_plus:compileDebugShaders NO-SOURCE
+> Task :connectivity_plus:generateDebugAssets UP-TO-DATE
+> Task :firebase_core:mergeDebugShaders UP-TO-DATE
+> Task :video_player_android:writeDebugAarMetadata UP-TO-DATE
+> Task :path_provider_android:writeDebugAarMetadata UP-TO-DATE
+> Task :firebase_auth:mergeDebugShaders UP-TO-DATE
+> Task :cloud_firestore:mergeDebugShaders UP-TO-DATE
+> Task :file_picker:mergeDebugShaders UP-TO-DATE
+> Task :camera_android:packageDebugAssets UP-TO-DATE
+> Task :firebase_storage:mergeDebugShaders UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:packageDebugAssets UP-TO-DATE
+> Task :firebase_core:compileDebugShaders NO-SOURCE
+> Task :device_info_plus:packageDebugAssets UP-TO-DATE
+> Task :connectivity_plus:packageDebugAssets UP-TO-DATE
+> Task :firebase_storage:compileDebugShaders NO-SOURCE
+> Task :flutter_image_compress_common:mergeDebugShaders UP-TO-DATE
+> Task :firebase_storage:generateDebugAssets UP-TO-DATE
+> Task :firebase_core:generateDebugAssets UP-TO-DATE
+> Task :flutter_tts:mergeDebugShaders UP-TO-DATE
+> Task :firebase_auth:compileDebugShaders NO-SOURCE
+> Task :file_picker:compileDebugShaders NO-SOURCE
+> Task :cloud_firestore:compileDebugShaders NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:mergeDebugShaders UP-TO-DATE
+> Task :cloud_firestore:generateDebugAssets UP-TO-DATE
+> Task :flutter_native_video_trimmer:mergeDebugShaders UP-TO-DATE
+> Task :file_picker:generateDebugAssets UP-TO-DATE
+> Task :flutter_image_compress_common:compileDebugShaders NO-SOURCE
+> Task :flutter_tts:compileDebugShaders NO-SOURCE
+> Task :flutter_secure_storage:mergeDebugShaders UP-TO-DATE
+> Task :flutter_image_compress_common:generateDebugAssets UP-TO-DATE
+> Task :get_thumbnail_video:mergeDebugShaders UP-TO-DATE
+> Task :flutter_native_video_trimmer:compileDebugShaders NO-SOURCE
+> Task :firebase_core:packageDebugAssets UP-TO-DATE
+> Task :flutter_secure_storage:compileDebugShaders NO-SOURCE
+> Task :flutter_native_video_trimmer:generateDebugAssets UP-TO-DATE
+> Task :flutter_secure_storage:generateDebugAssets UP-TO-DATE
+> Task :firebase_auth:generateDebugAssets UP-TO-DATE
+> Task :file_picker:packageDebugAssets UP-TO-DATE
+> Task :get_thumbnail_video:compileDebugShaders NO-SOURCE
+> Task :get_thumbnail_video:generateDebugAssets UP-TO-DATE
+> Task :flutter_image_compress_common:packageDebugAssets UP-TO-DATE
+> Task :google_sign_in_android:mergeDebugShaders UP-TO-DATE
+> Task :firebase_storage:packageDebugAssets UP-TO-DATE
+> Task :google_sign_in_android:compileDebugShaders NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:compileDebugShaders NO-SOURCE
+> Task :flutter_native_video_trimmer:packageDebugAssets UP-TO-DATE
+> Task :cloud_firestore:packageDebugAssets UP-TO-DATE
+> Task :flutter_secure_storage:packageDebugAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugAssets UP-TO-DATE
+> Task :google_sign_in_android:generateDebugAssets UP-TO-DATE
+> Task :firebase_auth:packageDebugAssets UP-TO-DATE
+> Task :flutter_tts:generateDebugAssets UP-TO-DATE
+> Task :isar_flutter_libs:mergeDebugShaders UP-TO-DATE
+> Task :image_picker_android:mergeDebugShaders UP-TO-DATE
+> Task :path_provider_android:mergeDebugShaders UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:packageDebugAssets UP-TO-DATE
+> Task :local_auth_android:mergeDebugShaders UP-TO-DATE
+> Task :image_picker_android:compileDebugShaders NO-SOURCE
+> Task :image_picker_android:generateDebugAssets UP-TO-DATE
+> Task :local_auth_android:compileDebugShaders NO-SOURCE
+> Task :path_provider_android:compileDebugShaders NO-SOURCE
+> Task :path_provider_android:generateDebugAssets UP-TO-DATE
+> Task :local_auth_android:generateDebugAssets UP-TO-DATE
+> Task :google_sign_in_android:packageDebugAssets UP-TO-DATE
+> Task :sqflite_android:mergeDebugShaders UP-TO-DATE
+> Task :sqflite_android:compileDebugShaders NO-SOURCE
+> Task :sqflite_android:generateDebugAssets UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugShaders UP-TO-DATE
+> Task :local_auth_android:packageDebugAssets UP-TO-DATE
+> Task :shared_preferences_android:compileDebugShaders NO-SOURCE
+> Task :camera_android:generateDebugResValues UP-TO-DATE
+> Task :isar_flutter_libs:compileDebugShaders NO-SOURCE
+> Task :sqflite_android:packageDebugAssets UP-TO-DATE
+> Task :image_picker_android:packageDebugAssets UP-TO-DATE
+> Task :path_provider_android:packageDebugAssets UP-TO-DATE
+> Task :isar_flutter_libs:generateDebugAssets UP-TO-DATE
+> Task :flutter_tts:packageDebugAssets UP-TO-DATE
+> Task :cloud_firestore:generateDebugResValues UP-TO-DATE
+> Task :shared_preferences_android:generateDebugAssets UP-TO-DATE
+> Task :cloud_firestore:generateDebugResources UP-TO-DATE
+> Task :connectivity_plus:generateDebugResValues UP-TO-DATE
+> Task :device_info_plus:generateDebugResValues UP-TO-DATE
+> Task :connectivity_plus:generateDebugResources UP-TO-DATE
+> Task :device_info_plus:generateDebugResources UP-TO-DATE
+> Task :video_player_android:mergeDebugShaders UP-TO-DATE
+> Task :permission_handler_android:mergeDebugShaders UP-TO-DATE
+> Task :shared_preferences_android:packageDebugAssets UP-TO-DATE
+> Task :video_player_android:compileDebugShaders NO-SOURCE
+> Task :get_thumbnail_video:packageDebugAssets UP-TO-DATE
+> Task :isar_flutter_libs:packageDebugAssets UP-TO-DATE
+> Task :file_picker:generateDebugResValues UP-TO-DATE
+> Task :video_player_android:generateDebugAssets UP-TO-DATE
+> Task :file_picker:generateDebugResources UP-TO-DATE
+> Task :camera_android:generateDebugResources UP-TO-DATE
+> Task :permission_handler_android:compileDebugShaders NO-SOURCE
+> Task :permission_handler_android:generateDebugAssets UP-TO-DATE
+> Task :firebase_storage:generateDebugResValues UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:generateDebugResValues UP-TO-DATE
+> Task :firebase_core:generateDebugResValues UP-TO-DATE
+> Task :video_player_android:packageDebugAssets UP-TO-DATE
+> Task :connectivity_plus:packageDebugResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:generateDebugResources UP-TO-DATE
+> Task :firebase_core:generateDebugResources UP-TO-DATE
+> Task :firebase_storage:generateDebugResources UP-TO-DATE
+> Task :flutter_native_video_trimmer:generateDebugResValues UP-TO-DATE
+> Task :firebase_auth:generateDebugResValues UP-TO-DATE
+> Task :file_picker:packageDebugResources UP-TO-DATE
+> Task :flutter_image_compress_common:generateDebugResValues UP-TO-DATE
+> Task :cloud_firestore:packageDebugResources UP-TO-DATE
+> Task :flutter_native_video_trimmer:generateDebugResources UP-TO-DATE
+> Task :permission_handler_android:packageDebugAssets UP-TO-DATE
+> Task :device_info_plus:packageDebugResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugResValues UP-TO-DATE
+> Task :firebase_storage:packageDebugResources UP-TO-DATE
+> Task :flutter_tts:generateDebugResValues UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugResources UP-TO-DATE
+> Task :flutter_tts:generateDebugResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:packageDebugResources UP-TO-DATE
+> Task :google_sign_in_android:generateDebugResValues UP-TO-DATE
+> Task :flutter_secure_storage:generateDebugResValues UP-TO-DATE
+> Task :google_sign_in_android:generateDebugResources UP-TO-DATE
+> Task :flutter_secure_storage:generateDebugResources UP-TO-DATE
+> Task :image_picker_android:generateDebugResValues UP-TO-DATE
+> Task :firebase_auth:generateDebugResources UP-TO-DATE
+> Task :image_picker_android:generateDebugResources UP-TO-DATE
+> Task :camera_android:packageDebugResources UP-TO-DATE
+> Task :get_thumbnail_video:generateDebugResValues UP-TO-DATE
+> Task :flutter_image_compress_common:generateDebugResources UP-TO-DATE
+> Task :isar_flutter_libs:generateDebugResValues UP-TO-DATE
+> Task :get_thumbnail_video:generateDebugResources UP-TO-DATE
+> Task :isar_flutter_libs:generateDebugResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:packageDebugResources UP-TO-DATE
+> Task :flutter_secure_storage:packageDebugResources UP-TO-DATE
+> Task :local_auth_android:generateDebugResValues UP-TO-DATE
+> Task :local_auth_android:generateDebugResources UP-TO-DATE
+> Task :flutter_native_video_trimmer:packageDebugResources UP-TO-DATE
+> Task :path_provider_android:generateDebugResValues UP-TO-DATE
+> Task :path_provider_android:generateDebugResources UP-TO-DATE
+> Task :permission_handler_android:generateDebugResValues UP-TO-DATE
+> Task :permission_handler_android:generateDebugResources UP-TO-DATE
+> Task :firebase_auth:packageDebugResources UP-TO-DATE
+> Task :google_sign_in_android:packageDebugResources UP-TO-DATE
+> Task :firebase_core:packageDebugResources UP-TO-DATE
+> Task :flutter_tts:packageDebugResources UP-TO-DATE
+> Task :isar_flutter_libs:packageDebugResources UP-TO-DATE
+> Task :flutter_image_compress_common:packageDebugResources UP-TO-DATE
+> Task :shared_preferences_android:generateDebugResValues UP-TO-DATE
+> Task :sqflite_android:generateDebugResValues UP-TO-DATE
+> Task :video_player_android:generateDebugResValues UP-TO-DATE
+> Task :shared_preferences_android:generateDebugResources UP-TO-DATE
+> Task :sqflite_android:generateDebugResources UP-TO-DATE
+> Task :video_player_android:generateDebugResources UP-TO-DATE
+> Task :cloud_firestore:extractDeepLinksDebug UP-TO-DATE
+> Task :get_thumbnail_video:packageDebugResources UP-TO-DATE
+> Task :connectivity_plus:extractDeepLinksDebug UP-TO-DATE
+> Task :camera_android:extractDeepLinksDebug UP-TO-DATE
+> Task :path_provider_android:packageDebugResources UP-TO-DATE
+> Task :device_info_plus:extractDeepLinksDebug UP-TO-DATE
+> Task :cloud_firestore:processDebugManifest UP-TO-DATE
+> Task :permission_handler_android:packageDebugResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:extractDeepLinksDebug UP-TO-DATE
+> Task :file_picker:extractDeepLinksDebug UP-TO-DATE
+> Task :firebase_auth:extractDeepLinksDebug UP-TO-DATE
+> Task :shared_preferences_android:packageDebugResources UP-TO-DATE
+> Task :sqflite_android:packageDebugResources UP-TO-DATE
+> Task :camera_android:processDebugManifest UP-TO-DATE
+> Task :image_picker_android:packageDebugResources UP-TO-DATE
+> Task :device_info_plus:processDebugManifest UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:processDebugManifest UP-TO-DATE
+> Task :video_player_android:packageDebugResources UP-TO-DATE
+> Task :firebase_core:extractDeepLinksDebug UP-TO-DATE
+> Task :firebase_storage:extractDeepLinksDebug UP-TO-DATE
+> Task :file_picker:processDebugManifest UP-TO-DATE
+> Task :flutter_image_compress_common:extractDeepLinksDebug UP-TO-DATE
+> Task :firebase_auth:processDebugManifest UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:extractDeepLinksDebug UP-TO-DATE
+> Task :connectivity_plus:processDebugManifest UP-TO-DATE
+> Task :flutter_tts:extractDeepLinksDebug UP-TO-DATE
+> Task :google_sign_in_android:extractDeepLinksDebug UP-TO-DATE
+> Task :image_picker_android:extractDeepLinksDebug UP-TO-DATE
+> Task :firebase_storage:processDebugManifest UP-TO-DATE
+> Task :flutter_image_compress_common:processDebugManifest UP-TO-DATE
+> Task :firebase_core:processDebugManifest UP-TO-DATE
+> Task :flutter_native_video_trimmer:extractDeepLinksDebug UP-TO-DATE
+> Task :flutter_secure_storage:extractDeepLinksDebug UP-TO-DATE
+> Task :get_thumbnail_video:extractDeepLinksDebug UP-TO-DATE
+> Task :flutter_tts:processDebugManifest UP-TO-DATE
+> Task :path_provider_android:extractDeepLinksDebug UP-TO-DATE
+> Task :permission_handler_android:extractDeepLinksDebug UP-TO-DATE
+> Task :isar_flutter_libs:extractDeepLinksDebug UP-TO-DATE
+> Task :local_auth_android:packageDebugResources UP-TO-DATE
+> Task :get_thumbnail_video:processDebugManifest UP-TO-DATE
+> Task :flutter_native_video_trimmer:processDebugManifest UP-TO-DATE
+> Task :local_auth_android:extractDeepLinksDebug UP-TO-DATE
+> Task :shared_preferences_android:extractDeepLinksDebug UP-TO-DATE
+> Task :path_provider_android:processDebugManifest UP-TO-DATE
+> Task :google_sign_in_android:processDebugManifest UP-TO-DATE
+> Task :isar_flutter_libs:processDebugManifest UP-TO-DATE
+> Task :video_player_android:extractDeepLinksDebug UP-TO-DATE
+> Task :sqflite_android:extractDeepLinksDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:processDebugManifest UP-TO-DATE
+> Task :camera_android:compileDebugLibraryResources UP-TO-DATE
+> Task :cloud_firestore:compileDebugLibraryResources UP-TO-DATE
+> Task :local_auth_android:processDebugManifest UP-TO-DATE
+> Task :image_picker_android:processDebugManifest UP-TO-DATE
+> Task :connectivity_plus:compileDebugLibraryResources UP-TO-DATE
+> Task :sqflite_android:processDebugManifest UP-TO-DATE
+> Task :device_info_plus:compileDebugLibraryResources UP-TO-DATE
+> Task :permission_handler_android:processDebugManifest UP-TO-DATE
+> Task :video_player_android:processDebugManifest UP-TO-DATE
+> Task :flutter_secure_storage:processDebugManifest UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:compileDebugLibraryResources UP-TO-DATE
+> Task :file_picker:compileDebugLibraryResources UP-TO-DATE
+> Task :firebase_storage:compileDebugLibraryResources UP-TO-DATE
+> Task :firebase_auth:compileDebugLibraryResources UP-TO-DATE
+> Task :shared_preferences_android:processDebugManifest UP-TO-DATE
+> Task :flutter_image_compress_common:compileDebugLibraryResources UP-TO-DATE
+> Task :firebase_core:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:parseDebugLocalResources UP-TO-DATE
+> Task :device_info_plus:parseDebugLocalResources UP-TO-DATE
+> Task :file_picker:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_native_video_trimmer:compileDebugLibraryResources UP-TO-DATE
+> Task :connectivity_plus:parseDebugLocalResources UP-TO-DATE
+> Task :cloud_firestore:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_secure_storage:compileDebugLibraryResources UP-TO-DATE
+> Task :camera_android:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_tts:compileDebugLibraryResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:parseDebugLocalResources UP-TO-DATE
+> Task :firebase_auth:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_tts:parseDebugLocalResources UP-TO-DATE
+> Task :firebase_storage:parseDebugLocalResources UP-TO-DATE
+> Task :get_thumbnail_video:compileDebugLibraryResources UP-TO-DATE
+> Task :google_sign_in_android:compileDebugLibraryResources UP-TO-DATE
+> Task :flutter_image_compress_common:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_secure_storage:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_native_video_trimmer:parseDebugLocalResources UP-TO-DATE
+> Task :get_thumbnail_video:parseDebugLocalResources UP-TO-DATE
+> Task :google_sign_in_android:parseDebugLocalResources UP-TO-DATE
+> Task :google_sign_in_android:generateDebugRFile UP-TO-DATE
+> Task :device_info_plus:generateDebugRFile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:generateDebugRFile UP-TO-DATE
+> Task :connectivity_plus:generateDebugRFile UP-TO-DATE
+> Task :flutter_native_video_trimmer:generateDebugRFile UP-TO-DATE
+> Task :get_thumbnail_video:generateDebugRFile UP-TO-DATE
+> Task :flutter_secure_storage:generateDebugRFile UP-TO-DATE
+> Task :image_picker_android:compileDebugLibraryResources UP-TO-DATE
+> Task :permission_handler_android:compileDebugLibraryResources UP-TO-DATE
+> Task :path_provider_android:compileDebugLibraryResources UP-TO-DATE
+> Task :isar_flutter_libs:compileDebugLibraryResources UP-TO-DATE
+> Task :flutter_tts:generateDebugRFile UP-TO-DATE
+> Task :sqflite_android:compileDebugLibraryResources UP-TO-DATE
+> Task :video_player_android:compileDebugLibraryResources UP-TO-DATE
+> Task :shared_preferences_android:compileDebugLibraryResources UP-TO-DATE
+> Task :local_auth_android:compileDebugLibraryResources UP-TO-DATE
+> Task :flutter_image_compress_common:generateDebugRFile UP-TO-DATE
+> Task :camera_android:generateDebugBuildConfig UP-TO-DATE
+> Task :video_player_android:parseDebugLocalResources UP-TO-DATE
+> Task :isar_flutter_libs:parseDebugLocalResources UP-TO-DATE
+> Task :camera_android:javaPreCompileDebug UP-TO-DATE
+> Task :sqflite_android:parseDebugLocalResources UP-TO-DATE
+> Task :image_picker_android:parseDebugLocalResources UP-TO-DATE
+> Task :local_auth_android:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugRFile UP-TO-DATE
+> Task :permission_handler_android:parseDebugLocalResources UP-TO-DATE
+> Task :shared_preferences_android:parseDebugLocalResources UP-TO-DATE
+> Task :device_info_plus:generateDebugBuildConfig UP-TO-DATE
+> Task :path_provider_android:parseDebugLocalResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileDebugLibraryResources UP-TO-DATE
+> Task :cloud_firestore:generateDebugBuildConfig UP-TO-DATE
+> Task :connectivity_plus:generateDebugBuildConfig UP-TO-DATE
+> Task :isar_flutter_libs:generateDebugRFile UP-TO-DATE
+> Task :path_provider_android:generateDebugRFile UP-TO-DATE
+> Task :sqflite_android:generateDebugRFile UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugBuildConfig UP-TO-DATE
+> Task :cloud_firestore:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:javaPreCompileDebug UP-TO-DATE
+> Task :connectivity_plus:javaPreCompileDebug UP-TO-DATE
+> Task :camera_android:generateDebugRFile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:generateDebugBuildConfig UP-TO-DATE
+> Task :firebase_core:generateDebugRFile UP-TO-DATE
+> Task :permission_handler_android:generateDebugRFile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:compileDebugKotlin NO-SOURCE
+> Task :firebase_core:compileDebugLibraryResources UP-TO-DATE
+> Task :video_player_android:generateDebugRFile UP-TO-DATE
+> Task :firebase_core:generateDebugBuildConfig UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileDebugJavaWithJavac UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :firebase_core:javaPreCompileDebug UP-TO-DATE
+> Task :connectivity_plus:compileDebugJavaWithJavac UP-TO-DATE
+> Task :connectivity_plus:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:javaPreCompileDebug UP-TO-DATE
+> Task :camera_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :camera_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :flutter_image_compress_common:generateDebugBuildConfig UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:compileDebugJavaWithJavac UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :flutter_native_video_trimmer:generateDebugBuildConfig UP-TO-DATE
+> Task :device_info_plus:compileDebugKotlin UP-TO-DATE
+> Task :device_info_plus:javaPreCompileDebug UP-TO-DATE
+> Task :firebase_core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :firebase_core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :flutter_secure_storage:generateDebugBuildConfig UP-TO-DATE
+> Task :flutter_secure_storage:javaPreCompileDebug UP-TO-DATE
+> Task :local_auth_android:generateDebugRFile UP-TO-DATE
+> Task :flutter_tts:generateDebugBuildConfig UP-TO-DATE
+> Task :device_info_plus:compileDebugJavaWithJavac UP-TO-DATE
+> Task :device_info_plus:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :get_thumbnail_video:generateDebugBuildConfig UP-TO-DATE
+> Task :get_thumbnail_video:javaPreCompileDebug UP-TO-DATE
+> Task :get_thumbnail_video:compileDebugJavaWithJavac UP-TO-DATE
+> Task :get_thumbnail_video:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :google_sign_in_android:generateDebugBuildConfig UP-TO-DATE
+> Task :google_sign_in_android:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_secure_storage:compileDebugJavaWithJavac UP-TO-DATE
+> Task :image_picker_android:generateDebugRFile UP-TO-DATE
+> Task :flutter_image_compress_common:compileDebugKotlin UP-TO-DATE
+> Task :flutter_secure_storage:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :image_picker_android:generateDebugBuildConfig UP-TO-DATE
+> Task :flutter_image_compress_common:javaPreCompileDebug UP-TO-DATE
+> Task :isar_flutter_libs:generateDebugBuildConfig UP-TO-DATE
+> Task :flutter_tts:compileDebugKotlin UP-TO-DATE
+> Task :image_picker_android:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_tts:javaPreCompileDebug UP-TO-DATE
+> Task :google_sign_in_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :google_sign_in_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :local_auth_android:generateDebugBuildConfig UP-TO-DATE
+> Task :isar_flutter_libs:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_tts:compileDebugJavaWithJavac UP-TO-DATE
+> Task :flutter_tts:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :path_provider_android:generateDebugBuildConfig UP-TO-DATE
+> Task :local_auth_android:javaPreCompileDebug UP-TO-DATE
+> Task :isar_flutter_libs:compileDebugJavaWithJavac UP-TO-DATE
+> Task :isar_flutter_libs:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :path_provider_android:javaPreCompileDebug UP-TO-DATE
+> Task :permission_handler_android:generateDebugBuildConfig UP-TO-DATE
+> Task :permission_handler_android:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_native_video_trimmer:compileDebugKotlin UP-TO-DATE
+> Task :image_picker_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :image_picker_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :sqflite_android:generateDebugBuildConfig UP-TO-DATE
+> Task :sqflite_android:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_image_compress_common:compileDebugJavaWithJavac UP-TO-DATE
+> Task :flutter_image_compress_common:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :video_player_android:generateDebugBuildConfig UP-TO-DATE
+> Task :flutter_native_video_trimmer:javaPreCompileDebug UP-TO-DATE
+> Task :local_auth_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :video_player_android:javaPreCompileDebug UP-TO-DATE
+> Task :permission_handler_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :permission_handler_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :camera_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :local_auth_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connectivity_plus:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :sqflite_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :path_provider_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :flutter_native_video_trimmer:compileDebugJavaWithJavac UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :flutter_native_video_trimmer:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :device_info_plus:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :firebase_core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :path_provider_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :sqflite_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :flutter_native_video_trimmer:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :flutter_image_compress_common:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :image_picker_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :local_auth_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :flutter_secure_storage:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :flutter_tts:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :get_thumbnail_video:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :google_sign_in_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :isar_flutter_libs:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :permission_handler_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :file_picker:generateDebugRFile UP-TO-DATE
+> Task :firebase_auth:generateDebugRFile UP-TO-DATE
+> Task :path_provider_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :firebase_auth:generateDebugBuildConfig UP-TO-DATE
+> Task :sqflite_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :file_picker:generateDebugBuildConfig UP-TO-DATE
+> Task :firebase_auth:javaPreCompileDebug UP-TO-DATE
+> Task :camera_android:processDebugJavaRes NO-SOURCE
+> Task :ffmpeg_kit_flutter_new_min_gpl:processDebugJavaRes NO-SOURCE
+> Task :connectivity_plus:processDebugJavaRes NO-SOURCE
+> Task :firebase_core:processDebugJavaRes NO-SOURCE
+> Task :flutter_secure_storage:processDebugJavaRes NO-SOURCE
+> Task :device_info_plus:processDebugJavaRes UP-TO-DATE
+> Task :flutter_native_video_trimmer:processDebugJavaRes UP-TO-DATE
+> Task :google_sign_in_android:processDebugJavaRes NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:processDebugJavaRes NO-SOURCE
+> Task :image_picker_android:processDebugJavaRes NO-SOURCE
+> Task :isar_flutter_libs:processDebugJavaRes NO-SOURCE
+> Task :flutter_image_compress_common:processDebugJavaRes UP-TO-DATE
+> Task :video_player_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :path_provider_android:processDebugJavaRes NO-SOURCE
+> Task :get_thumbnail_video:processDebugJavaRes NO-SOURCE
+> Task :video_player_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :permission_handler_android:processDebugJavaRes NO-SOURCE
+> Task :video_player_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :connectivity_plus:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :flutter_tts:processDebugJavaRes UP-TO-DATE
+> Task :video_player_android:processDebugJavaRes NO-SOURCE
+> Task :local_auth_android:processDebugJavaRes NO-SOURCE
+> Task :sqflite_android:processDebugJavaRes NO-SOURCE
+> Task :device_info_plus:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :camera_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_core:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :flutter_image_compress_common:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :flutter_native_video_trimmer:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :image_picker_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_auth:compileDebugJavaWithJavac UP-TO-DATE
+> Task :firebase_storage:generateDebugRFile UP-TO-DATE
+> Task :firebase_auth:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :local_auth_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :flutter_secure_storage:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_storage:generateDebugBuildConfig UP-TO-DATE
+> Task :firebase_auth:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_auth:processDebugJavaRes NO-SOURCE
+> Task :get_thumbnail_video:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :flutter_tts:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :cloud_firestore:generateDebugRFile UP-TO-DATE
+> Task :isar_flutter_libs:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :path_provider_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_auth:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :google_sign_in_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :video_player_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :sqflite_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :camera_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :permission_handler_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :connectivity_plus:mergeDebugJniLibFolders UP-TO-DATE
+> Task :camera_android:mergeDebugNativeLibs NO-SOURCE
+> Task :camera_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :connectivity_plus:mergeDebugNativeLibs NO-SOURCE
+> Task :ffmpeg_kit_flutter_new_min_gpl:mergeDebugJniLibFolders UP-TO-DATE
+> Task :device_info_plus:mergeDebugJniLibFolders UP-TO-DATE
+> Task :connectivity_plus:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :firebase_auth:mergeDebugJniLibFolders UP-TO-DATE
+> Task :firebase_core:mergeDebugJniLibFolders UP-TO-DATE
+> Task :device_info_plus:mergeDebugNativeLibs NO-SOURCE
+> Task :ffmpeg_kit_flutter_new_min_gpl:mergeDebugNativeLibs NO-SOURCE
+> Task :firebase_auth:mergeDebugNativeLibs NO-SOURCE
+> Task :firebase_core:mergeDebugNativeLibs NO-SOURCE
+> Task :flutter_native_video_trimmer:mergeDebugJniLibFolders UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :device_info_plus:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugJniLibFolders UP-TO-DATE
+> Task :firebase_auth:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_image_compress_common:mergeDebugJniLibFolders UP-TO-DATE
+> Task :firebase_core:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugNativeLibs NO-SOURCE
+> Task :flutter_native_video_trimmer:mergeDebugNativeLibs NO-SOURCE
+> Task :flutter_image_compress_common:mergeDebugNativeLibs NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_native_video_trimmer:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_image_compress_common:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :get_thumbnail_video:mergeDebugJniLibFolders UP-TO-DATE
+> Task :flutter_tts:mergeDebugJniLibFolders UP-TO-DATE
+> Task :google_sign_in_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :local_auth_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :flutter_secure_storage:mergeDebugJniLibFolders UP-TO-DATE
+> Task :get_thumbnail_video:mergeDebugNativeLibs NO-SOURCE
+> Task :google_sign_in_android:mergeDebugNativeLibs NO-SOURCE
+> Task :isar_flutter_libs:mergeDebugJniLibFolders UP-TO-DATE
+> Task :flutter_secure_storage:mergeDebugNativeLibs NO-SOURCE
+> Task :local_auth_android:mergeDebugNativeLibs NO-SOURCE
+> Task :image_picker_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :google_sign_in_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :get_thumbnail_video:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :image_picker_android:mergeDebugNativeLibs NO-SOURCE
+> Task :flutter_tts:mergeDebugNativeLibs NO-SOURCE
+> Task :local_auth_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :isar_flutter_libs:mergeDebugNativeLibs UP-TO-DATE
+> Task :image_picker_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_secure_storage:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :permission_handler_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :flutter_tts:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :path_provider_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :permission_handler_android:mergeDebugNativeLibs NO-SOURCE
+> Task :camera_android:stripDebugDebugSymbols NO-SOURCE
+> Task :path_provider_android:mergeDebugNativeLibs NO-SOURCE
+> Task :connectivity_plus:stripDebugDebugSymbols NO-SOURCE
+> Task :sqflite_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :shared_preferences_android:generateDebugRFile UP-TO-DATE
+> Task :video_player_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :permission_handler_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :camera_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :isar_flutter_libs:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :sqflite_android:mergeDebugNativeLibs NO-SOURCE
+> Task :file_picker:compileDebugKotlin UP-TO-DATE
+> Task :path_provider_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :device_info_plus:stripDebugDebugSymbols NO-SOURCE
+> Task :sqflite_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:stripDebugDebugSymbols NO-SOURCE
+> Task :connectivity_plus:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :firebase_auth:stripDebugDebugSymbols NO-SOURCE
+> Task :shared_preferences_android:generateDebugBuildConfig UP-TO-DATE
+> Task :video_player_android:mergeDebugNativeLibs NO-SOURCE
+> Task :device_info_plus:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :firebase_core:stripDebugDebugSymbols NO-SOURCE
+> Task :firebase_auth:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :file_picker:javaPreCompileDebug UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :video_player_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_image_compress_common:stripDebugDebugSymbols NO-SOURCE
+> Task :firebase_core:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :cloud_firestore:compileDebugJavaWithJavac UP-TO-DATE
+> Task :file_picker:compileDebugJavaWithJavac UP-TO-DATE
+> Task :cloud_firestore:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :file_picker:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :flutter_image_compress_common:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :cloud_firestore:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :file_picker:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :cloud_firestore:processDebugJavaRes NO-SOURCE
+> Task :file_picker:processDebugJavaRes UP-TO-DATE
+> Task :cloud_firestore:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :file_picker:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_storage:compileDebugKotlin UP-TO-DATE
+> Task :firebase_storage:javaPreCompileDebug UP-TO-DATE
+> Task :file_picker:mergeDebugJniLibFolders UP-TO-DATE
+> Task :cloud_firestore:mergeDebugJniLibFolders UP-TO-DATE
+> Task :file_picker:mergeDebugNativeLibs NO-SOURCE
+> Task :cloud_firestore:mergeDebugNativeLibs NO-SOURCE
+> Task :cloud_firestore:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :file_picker:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :file_picker:stripDebugDebugSymbols NO-SOURCE
+> Task :cloud_firestore:stripDebugDebugSymbols NO-SOURCE
+> Task :file_picker:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :cloud_firestore:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :firebase_storage:compileDebugJavaWithJavac UP-TO-DATE
+> Task :firebase_storage:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :firebase_storage:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :firebase_auth:extractDebugAnnotations UP-TO-DATE
+> Task :device_info_plus:extractDebugAnnotations UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:extractDebugAnnotations UP-TO-DATE
+> Task :cloud_firestore:extractDebugAnnotations UP-TO-DATE
+> Task :firebase_core:extractDebugAnnotations UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :connectivity_plus:extractDebugAnnotations UP-TO-DATE
+> Task :device_info_plus:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :cloud_firestore:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :firebase_core:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :connectivity_plus:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :camera_android:extractDebugAnnotations UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :device_info_plus:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :firebase_auth:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :cloud_firestore:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :device_info_plus:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :camera_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :firebase_core:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :file_picker:extractDebugAnnotations UP-TO-DATE
+> Task :device_info_plus:prepareDebugArtProfile UP-TO-DATE
+> Task :connectivity_plus:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :firebase_auth:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :file_picker:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :firebase_auth:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :connectivity_plus:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:prepareDebugArtProfile UP-TO-DATE
+> Task :device_info_plus:prepareLintJarForPublish UP-TO-DATE
+> Task :camera_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :file_picker:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :firebase_auth:prepareDebugArtProfile UP-TO-DATE
+> Task :connectivity_plus:prepareDebugArtProfile UP-TO-DATE
+> Task :firebase_core:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :device_info_plus:mergeDebugJavaResource UP-TO-DATE
+> Task :firebase_core:prepareDebugArtProfile UP-TO-DATE
+> Task :firebase_auth:prepareLintJarForPublish UP-TO-DATE
+> Task :connectivity_plus:prepareLintJarForPublish UP-TO-DATE
+> Task :file_picker:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :cloud_firestore:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :firebase_core:prepareLintJarForPublish UP-TO-DATE
+> Task :file_picker:prepareDebugArtProfile UP-TO-DATE
+> Task :camera_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :firebase_storage:processDebugJavaRes UP-TO-DATE
+> Task :cloud_firestore:prepareDebugArtProfile UP-TO-DATE
+> Task :device_info_plus:syncDebugLibJars UP-TO-DATE
+> Task :firebase_auth:mergeDebugJavaResource UP-TO-DATE
+> Task :connectivity_plus:mergeDebugJavaResource UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:prepareLintJarForPublish UP-TO-DATE
+> Task :firebase_auth:syncDebugLibJars UP-TO-DATE
+> Task :device_info_plus:bundleDebugAar UP-TO-DATE
+> Task :device_info_plus:assembleDebug UP-TO-DATE
+> Task :flutter_image_compress_common:extractDebugAnnotations UP-TO-DATE
+> Task :flutter_native_video_trimmer:stripDebugDebugSymbols NO-SOURCE
+> Task :firebase_storage:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :firebase_auth:bundleDebugAar UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:mergeDebugJavaResource UP-TO-DATE
+> Task :flutter_native_video_trimmer:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :firebase_auth:assembleDebug UP-TO-DATE
+> Task :flutter_image_compress_common:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :file_picker:prepareLintJarForPublish UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:syncDebugLibJars UP-TO-DATE
+> Task :camera_android:prepareDebugArtProfile UP-TO-DATE
+> Task :file_picker:mergeDebugJavaResource UP-TO-DATE
+> Task :firebase_core:mergeDebugJavaResource UP-TO-DATE
+> Task :cloud_firestore:prepareLintJarForPublish UP-TO-DATE
+> Task :flutter_image_compress_common:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :camera_android:prepareLintJarForPublish UP-TO-DATE
+> Task :flutter_image_compress_common:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :connectivity_plus:syncDebugLibJars UP-TO-DATE
+> Task :flutter_image_compress_common:prepareDebugArtProfile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:bundleDebugAar UP-TO-DATE
+> Task :firebase_storage:mergeDebugJniLibFolders UP-TO-DATE
+> Task :firebase_core:syncDebugLibJars UP-TO-DATE
+> Task :file_picker:syncDebugLibJars UP-TO-DATE
+> Task :cloud_firestore:mergeDebugJavaResource UP-TO-DATE
+> Task :connectivity_plus:bundleDebugAar UP-TO-DATE
+> Task :camera_android:mergeDebugJavaResource UP-TO-DATE
+> Task :connectivity_plus:assembleDebug UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new_min_gpl:assembleDebug UP-TO-DATE
+> Task :firebase_storage:mergeDebugNativeLibs NO-SOURCE
+> Task :flutter_secure_storage:stripDebugDebugSymbols NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:stripDebugDebugSymbols NO-SOURCE
+> Task :camera_android:syncDebugLibJars UP-TO-DATE
+> Task :cloud_firestore:syncDebugLibJars UP-TO-DATE
+> Task :firebase_storage:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_tts:stripDebugDebugSymbols NO-SOURCE
+> Task :file_picker:bundleDebugAar UP-TO-DATE
+> Task :file_picker:assembleDebug UP-TO-DATE
+> Task :flutter_secure_storage:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :firebase_storage:stripDebugDebugSymbols NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :get_thumbnail_video:stripDebugDebugSymbols NO-SOURCE
+> Task :camera_android:bundleDebugAar UP-TO-DATE
+> Task :camera_android:assembleDebug UP-TO-DATE
+> Task :flutter_tts:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :flutter_image_compress_common:prepareLintJarForPublish UP-TO-DATE
+> Task :google_sign_in_android:stripDebugDebugSymbols NO-SOURCE
+> Task :firebase_storage:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :firebase_core:bundleDebugAar UP-TO-DATE
+> Task :firebase_core:assembleDebug UP-TO-DATE
+> Task :cloud_firestore:bundleDebugAar UP-TO-DATE
+> Task :cloud_firestore:assembleDebug UP-TO-DATE
+> Task :shared_preferences_android:compileDebugKotlin UP-TO-DATE
+> Task :image_picker_android:stripDebugDebugSymbols NO-SOURCE
+> Task :image_picker_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :isar_flutter_libs:stripDebugDebugSymbols UP-TO-DATE
+> Task :flutter_image_compress_common:mergeDebugJavaResource UP-TO-DATE
+> Task :google_sign_in_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :flutter_native_video_trimmer:extractDebugAnnotations UP-TO-DATE
+> Task :flutter_image_compress_common:syncDebugLibJars UP-TO-DATE
+> Task :get_thumbnail_video:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :flutter_image_compress_common:bundleDebugAar UP-TO-DATE
+> Task :isar_flutter_libs:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :flutter_image_compress_common:assembleDebug UP-TO-DATE
+> Task :shared_preferences_android:javaPreCompileDebug UP-TO-DATE
+> Task :flutter_tts:extractDebugAnnotations UP-TO-DATE
+> Task :local_auth_android:stripDebugDebugSymbols NO-SOURCE
+> Task :flutter_secure_storage:extractDebugAnnotations UP-TO-DATE
+> Task :flutter_native_video_trimmer:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :local_auth_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :flutter_secure_storage:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :flutter_native_video_trimmer:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_tts:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :flutter_tts:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:extractDebugAnnotations UP-TO-DATE
+> Task :flutter_secure_storage:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :firebase_storage:extractDebugAnnotations UP-TO-DATE
+> Task :image_picker_android:extractDebugAnnotations UP-TO-DATE
+> Task :isar_flutter_libs:extractDebugAnnotations UP-TO-DATE
+> Task :flutter_tts:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :flutter_secure_storage:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :image_picker_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :firebase_storage:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :isar_flutter_libs:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_secure_storage:prepareDebugArtProfile UP-TO-DATE
+> Task :image_picker_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_tts:prepareDebugArtProfile UP-TO-DATE
+> Task :google_sign_in_android:extractDebugAnnotations UP-TO-DATE
+> Task :firebase_storage:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :isar_flutter_libs:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :isar_flutter_libs:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :image_picker_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :get_thumbnail_video:extractDebugAnnotations UP-TO-DATE
+> Task :image_picker_android:prepareDebugArtProfile UP-TO-DATE
+> Task :get_thumbnail_video:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :flutter_secure_storage:prepareLintJarForPublish UP-TO-DATE
+> Task :flutter_native_video_trimmer:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :get_thumbnail_video:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_native_video_trimmer:prepareDebugArtProfile UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:prepareDebugArtProfile UP-TO-DATE
+> Task :firebase_storage:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :flutter_tts:prepareLintJarForPublish UP-TO-DATE
+> Task :google_sign_in_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :firebase_storage:prepareDebugArtProfile UP-TO-DATE
+> Task :flutter_native_video_trimmer:prepareLintJarForPublish UP-TO-DATE
+> Task :local_auth_android:extractDebugAnnotations UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:prepareLintJarForPublish UP-TO-DATE
+> Task :isar_flutter_libs:prepareDebugArtProfile UP-TO-DATE
+> Task :firebase_storage:prepareLintJarForPublish UP-TO-DATE
+> Task :get_thumbnail_video:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :google_sign_in_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :local_auth_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugJavaResource UP-TO-DATE
+> Task :flutter_native_video_trimmer:mergeDebugJavaResource UP-TO-DATE
+> Task :google_sign_in_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :get_thumbnail_video:prepareDebugArtProfile UP-TO-DATE
+> Task :local_auth_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_secure_storage:mergeDebugJavaResource UP-TO-DATE
+> Task :flutter_tts:mergeDebugJavaResource UP-TO-DATE
+> Task :firebase_storage:mergeDebugJavaResource UP-TO-DATE
+> Task :local_auth_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :isar_flutter_libs:prepareLintJarForPublish UP-TO-DATE
+> Task :image_picker_android:prepareLintJarForPublish UP-TO-DATE
+> Task :flutter_native_video_trimmer:syncDebugLibJars UP-TO-DATE
+> Task :google_sign_in_android:prepareDebugArtProfile UP-TO-DATE
+> Task :flutter_tts:syncDebugLibJars UP-TO-DATE
+> Task :local_auth_android:prepareDebugArtProfile UP-TO-DATE
+> Task :firebase_storage:syncDebugLibJars UP-TO-DATE
+> Task :flutter_tts:bundleDebugAar UP-TO-DATE
+> Task :flutter_tts:assembleDebug UP-TO-DATE
+> Task :firebase_storage:bundleDebugAar UP-TO-DATE
+> Task :shared_preferences_android:compileDebugJavaWithJavac UP-TO-DATE
+> Task :firebase_storage:assembleDebug UP-TO-DATE
+> Task :path_provider_android:stripDebugDebugSymbols NO-SOURCE
+> Task :local_auth_android:prepareLintJarForPublish UP-TO-DATE
+> Task :google_sign_in_android:prepareLintJarForPublish UP-TO-DATE
+> Task :shared_preferences_android:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :image_picker_android:mergeDebugJavaResource UP-TO-DATE
+> Task :path_provider_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :permission_handler_android:stripDebugDebugSymbols NO-SOURCE
+> Task :google_sign_in_android:mergeDebugJavaResource UP-TO-DATE
+> Task :permission_handler_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :flutter_native_video_trimmer:bundleDebugAar UP-TO-DATE
+> Task :flutter_secure_storage:syncDebugLibJars UP-TO-DATE
+> Task :isar_flutter_libs:mergeDebugJavaResource UP-TO-DATE
+> Task :flutter_native_video_trimmer:assembleDebug UP-TO-DATE
+> Task :get_thumbnail_video:prepareLintJarForPublish UP-TO-DATE
+> Task :sqflite_android:stripDebugDebugSymbols NO-SOURCE
+> Task :isar_flutter_libs:syncDebugLibJars UP-TO-DATE
+> Task :flutter_secure_storage:bundleDebugAar UP-TO-DATE
+> Task :google_sign_in_android:syncDebugLibJars UP-TO-DATE
+> Task :flutter_secure_storage:assembleDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:syncDebugLibJars UP-TO-DATE
+> Task :video_player_android:stripDebugDebugSymbols NO-SOURCE
+> Task :shared_preferences_android:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :sqflite_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :google_sign_in_android:bundleDebugAar UP-TO-DATE
+> Task :google_sign_in_android:assembleDebug UP-TO-DATE
+> Task :isar_flutter_libs:bundleDebugAar UP-TO-DATE
+> Task :local_auth_android:mergeDebugJavaResource UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleDebugAar UP-TO-DATE
+> Task :video_player_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :image_picker_android:syncDebugLibJars UP-TO-DATE
+> Task :isar_flutter_libs:assembleDebug UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:assembleDebug UP-TO-DATE
+> Task :get_thumbnail_video:mergeDebugJavaResource UP-TO-DATE
+> Task :shared_preferences_android:processDebugJavaRes UP-TO-DATE
+> Task :image_picker_android:bundleDebugAar UP-TO-DATE
+> Task :local_auth_android:syncDebugLibJars UP-TO-DATE
+> Task :get_thumbnail_video:syncDebugLibJars UP-TO-DATE
+> Task :image_picker_android:assembleDebug UP-TO-DATE
+> Task :get_thumbnail_video:bundleDebugAar UP-TO-DATE
+> Task :get_thumbnail_video:assembleDebug UP-TO-DATE
+> Task :local_auth_android:bundleDebugAar UP-TO-DATE
+> Task :local_auth_android:assembleDebug UP-TO-DATE
+> Task :shared_preferences_android:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :sqflite_android:extractDebugAnnotations UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugJniLibFolders UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugNativeLibs NO-SOURCE
+> Task :sqflite_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :shared_preferences_android:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :permission_handler_android:extractDebugAnnotations UP-TO-DATE
+> Task :path_provider_android:extractDebugAnnotations UP-TO-DATE
+> Task :sqflite_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :permission_handler_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :path_provider_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :sqflite_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :shared_preferences_android:stripDebugDebugSymbols NO-SOURCE
+> Task :permission_handler_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :sqflite_android:prepareDebugArtProfile UP-TO-DATE
+> Task :permission_handler_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :shared_preferences_android:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :path_provider_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :path_provider_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :sqflite_android:prepareLintJarForPublish UP-TO-DATE
+> Task :permission_handler_android:prepareDebugArtProfile UP-TO-DATE
+> Task :path_provider_android:prepareDebugArtProfile UP-TO-DATE
+> Task :video_player_android:extractDebugAnnotations UP-TO-DATE
+> Task :sqflite_android:mergeDebugJavaResource UP-TO-DATE
+> Task :permission_handler_android:prepareLintJarForPublish UP-TO-DATE
+> Task :path_provider_android:prepareLintJarForPublish UP-TO-DATE
+> Task :sqflite_android:syncDebugLibJars UP-TO-DATE
+> Task :video_player_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :permission_handler_android:mergeDebugJavaResource UP-TO-DATE
+> Task :path_provider_android:mergeDebugJavaResource UP-TO-DATE
+> Task :video_player_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :sqflite_android:bundleDebugAar UP-TO-DATE
+> Task :sqflite_android:assembleDebug UP-TO-DATE
+> Task :video_player_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :permission_handler_android:syncDebugLibJars UP-TO-DATE
+> Task :video_player_android:prepareDebugArtProfile UP-TO-DATE
+> Task :path_provider_android:syncDebugLibJars UP-TO-DATE
+> Task :permission_handler_android:bundleDebugAar UP-TO-DATE
+> Task :permission_handler_android:assembleDebug UP-TO-DATE
+> Task :path_provider_android:bundleDebugAar UP-TO-DATE
+> Task :path_provider_android:assembleDebug UP-TO-DATE
+> Task :video_player_android:prepareLintJarForPublish UP-TO-DATE
+> Task :video_player_android:mergeDebugJavaResource UP-TO-DATE
+> Task :shared_preferences_android:extractDebugAnnotations UP-TO-DATE
+> Task :video_player_android:syncDebugLibJars UP-TO-DATE
+> Task :shared_preferences_android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :video_player_android:bundleDebugAar UP-TO-DATE
+> Task :video_player_android:assembleDebug UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :shared_preferences_android:prepareDebugArtProfile UP-TO-DATE
+> Task :shared_preferences_android:prepareLintJarForPublish UP-TO-DATE
+> Task :shared_preferences_android:mergeDebugJavaResource UP-TO-DATE
+> Task :shared_preferences_android:syncDebugLibJars UP-TO-DATE
+> Task :shared_preferences_android:bundleDebugAar UP-TO-DATE
+> Task :shared_preferences_android:assembleDebug UP-TO-DATE
+
+> Task :app:compileFlutterBuildDebug
+lib/main.dart:37:14: Error: Type 'GoRouter' not found.
+  late final GoRouter _router;
+             ^^^^^^^^
+lib/main.dart:37:14: Error: 'GoRouter' isn't a type.
+  late final GoRouter _router;
+             ^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+> Task :app:compileFlutterBuildDebug FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'D:\GeminiCLI\FurSpeak-AI_Android_Build\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:compileFlutterBuildDebug'.
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: org.gradle.process.internal.ExecException: Process 'command 'D:\GeminiCLI\FurSpeak-AI_Android_Build\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+	at org.gradle.process.internal.DefaultExecHandle$ExecResultImpl.assertNormalExitValue(DefaultExecHandle.java:442)
+	at org.gradle.process.internal.DefaultExecAction.execute(DefaultExecAction.java:38)
+	at org.gradle.process.internal.DefaultExecActionFactory.exec(DefaultExecActionFactory.java:202)
+	at org.gradle.process.internal.DefaultExecOperations.exec(DefaultExecOperations.java:37)
+	at com.flutter.gradle.tasks.BaseFlutterTaskHelper.buildBundle(BaseFlutterTaskHelper.kt:159)
+	at com.flutter.gradle.tasks.BaseFlutterTask.buildBundle(BaseFlutterTask.kt:143)
+	at com.flutter.gradle.tasks.FlutterTaskHelper.build$gradle(FlutterTaskHelper.kt:90)
+	at com.flutter.gradle.tasks.FlutterTask.build(FlutterTask.kt:51)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:29)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:244)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
+	at org.gradle.internal.Either$Right.fold(Either.java:175)
+	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:105)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:54)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.9/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 18s
+696 actionable tasks: 3 executed, 693 up-to-date

@@ -8,16 +8,13 @@ part of 'api_service.dart';
 
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element
 
-const String apiBaseUrl =
-    'https://f40f-2409-40e3-180-2cd9-ac9a-ae4b-86c1-7254.ngrok-free.app';
-
 class _ApiService implements ApiService {
   _ApiService(
     this._dio, {
     this.baseUrl,
     this.errorLogger,
   }) {
-    baseUrl ??= apiBaseUrl;
+    baseUrl ??= 'http://192.168.0.100:8000';
   }
 
   final Dio _dio;

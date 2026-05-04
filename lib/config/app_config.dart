@@ -8,7 +8,7 @@ class AppConfig {
 
   // API Endpoints
   static const String apiBaseUrl =
-      'https://f40f-2409-40e3-180-2cd9-ac9a-ae4b-86c1-7254.ngrok-free.app';
+      'http://192.168.31.195:8000';
   static const String predictEndpoint = '/detect/';
   static const String historyEndpoint = '/history';
 
@@ -116,7 +116,7 @@ class AppConfig {
         fontFamily: 'Poppins',
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: Colors.white,
       elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),

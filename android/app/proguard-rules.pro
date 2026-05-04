@@ -44,4 +44,9 @@
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -dontwarn javax.annotation.**
--dontwarn org.conscrypt.** 
+-dontwarn org.conscrypt.**
+
+# Fix for missing R8 classes during Flutter release build
+-dontwarn com.google.android.play.core.**
+-dontwarn javax.xml.stream.**
+-keep class com.google.android.play.core.** { *; } 

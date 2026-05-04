@@ -111,12 +111,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // If you have a loading state, block back navigation
-        // if (_isLoading) return false;
-        context.go('/home');
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFCF5), // Creamy White

@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'dev.flutter.flutter-gradle-plugin'
+    id 'com.google.gms.google-services'   // 🔥 ADD THIS
+
 }
 
 def localProperties = new Properties()
@@ -29,7 +31,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.example.furspeak_ai"
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdkVersion 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -46,9 +48,9 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.furspeak_ai"
-        minSdkVersion 21
-        targetSdkVersion flutter.targetSdkVersion
+        applicationId "com.abhijeet.furspeakai"
+        minSdkVersion 24
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -67,7 +69,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (System.getenv()["ANDROID_KEYSTORE_PATH"]) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -79,26 +85,8 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.window:window:1.0.0'
     implementation 'androidx.window:window-java:1.0.0'
-    
-    // Flutter plugins
-    implementation project(':app_links')
-    implementation project(':camera')
-    implementation project(':connectivity_plus')
-    implementation project(':device_info_plus')
-    implementation project(':file_picker')
-    implementation project(':flutter_plugin_android_lifecycle')
-    implementation project(':flutter_secure_storage')
-    implementation project(':flutter_tts')
-    implementation project(':image_picker')
-    implementation project(':local_auth')
-    implementation project(':path_provider')
-    implementation project(':permission_handler')
-    implementation project(':shared_preferences')
-    implementation project(':sqflite')
-    implementation project(':url_launcher')
-    implementation project(':video_player')
+    implementation platform('com.google.firebase:firebase-bom:33.1.0')    // Flutter plugins are handled automatically by dev.flutter.flutter-gradle-plugin
 } 

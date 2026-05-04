@@ -2,6 +2,7 @@ class EmotionResult {
   final String emotion;
   final double confidence;
   final String caption;
+  final String? suggestion;
   final String imagePath;
   final String? videoPath;
   final String? frameImagePath;
@@ -12,6 +13,7 @@ class EmotionResult {
     required this.emotion,
     required this.confidence,
     required this.caption,
+    this.suggestion,
     required this.imagePath,
     this.videoPath,
     this.frameImagePath,
@@ -24,6 +26,7 @@ class EmotionResult {
       emotion: json['emotion'] as String,
       confidence: (json['confidence'] as num).toDouble(),
       caption: json['caption'] as String,
+      suggestion: json['suggestion'] as String?,
       imagePath: json['imagePath'] as String,
       videoPath: json['videoPath'] as String?,
       frameImagePath: json['frameImagePath'] as String?,
@@ -39,6 +42,7 @@ class EmotionResult {
       'emotion': emotion,
       'confidence': confidence,
       'caption': caption,
+      'suggestion': suggestion,
       'imagePath': imagePath,
       'videoPath': videoPath,
       'frameImagePath': frameImagePath,

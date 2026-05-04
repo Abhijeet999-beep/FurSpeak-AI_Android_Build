@@ -1,0 +1,37 @@
+04-04 22:45:33.254 I/flutter (23361): [Orchestrator] HARD RESET TRIGGERED
+04-04 22:45:39.429 I/flutter (23361): [Orchestrator] HARD RESET TRIGGERED
+04-04 22:45:39.642 I/flutter (23361): [Orchestrator] ENQUEUE: processing id=[#cd653] queue=1
+04-04 22:45:39.642 I/flutter (23361): [Orchestrator] EXECUTE: processing id=[#cd653]
+04-04 22:45:40.153 I/flutter (23361): [Orchestrator] ENQUEUE: preview id=[#39cf0] queue=1
+04-04 22:45:40.225 I/flutter (23361): [Orchestrator] DURATION: 582ms
+04-04 22:45:40.225 I/flutter (23361): [Orchestrator] EXECUTE: preview id=[#39cf0]
+04-04 22:45:40.488 I/flutter (23361): [Orchestrator] DURATION: 262ms
+04-04 22:45:45.688 I/flutter (23361): 🛑 [COMPRESSOR] FFmpeg execution cancelled.
+04-04 22:45:45.689 I/flutter (23361): [Orchestrator] FORCE RELEASE PREVIEW
+04-04 22:45:45.882 I/flutter (23361): [Orchestrator] ENQUEUE: processing id=d3311e47-1de8-48de-acb4-ef84b7b801bf queue=1
+04-04 22:45:45.883 I/flutter (23361): [Orchestrator] EXECUTE: processing id=d3311e47-1de8-48de-acb4-ef84b7b801bf
+04-04 22:45:45.900 I/flutter (23361): 🎬 [COMPRESSOR] Video size: 9.83 MB
+04-04 22:45:45.903 I/flutter (23361): 📦 [COMPRESSOR] Tier 1 light (5–15 MB) → 480p @ 15fps CRF 32 | ultrafast, 2 threads, GOP 15, hwaccel auto
+04-04 22:45:54.060 I/flutter (23361): ⏱️ [COMPRESSOR] FFmpeg wall-clock: 8156 ms
+04-04 22:45:54.066 I/flutter (23361): ✅ [COMPRESSOR] 9.83 MB → 1645 KB (83.7% reduction) | 480p @ 15fps | 8156ms
+04-04 22:45:54.067 I/flutter (23361): [PIPELINE] ════ UPLOAD PHASE START ════
+04-04 22:45:54.067 I/flutter (23361): [PIPELINE] Upload file: /data/user/0/com.abhijeet.furspeakai/cache/compressed_1775322945903.mp4
+04-04 22:45:54.067 I/flutter (23361): [PIPELINE] Upload file exists: true
+04-04 22:45:54.067 I/flutter (23361): [PIPELINE] Upload file size: 1684778 bytes
+04-04 22:45:54.067 I/flutter (23361): [UPLOAD] ════════════════════════════════════════════
+04-04 22:45:54.068 I/flutter (23361): [UPLOAD] START → http://192.168.31.195:8000/api/v1/predict
+04-04 22:45:54.068 I/flutter (23361): [UPLOAD] FILE SIZE → 1684778 bytes (1645.3 KB)
+04-04 22:45:54.068 I/flutter (23361): [UPLOAD] FILE PATH → /data/user/0/com.abhijeet.furspeakai/cache/compressed_1775322945903.mp4
+04-04 22:45:54.068 I/flutter (23361): [UPLOAD] REQUEST ID → d3311e47-1de8-48de-acb4-ef84b7b801bf
+04-04 22:45:54.068 I/flutter (23361): [UPLOAD] TIME → 2026-04-04 22:45:54.067900
+04-04 22:45:54.068 I/flutter (23361): [UPLOAD] ════════════════════════════════════════════
+04-04 22:45:54.083 I/flutter (23361): [UPLOAD] ATTEMPT 1 → Sending 1645.3 KB to http://192.168.31.195:8000/api/v1/predict
+04-04 22:45:56.415 I/flutter (23361): [UPLOAD] ❌ FAILED → DioException: DioExceptionType.connectionError | The connection errored: No route to host This indicates an error which most likely cannot be solved by the library. (2347ms)
+04-04 22:45:56.415 I/flutter (23361): [UPLOAD] RETRY 1/2 → Unable to connect. Ensure your phone and server are on the same WiFi network.
+04-04 22:45:56.934 I/flutter (23361): [UPLOAD] ATTEMPT 2 → Sending 1645.3 KB to http://192.168.31.195:8000/api/v1/predict
+04-04 22:45:58.713 I/flutter (23361): [UPLOAD] ❌ FAILED → DioException: DioExceptionType.connectionError | The connection errored: No route to host This indicates an error which most likely cannot be solved by the library. (4645ms)
+04-04 22:45:58.713 I/flutter (23361): [UPLOAD] RETRY 2/2 → Unable to connect. Ensure your phone and server are on the same WiFi network.
+04-04 22:45:59.729 I/flutter (23361): [UPLOAD] ATTEMPT 3 → Sending 1645.3 KB to http://192.168.31.195:8000/api/v1/predict
+04-04 22:46:01.020 I/flutter (23361): [UPLOAD] ❌ FAILED → DioException: DioExceptionType.connectionError | The connection errored: No route to host This indicates an error which most likely cannot be solved by the library. (6952ms)
+04-04 22:46:01.020 I/flutter (23361): [UPLOAD] TOTAL WALL-CLOCK → 6952ms
+04-04 22:46:01.021 I/flutter (23361): [Orchestrator] DURATION: 15138ms

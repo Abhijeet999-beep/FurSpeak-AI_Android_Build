@@ -1,0 +1,118 @@
+04-04 22:23:47.931 D/nativeloader(25121): Load /data/app/~~FYH61xtY0DyBam4HzD5azg==/com.abhijeet.furspeakai-RQqSPM8KSpYAoZqcQ0dAxg==/base.apk!/lib/arm64-v8a/libflutter.so using class loader ns clns-6 (caller=/data/app/~~FYH61xtY0DyBam4HzD5azg==/com.abhijeet.furspeakai-RQqSPM8KSpYAoZqcQ0dAxg==/base.apk!classes20.dex): ok
+04-04 22:23:48.133 I/flutter (25121): The Dart VM service is listening on http://127.0.0.1:37919/yBHBa598dAI=/
+04-04 22:23:48.178 I/flutter (25121): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+04-04 22:23:48.215 D/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin created com.antonkarpenko.ffmpegkit.FFmpegKitFlutterPlugin@f9f51f5.
+04-04 22:23:48.255 I/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin method channel was already initialised.
+04-04 22:23:48.255 D/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin com.antonkarpenko.ffmpegkit.FFmpegKitFlutterPlugin@f9f51f5 initialised with context android.app.Application@b601871 and activity com.example.furspeak_ai.MainActivity@7c30656.
+04-04 22:23:48.356 I/jeet.furspeakai(25121): hiddenapi: Accessing hidden method Landroid/view/accessibility/AccessibilityNodeInfo;->getSourceNodeId()J (runtime_flags=0, domain=platform, api=unsupported,test-api) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app, TargetSdkVersion=36) using reflection: allowed
+04-04 22:23:48.356 I/jeet.furspeakai(25121): hiddenapi: Accessing hidden method Landroid/view/accessibility/AccessibilityRecord;->getSourceNodeId()J (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app, TargetSdkVersion=36) using reflection: allowed
+04-04 22:23:48.356 I/jeet.furspeakai(25121): hiddenapi: Accessing hidden field Landroid/view/accessibility/AccessibilityNodeInfo;->mChildNodeIds:Landroid/util/LongArray; (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app, TargetSdkVersion=36) using reflection: allowed
+04-04 22:23:48.356 I/jeet.furspeakai(25121): hiddenapi: Accessing hidden method Landroid/util/LongArray;->get(I)J (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app, TargetSdkVersion=36) using reflection: allowed
+04-04 22:23:48.439 I/flutter (25121): ✅ [INIT] .env loaded. ENVIRONMENT=development URL=http://192.168.31.195:8000
+04-04 22:23:49.399 I/flutter (25121): ✅ [INIT] Firebase initialized
+04-04 22:23:49.399 I/flutter (25121): 🟢 DI: Initializing Isar...
+04-04 22:23:49.410 I/flutter (25121): 🟢 DI: Isar initialized successfully
+04-04 22:23:49.411 I/flutter (25121): ✅ [INIT] Dependencies ready
+04-04 22:23:49.415 I/flutter (25121): ROUTER → AppSessionState(ready:false, auth:false, guest:false, onboarding:false, profile:false) → from:/splash → target:(allow)
+04-04 22:23:49.418 I/flutter (25121): ═══ AUTH LISTENER TRIGGERED ═══
+04-04 22:23:49.459 I/flutter (25121): 🧹 [CLEANUP] Starting temp directory sweep...
+04-04 22:23:49.551 I/flutter (25121): ROUTER STATE → ready:true | auth:false | guest:false | onboarding:false | profile:false | perm:false
+04-04 22:23:49.551 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:false, profile:false) → from:/splash → target:/onboarding
+04-04 22:23:49.551 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:false, profile:false) → from:/onboarding → target:(allow)
+04-04 22:23:56.894 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/onboarding → target:/welcome
+04-04 22:23:56.895 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:01.156 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:01.156 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:02.196 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:02.197 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:02.198 I/flutter (25121): [AuthError] AuthErrorType.unknown @ 2026-04-04T22:24:02.197362
+04-04 22:24:23.448 I/flutter (25121): GOOGLE SIGN-IN START
+04-04 22:24:23.449 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:23.449 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:false, guest:false, onboarding:true, profile:false) → from:/welcome → target:(allow)
+04-04 22:24:27.674 D/nativeloader( 8912): Load /data/app/~~0m-vS6A0HNCp8chcU5UU0A==/com.google.android.apps.nbu.paisa.user-3SdxEUTnwkAcdJk4CII8Yw==/split_config.arm64_v8a.apk!/lib/arm64-v8a/libflutter.so using class loader ns clns-7 (caller=/data/app/~~0m-vS6A0HNCp8chcU5UU0A==/com.google.android.apps.nbu.paisa.user-3SdxEUTnwkAcdJk4CII8Yw==/base.apk!classes2.dex): ok
+04-04 22:24:28.080 I/flutter ( 8912): [IMPORTANT:flutter/shell/common/shell.cc(528)] [Action Required]: Impeller opt-out deprecated.
+04-04 22:24:28.080 I/flutter ( 8912):     The application opted out of Impeller by either using the
+04-04 22:24:28.080 I/flutter ( 8912):     `--no-enable-impeller` flag or the
+04-04 22:24:28.080 I/flutter ( 8912):     `io.flutter.embedding.android.EnableImpeller` `AndroidManifest.xml` entry.
+04-04 22:24:28.080 I/flutter ( 8912):     These options are going to go away in an upcoming Flutter release. Remove
+04-04 22:24:28.080 I/flutter ( 8912):     the explicit opt-out. If you need to opt-out, please report a bug describing
+04-04 22:24:28.080 I/flutter ( 8912):     the issue.
+04-04 22:24:28.080 I/flutter ( 8912): 
+04-04 22:24:28.080 I/flutter ( 8912):     https://github.com/flutter/flutter/issues/new?template=02_bug.yml
+04-04 22:24:28.080 I/flutter ( 8912): 
+04-04 22:24:28.973 D/ffmpeg-kit-flutter(25121): selectDocument completed with requestCode: 53293, resultCode: -1, data: Intent { (has extras) }.
+04-04 22:24:28.973 I/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin ignored unsupported activity result for requestCode: 53293.
+04-04 22:24:29.007 I/flutter (25121): [Orchestrator] HARD RESET TRIGGERED
+04-04 22:24:30.515 D/nativeloader( 9205): Load /data/app/~~CmHIfmBTSER1CoXLg1TlDQ==/com.google.android.apps.classroom-dTl-IUW9BRlCnA0WSFtFOw==/lib/arm64/libflutter.so using class loader ns clns-6 (caller=/data/app/~~CmHIfmBTSER1CoXLg1TlDQ==/com.google.android.apps.classroom-dTl-IUW9BRlCnA0WSFtFOw==/base.apk!classes2.dex): ok
+04-04 22:24:30.775 I/flutter (25121): ═══ AUTH LISTENER TRIGGERED ═══
+04-04 22:24:30.785 I/flutter (25121): FIREBASE SIGN-IN SUCCESS: User(displayName: Abhijeet Singh, email: alevocp@gmail.com, isEmailVerified: true, isAnonymous: false, metadata: UserMetadata(creationTime: 2026-03-28 22:11:35.949Z, lastSignInTime: 2026-04-04 16:54:29.460Z), phoneNumber: null, photoURL: https://lh3.googleusercontent.com/a/ACg8ocJ_vAL0RNXuFSkl0-Zbry1szjM7Y0X-ldun4orzwSRp7LzRUUld=s96-c, providerData, [UserInfo(displayName: Abhijeet Singh, email: alevocp@gmail.com, phoneNumber: null, photoURL: https://lh3.googleusercontent.com/a/ACg8ocJ_vAL0RNXuFSkl0-Zbry1szjM7Y0X-ldun4orzwSRp7LzRUUld=s96-c, providerId: google.com, uid: 114492225679129363258)], refreshToken: null, tenantId: null, uid: gBWuXNdsp1Rb0iVXvG9t7eU9LPI2)
+04-04 22:24:30.786 I/flutter (25121): GOOGLE SIGN-IN SUCCESS → Firebase user received
+04-04 22:24:32.170 I/flutter (25121): ✅ getUser COMPLETED
+04-04 22:24:32.172 I/flutter (25121): ROUTER → AppSessionState(ready:false, auth:true, guest:false, onboarding:true, profile:false) → from:/welcome → target:/splash
+04-04 22:24:32.172 I/flutter (25121): ROUTER → AppSessionState(ready:false, auth:true, guest:false, onboarding:true, profile:false) → from:/splash → target:(allow)
+04-04 22:24:32.571 W/flutter-plugin-( 8912): type=1400 audit(0.0:15083): avc: granted { execute } for path="/data/data/com.google.android.apps.nbu.paisa.user/app_pccache2/5/32C64336DAAB52DE09299639A297EE1CAEE76804/pcam.jar" dev="dm-48" ino=3015737 scontext=u:r:untrusted_app:s0:c231,c256,c512,c768 tcontext=u:object_r:app_data_file:s0:c231,c256,c512,c768 tclass=file app=com.google.android.apps.nbu.paisa.user
+04-04 22:24:32.637 I/flutter (25121): ✅ Firestore hasAnyDogs → true
+04-04 22:24:32.637 I/flutter (25121): ROUTER STATE → ready:true | auth:true | guest:false | onboarding:true | profile:true | perm:false
+04-04 22:24:32.637 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/splash → target:/home
+04-04 22:24:32.638 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/home → target:(allow)
+04-04 22:24:58.032 I/flutter (25121): [Orchestrator] HARD RESET TRIGGERED
+04-04 22:25:04.144 D/ffmpeg-kit-flutter(25121): selectDocument completed with requestCode: 2352, resultCode: -1, data: Intent { dat=content://media/... flg=0x41 }.
+04-04 22:25:04.144 I/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin ignored unsupported activity result for requestCode: 2352.
+04-04 22:25:04.174 I/flutter (25121): [Orchestrator] HARD RESET TRIGGERED
+04-04 22:25:04.402 I/flutter (25121): [Orchestrator] ENQUEUE: processing id=[#fd0e5] queue=1
+04-04 22:25:04.403 I/flutter (25121): [Orchestrator] EXECUTE: processing id=[#fd0e5]
+04-04 22:25:05.111 I/flutter (25121): [Orchestrator] DURATION: 708ms
+04-04 22:25:05.113 I/flutter (25121): [Orchestrator] ENQUEUE: preview id=[#ed342] queue=1
+04-04 22:25:05.126 I/flutter (25121): [Orchestrator] EXECUTE: preview id=[#ed342]
+04-04 22:25:05.368 I/flutter (25121): [Orchestrator] DURATION: 241ms
+04-04 22:25:06.409 I/flutter (25121): DateTime: Apr 4, 2026 - 22:25:06
+04-04 22:25:06.409 I/flutter (25121): Formatted: Apr4,2026-22:25:06
+04-04 22:25:06.419 I/flutter (25121): Creating
+04-04 22:25:06.422 I/flutter (25121): Retrieved Trimmer folder
+04-04 22:25:06.422 I/flutter (25121): Start: 0:00:00.000000 & End: 0:00:30.000000
+04-04 22:25:06.422 I/flutter (25121): /data/user/0/com.abhijeet.furspeakai/app_flutter/Trimmer/
+04-04 22:25:08.571 I/flutter (25121): Loading ffmpeg-kit-flutter.
+04-04 22:25:08.572 I/flutter (25121): 🛑 [COMPRESSOR] FFmpeg execution cancelled.
+04-04 22:25:08.572 I/flutter (25121): [Orchestrator] FORCE RELEASE PREVIEW
+04-04 22:25:08.677 I/flutter (25121): Loaded ffmpeg-kit-flutter-android-min-gpl-arm64-v8a-8.0.0.
+04-04 22:25:08.765 I/flutter (25121): [Orchestrator] ENQUEUE: processing id=902c1445-68a2-4a11-8c1b-0e6b4d9bad4b queue=1
+04-04 22:25:08.765 I/flutter (25121): [Orchestrator] EXECUTE: processing id=902c1445-68a2-4a11-8c1b-0e6b4d9bad4b
+04-04 22:25:08.766 I/flutter (25121): 🎬 [COMPRESSOR] Video size: 11.24 MB
+04-04 22:25:08.768 I/flutter (25121): 📦 [COMPRESSOR] Tier 1 light (5–15 MB) → 480p @ 15fps CRF 32 | ultrafast, 2 threads, GOP 15, hwaccel auto
+04-04 22:25:17.101 I/flutter (25121): ⏱️ [COMPRESSOR] FFmpeg wall-clock: 8332 ms
+04-04 22:25:17.108 I/flutter (25121): ✅ [COMPRESSOR] 11.24 MB → 1923 KB (83.3% reduction) | 480p @ 15fps | 8332ms
+04-04 22:25:17.120 I/flutter (25121): 🚀 [API SERVICE] Attempting Upload to: http://192.168.31.195:8000/api/v1/predict (ID: 902c1445-68a2-4a11-8c1b-0e6b4d9bad4b)
+04-04 22:25:19.421 I/flutter (25121): [Orchestrator] DURATION: 10656ms
+04-04 22:25:22.241 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/history → target:(allow)
+04-04 22:25:22.248 I/flutter (25121): 📜 [HISTORY] loadHistory() called
+04-04 22:25:22.249 I/flutter (25121): 📊 [STORAGE] Computing insights from 0 records...
+04-04 22:25:22.260 I/flutter (25121): 📜 [STORAGE] Fetching history (limit: 50, offset: 0)
+04-04 22:25:22.261 I/flutter (25121): 📜 [STORAGE] History loaded: 0 items
+04-04 22:25:22.261 I/flutter (25121): 📜 [HISTORY] loadHistory() successful. Results: 0, Top Emotion: None yet
+04-04 22:25:23.359 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/home → target:(allow)
+04-04 22:25:24.306 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/home → target:(allow)
+04-04 22:25:25.021 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/history → target:(allow)
+04-04 22:25:25.487 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/history → target:(allow)
+04-04 22:25:25.658 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/history → target:(allow)
+04-04 22:25:26.035 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/home → target:(allow)
+04-04 22:25:26.438 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/home → target:(allow)
+04-04 22:25:26.983 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/history → target:(allow)
+04-04 22:25:28.660 D/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin uninitialized.
+04-04 22:25:28.660 D/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin detached from activity.
+04-04 22:25:31.325 I/flutter (25121): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+04-04 22:25:31.348 D/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin created com.antonkarpenko.ffmpegkit.FFmpegKitFlutterPlugin@5e872e7.
+04-04 22:25:31.348 I/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin method channel was already initialised.
+04-04 22:25:31.348 D/ffmpeg-kit-flutter(25121): FFmpegKitFlutterPlugin com.antonkarpenko.ffmpegkit.FFmpegKitFlutterPlugin@5e872e7 initialised with context android.app.Application@b601871 and activity com.example.furspeak_ai.MainActivity@ca57e94.
+04-04 22:25:31.400 I/flutter (25121): ✅ [INIT] .env loaded. ENVIRONMENT=development URL=http://192.168.31.195:8000
+04-04 22:25:31.642 I/flutter (25121): ✅ [INIT] Firebase initialized
+04-04 22:25:31.642 I/flutter (25121): 🟢 DI: Initializing Isar...
+04-04 22:25:31.650 I/flutter (25121): 🟢 DI: Isar initialized successfully
+04-04 22:25:31.651 I/flutter (25121): ✅ [INIT] Dependencies ready
+04-04 22:25:31.654 I/flutter (25121): ROUTER → AppSessionState(ready:false, auth:false, guest:false, onboarding:false, profile:false) → from:/splash → target:(allow)
+04-04 22:25:31.656 I/flutter (25121): ═══ AUTH LISTENER TRIGGERED ═══
+04-04 22:25:31.686 I/flutter (25121): 🧹 [CLEANUP] Starting temp directory sweep...
+04-04 22:25:31.871 I/flutter (25121): ✅ getUser COMPLETED
+04-04 22:25:32.063 I/flutter (25121): ✅ Firestore hasAnyDogs → true
+04-04 22:25:32.063 I/flutter (25121): ROUTER STATE → ready:true | auth:true | guest:false | onboarding:true | profile:true | perm:false
+04-04 22:25:32.063 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/splash → target:/home
+04-04 22:25:32.064 I/flutter (25121): ROUTER → AppSessionState(ready:true, auth:true, guest:false, onboarding:true, profile:true) → from:/home → target:(allow)

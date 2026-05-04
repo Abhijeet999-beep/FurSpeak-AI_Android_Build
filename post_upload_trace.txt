@@ -1,0 +1,2 @@
+04-04 22:51:54.811 D/ffmpeg-kit-flutter(29191): selectDocument completed with requestCode: 2352, resultCode: -1, data: Intent { dat=content://media/... flg=0x41 }.
+04-04 22:51:54.811 I/ffmpeg-kit-flutter(29191): FFmpegKitFlutterPlugin ignored unsupported activity result for requestCode: 2352.

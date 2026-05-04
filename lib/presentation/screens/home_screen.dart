@@ -2,17 +2,26 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:lottie/lottie.dart';
-import 'package:furspeak_ai/services/auth_service.dart';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:furspeak_ai/presentation/screens/video_trimmer_screen.dart';
+import 'package:furspeak_ai/presentation/screens/camera_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:furspeak_ai/data/services/api_service.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
-import 'package:furspeak_ai/presentation/screens/preview_screen.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/theme/app_animations.dart';
+
+import 'package:furspeak_ai/utils/error_mapper.dart';
+import 'package:provider/provider.dart';
+import 'package:furspeak_ai/providers/auth_provider.dart';
+
+import 'package:furspeak_ai/providers/home_pipeline_provider.dart';
+import 'package:furspeak_ai/media/services/media_validator.dart';
+
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,63 +31,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  final _authService = AuthService();
-  bool _isProcessing = false;
-  bool _isLoading = false;
-  Map<String, dynamic>? _pendingResult;
-  String? _pendingFilePath;
-  bool _isVideo = false;
+  bool _isRetrying = false;
 
-  // Animation assets
-  final List<String> _dogAnimations = List.generate(
-    10,
-    (i) => 'assets/animations/dog_${i + 1}.json',
-  );
-  int _currentAnimIndex = 0;
-  late Timer _timer;
-  final List<LottieComposition?> _preloadedCompositions = List.filled(10, null);
-  bool _allPreloaded = false;
-
-  // Add a state variable to track analysis completion
-  bool _analysisComplete = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _preloadLotties();
-    _startAnimationShuffle();
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  void _preloadLotties() async {
-    for (int i = 0; i < _dogAnimations.length; i++) {
-      final comp = await AssetLottie('' + _dogAnimations[i]).load();
-      _preloadedCompositions[i] = comp;
-      if (i == _dogAnimations.length - 1) {
-        setState(() {
-          _allPreloaded = true;
-        });
-      }
-    }
-  }
-
-  void _startAnimationShuffle() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      setState(() {
-        int next;
-        do {
-          next =
-              (List.generate(_dogAnimations.length, (i) => i)..shuffle()).first;
-        } while (next == _currentAnimIndex);
-        _currentAnimIndex = next;
-      });
-    });
-  }
 
   Future<bool> checkAllMediaPermissions() async {
     final camera = await Permission.camera.status;
@@ -108,62 +62,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return camera.isGranted && mic.isGranted && storage;
   }
 
-  Future<void> _processMedia(String filePath, bool isVideo) async {
-    setState(() {
-      _isProcessing = true;
-      _isLoading = true;
-      _pendingFilePath = filePath;
-      _isVideo = isVideo;
-    });
 
-    try {
-      final apiService = ApiServiceFactory.create();
-      final response = await apiService.detectEmotion(File(filePath));
+  Future<void> _startPipeline(String filePath, bool isVideo) async {
+    final authProvider = context.read<AuthProvider>();
+    final pipeline = context.read<HomePipelineProvider>();
+    
+    await pipeline.processNewMedia(filePath, isVideo, authProvider);
 
-      if (!mounted) return;
-
-      setState(() {
-        _pendingResult = {
-          'imagePath': filePath,
-          'emotion': response.emotion,
-          'confidence': response.confidence,
-          'caption': response.caption,
-          'processing_time': response.processingTime,
-          'timestamp': response.timestamp,
-          'video_info': response.videoInfo,
-          'frame_image_path': response.frameImagePath,
-          'frame_image_url': response.frameImageUrl,
-        };
-        _isProcessing = false;
-        _isLoading = false;
-        _analysisComplete = true;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isProcessing = false;
-        _isLoading = false;
-        _pendingResult = null;
-        _pendingFilePath = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error processing media: ${e.toString()}',
-            style: AppTheme.bodyStyle.copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppTheme.errorColor,
-        ),
-      );
-    }
+    if (!mounted) return;
+    final resultId = pipeline.consumeSuccess();
+    if (resultId == null) return;
+    
+    context.pushResult(resultId);
+    if (mounted) pipeline.resetPipeline();
   }
 
-  void _handleCapture() async {
+  void _showMediaPicker() async {
+    final pipeline = context.read<HomePipelineProvider>();
+    if (pipeline.isProcessing) return;
     HapticFeedback.mediumImpact();
-    setState(() {
-      _isLoading = true;
-      _isProcessing = true;
-    });
+
     final permissions = [
       Permission.camera,
       Permission.microphone,
@@ -174,181 +92,108 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await permissions.request();
     final hasPermissions = await checkAllMediaPermissions();
     if (!hasPermissions) {
-      setState(() {
-        _isLoading = false;
-        _isProcessing = false;
-      });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Camera, microphone and storage permissions are required.',
-            style: AppTheme.bodyStyle,
-          ),
-          backgroundColor: AppTheme.errorColor,
-        ),
+      _showFriendlySnackBar(
+        '📷 Camera and storage permissions are required',
+        Icons.no_photography_rounded,
       );
       return;
     }
-    setState(() {
-      _isLoading = false;
-    });
-    final result = await context.push<String>('/camera');
-    if (result != null && mounted) {
-      final isVideo = result.toLowerCase().endsWith('.mp4') ||
-          result.toLowerCase().endsWith('.mov') ||
-          result.toLowerCase().endsWith('.avi');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                isVideo ? Icons.videocam : Icons.camera_alt,
-                color: AppTheme.successColor,
-              ),
-              SizedBox(width: 8),
-              Text(
-                isVideo ? 'Video captured!' : 'Image captured!',
-                style: AppTheme.bodyStyle,
-              ),
-            ],
-          ),
-          backgroundColor: Colors.white,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-
-      setState(() {
-        _isLoading = true;
-        _isProcessing = true;
-      });
-      await _processMedia(result, isVideo);
-    } else {
-      setState(() {
-        _isLoading = false;
-        _isProcessing = false;
-      });
-    }
-  }
-
-  void _handleGallery() async {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _isLoading = true;
-      _isProcessing = true;
-    });
-    final permissions = [
-      Permission.camera,
-      Permission.microphone,
-      Permission.storage,
-      Permission.photos,
-      Permission.videos,
-    ];
-    await permissions.request();
-    final hasPermissions = await checkAllMediaPermissions();
-    if (!hasPermissions) {
-      setState(() {
-        _isLoading = false;
-        _isProcessing = false;
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Camera, microphone and storage permissions are required.',
-            style: AppTheme.bodyStyle,
-          ),
-          backgroundColor: AppTheme.errorColor,
-        ),
-      );
-      return;
-    }
     final picker = ImagePicker();
     final choice = await showModalBottomSheet<String>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surfaceActive,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
       ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: AppTheme.space8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceElevated,
+                borderRadius: AppTheme.borderRadiusPill,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space16),
             ListTile(
-              leading: const Icon(Icons.image, color: AppTheme.primaryColor),
+              leading: const Icon(Icons.camera_alt_rounded, color: AppTheme.primaryColor),
+              title: Text('Use Camera', style: AppTheme.titleStyle),
+              subtitle: Text('Take a new photo or video', style: AppTheme.captionStyle),
+              onTap: () => Navigator.pop(context, 'camera'),
+            ),
+            Divider(height: 1, color: AppTheme.surfaceLow),
+            ListTile(
+              leading:
+                  const Icon(Icons.image_rounded, color: AppTheme.primaryColor),
               title: Text('Pick Image', style: AppTheme.titleStyle),
+              subtitle: Text('Select a photo from gallery',
+                  style: AppTheme.captionStyle),
               onTap: () => Navigator.pop(context, 'image'),
             ),
+            Divider(height: 1, color: AppTheme.surfaceLow),
             ListTile(
-              leading: const Icon(Icons.videocam, color: AppTheme.accentColor),
+              leading:
+                  const Icon(Icons.videocam_rounded, color: AppTheme.accentColor),
               title: Text('Pick Video', style: AppTheme.titleStyle),
+              subtitle: Text('Select a video from gallery',
+                  style: AppTheme.captionStyle),
               onTap: () => Navigator.pop(context, 'video'),
             ),
+            const SizedBox(height: AppTheme.space12),
           ],
         ),
       ),
     );
-    if (choice == null) {
-      setState(() {
-        _isLoading = false;
-        _isProcessing = false;
-      });
-      return;
-    }
-    if (choice == 'image') {
-      final picked = await picker.pickImage(source: ImageSource.gallery);
-      setState(() {
-        _isLoading = false;
-        _isProcessing = false;
-      });
-      if (picked == null) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.camera_alt, color: AppTheme.successColor),
-              SizedBox(width: 8),
-              Text('Image selected!', style: AppTheme.bodyStyle),
-            ],
-          ),
-          backgroundColor: Colors.white,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          duration: const Duration(seconds: 2),
-        ),
+    if (choice == null) return;
+
+    if (choice == 'camera') {
+      if (!mounted) return;
+      final result = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const CameraScreen()),
       );
 
-      setState(() {
-        _isLoading = true;
-        _isProcessing = true;
-      });
-      await _processMedia(picked.path, false);
+      if (result != null && mounted) {
+        final isVideo = result.toLowerCase().endsWith('.mp4') ||
+            result.toLowerCase().endsWith('.mov') ||
+            result.toLowerCase().endsWith('.avi');
+
+        _showFriendlySnackBar(
+          isVideo ? '🎥 Video captured!' : '📷 Image captured!',
+          isVideo ? Icons.videocam : Icons.camera_alt,
+        );
+
+        await _startPipeline(result, isVideo);
+      }
       return;
     }
+
+    if (choice == 'image') {
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+
+      if (!mounted) return;
+      _showFriendlySnackBar('📷 Image selected!', Icons.camera_alt);
+      await _startPipeline(picked.path, false);
+      return;
+    }
+
     if (choice == 'video') {
       final picked = await picker.pickVideo(source: ImageSource.gallery);
-      if (picked == null) {
-        setState(() {
-          _isLoading = false;
-          _isProcessing = false;
-        });
-        return;
-      }
-      final controller = VideoPlayerController.file(File(picked.path));
-      await controller.initialize();
-      final duration = controller.value.duration;
-      await controller.dispose();
-      setState(() {
-        _isLoading = false;
-      });
+      if (picked == null) return;
 
-      if (duration.inSeconds > 30) {
-        if (!mounted) return;
+      final durationSeconds = await MediaValidator.getDurationSeconds(File(picked.path));
+
+      if (!mounted) return;
+
+      if (durationSeconds > 30) {
         final trimmed = await Navigator.push<String>(
           context,
           MaterialPageRoute(
@@ -361,282 +206,645 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
         if (trimmed != null) {
-          setState(() {
-            _isLoading = true;
-            _isProcessing = true;
-          });
-          await _processMedia(trimmed, true);
-        } else {
-          setState(() {
-            _isLoading = false;
-            _isProcessing = false;
-          });
+          if (!mounted) return;
+          await _startPipeline(trimmed, true);
         }
       } else {
-        setState(() {
-          _isLoading = true;
-          _isProcessing = true;
-        });
-        await _processMedia(picked.path, true);
+        await _startPipeline(picked.path, true);
       }
     }
   }
 
-  void _handleStartDetection() {
-    if (_pendingResult != null) {
-      context.goResult(_pendingResult!);
+  void _handleRetry() async {
+    if (_isRetrying) return;
+    setState(() {
+      _isRetrying = true;
+    });
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final pipeline = context.read<HomePipelineProvider>();
+      
+      final isStorageError = pipeline.error?.userMessage == 'Failed to save result. Please try again.';
+
+      if (isStorageError) {
+        await pipeline.retryStorage();
+      } else {
+        await pipeline.retryPipeline(authProvider);
+      }
+
+      if (!mounted) return;
+      final resultId = pipeline.consumeSuccess();
+      if (resultId == null) return;
+      
+      context.pushResult(resultId);
+      if (mounted) pipeline.resetPipeline();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRetrying = false;
+        });
+      }
     }
+  }
+
+  void _showFriendlySnackBar(String message, IconData icon) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 22),
+            const SizedBox(width: AppTheme.space12),
+            Expanded(
+              child: Text(
+                message,
+                style: AppTheme.captionStyle.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.textColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+        duration: const Duration(seconds: 2),
+        margin: const EdgeInsets.all(AppTheme.space16),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_isProcessing || _isLoading) return false;
-        // If there is a pending result, always go to Home root
-        if (_pendingResult != null) {
-          context.goHome();
-          return false;
-        }
-        return true;
-      },
-      child: Scaffold(
+    // 1. Isolate rebuilds to just the isProcessing boundary
+    final isProcessing = context.select((HomePipelineProvider p) => p.isProcessing);
+    final isGuest = context.select((AuthProvider p) => p.isGuest);
+
+    return Scaffold(
+        backgroundColor: AppTheme.bgColor,
         body: Stack(
-          children: [
-            // Subtle background paw prints for playfulness
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.07,
-                child: Lottie.asset(
-                  'assets/animations/paw_prints_bg.json',
-                  fit: BoxFit.cover,
-                  repeat: true,
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 36),
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'PawMood ',
-                          style: AppTheme.headingStyle.copyWith(
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                        const Icon(Icons.pets,
-                            color: AppTheme.primaryColor, size: 32),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                    // Animated Dog in a playful card
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 700),
-                      switchInCurve: Curves.easeInOut,
-                      switchOutCurve: Curves.easeInOut,
-                      child: Container(
-                        key: ValueKey(_currentAnimIndex),
-                        width: 320,
-                        height: 320,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(40),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 32,
-                              offset: const Offset(0, 12),
-                            ),
-                          ],
-                          border: Border.all(
-                            color: AppTheme.primaryColor.withOpacity(0.08),
-                            width: 2,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18.0),
-                          child: _allPreloaded &&
-                                  _preloadedCompositions[_currentAnimIndex] !=
-                                      null
-                              ? Lottie(
-                                  composition: _preloadedCompositions[
-                                      _currentAnimIndex]!,
-                                  fit: BoxFit.contain,
-                                )
-                              : Lottie.asset(_dogAnimations[_currentAnimIndex],
-                                  fit: BoxFit.contain),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24), // Reduced space below animation
-                    // Buttons
-                    _HomeActionButton(
-                      label: 'Capture Image or Video',
-                      color: AppTheme.successColor,
-                      icon: Icons.camera_alt,
-                      onPressed:
-                          _isProcessing || _isLoading ? null : _handleCapture,
-                      height: 58,
-                    ),
-                    const SizedBox(height: 14),
-                    _HomeActionButton(
-                      label: 'Upload from Gallery',
-                      color: AppTheme.primaryColor,
-                      icon: Icons.photo_library,
-                      onPressed:
-                          _isProcessing || _isLoading ? null : _handleGallery,
-                      height: 58,
-                    ),
-                    const SizedBox(height: 14),
-                    _HomeActionButton(
-                      label: 'Start Detection',
-                      color: AppTheme.accentColor,
-                      icon: Icons.auto_awesome,
-                      onPressed: _isProcessing ? null : _handleStartDetection,
-                      height: 58,
-                    ),
-                    const Spacer(),
-                    SizedBox(height: 8), // Add a little space above nav bar
-                  ],
-                ),
-              ),
-            ),
-            // Fixed analysis complete note
-            if (_analysisComplete && !_isProcessing && !_isLoading)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 56, // closer to nav bar, less overlap
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 28, vertical: 4),
-                  child: Material(
-                    elevation: 10,
-                    borderRadius: BorderRadius.circular(18),
-                    color: Colors.white,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.10),
-                            blurRadius: 18,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle,
-                              color: AppTheme.successColor, size: 24),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Analysis complete! Tap "Start Detection" to view results.',
-                              style: AppTheme.bodyStyle.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (_isLoading || _isProcessing)
-              Container(
-                color: Colors.black.withOpacity(0.3),
-                child: Center(
+            children: [
+              // Subtle background paw prints
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.05,
                   child: Builder(
                     builder: (context) {
                       try {
                         return Lottie.asset(
-                          'assets/animations/loading.json',
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.contain,
+                          'assets/animations/paw_prints_bg.json',
+                          fit: BoxFit.cover,
+                          repeat: true,
                         );
                       } catch (_) {
-                        return const CircularProgressIndicator();
+                        return const SizedBox.shrink();
                       }
                     },
                   ),
                 ),
               ),
-          ],
-        ),
-        backgroundColor: AppTheme.bgColor,
-      ),
-    );
+
+              IgnorePointer(
+                ignoring: isProcessing,
+                child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: AppTheme.space24),
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'FurSpeak ',
+                            style: AppTheme.headingStyle.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontSize: 28,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              borderRadius: AppTheme.borderRadiusMedium,
+                            ),
+                            child: const Icon(Icons.pets_rounded,
+                                color: AppTheme.primaryColor, size: 24),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppTheme.space8),
+                      Text(
+                        'Understand what your dog is feeling',
+                        style: AppTheme.captionStyle.copyWith(fontSize: 14),
+                      ),
+                      if (isGuest) ...[
+                        const SizedBox(height: AppTheme.space12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentColor.withOpacity(0.1),
+                            borderRadius: AppTheme.borderRadiusPill,
+                            border: Border.all(color: AppTheme.accentColor.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.pets, size: 14, color: AppTheme.accentColor),
+                              const SizedBox(width: AppTheme.space8),
+                              Flexible(
+                                child: Text(
+                                  "Scanning as guest — sign in to save your dog's insights",
+                                  style: AppTheme.captionStyle.copyWith(
+                                    color: AppTheme.accentColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppTheme.space24),
+                      
+                      // Animated Dog Card
+                      Container(
+                        width: double.infinity,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceActive,
+                          borderRadius: AppTheme.borderRadiusLarge,
+                          boxShadow: AppTheme.floatShadow,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.space16),
+                          child: Builder(
+                            builder: (context) {
+                              try {
+                                return Lottie.asset(
+                                  'assets/animations/dog_happy.json',
+                                  fit: BoxFit.contain,
+                                );
+                              } catch (_) {
+                                return const Center(
+                                  child: Icon(Icons.pets_rounded, size: 64, color: AppTheme.primaryColor),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 32),
+
+                      // ═══ PRIMARY CTA: Scan Emotion ═══
+                      BoundedPulse(
+                        child: SquishButton(
+                          onPressed: isProcessing ? null : _showMediaPicker,
+                          pressScale: 0.95,
+                          child: Container(
+                            width: double.infinity,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: AppTheme.borderRadiusLarge,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withOpacity(0.3),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: AppTheme.borderRadiusMedium,
+                                  ),
+                                  child: const Icon(Icons.document_scanner_rounded, size: 24, color: Colors.white),
+                                ),
+                                const SizedBox(width: AppTheme.space12),
+                                Text(
+                                  'Scan Emotion',
+                                  style: AppTheme.titleStyle.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppTheme.space16),
+
+                      // View Results CTA (only when result ready)
+                      Selector<HomePipelineProvider, bool>(
+                        selector: (_, p) => p.state == HomeState.success,
+                        builder: (context, isResult, _) {
+                          if (!isResult) return const SizedBox.shrink();
+                          
+                          return BoundedPulse(
+                            maxPulses: 3,
+                            child: SquishButton(
+                              onPressed: () {
+                                final pipeline = context.read<HomePipelineProvider>();
+                                final resultId = pipeline.consumeSuccess();
+                                if (resultId != null) {
+                                  context.pushResult(resultId);
+                                  pipeline.resetPipeline();
+                                } else {
+                                  if (pipeline.lastResultId != null) context.pushResult(pipeline.lastResultId!);
+                                  pipeline.resetPipeline();
+                                }
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.successColor,
+                                  borderRadius: AppTheme.borderRadiusLarge,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.successColor.withOpacity(0.3),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.auto_awesome_rounded, size: 22, color: Colors.white),
+                                    const SizedBox(width: AppTheme.space8),
+                                    Text(
+                                      'View Results ✨',
+                                      style: AppTheme.titleStyle.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+              ),
+              // ===== ERROR STATE CARD =====
+              Selector<HomePipelineProvider, AppError?>(
+                selector: (_, p) => p.state == HomeState.error ? p.error : null,
+                builder: (context, error, _) {
+                  if (error == null) return const SizedBox.shrink();
+                  
+                  return Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 56,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      child: Material(
+                        elevation: 0,
+                        borderRadius: AppTheme.borderRadiusLarge,
+                        color: AppTheme.surfaceActive,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            borderRadius: AppTheme.borderRadiusLarge,
+                            color: AppTheme.surfaceActive,
+                            boxShadow: AppTheme.floatShadow,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Emoji hero
+                              Text(
+                                error.emoji,
+                                style: const TextStyle(fontSize: 40),
+                              ),
+                              const SizedBox(height: AppTheme.space12),
+                              // Main message
+                              Text(
+                                error.userMessage,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.titleStyle.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              // Hint / guidance
+                              if (error.hint != null) ...[
+                                const SizedBox(height: AppTheme.space8),
+                                Text(
+                                  error.hint!,
+                                  textAlign: TextAlign.center,
+                                  style: AppTheme.captionStyle.copyWith(
+                                    fontSize: 13,
+                                    color: AppTheme.textLightColor,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: AppTheme.space16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  TextButton(
+                                    onPressed: () => context.read<HomePipelineProvider>().reset(),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppTheme.textLightColor,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 10),
+                                    ),
+                                    child: const Text('Dismiss'),
+                                  ),
+                                  if (error.canRetry) ...[
+                                    const SizedBox(width: AppTheme.space12),
+                                    SquishButton(
+                                      onPressed: _handleRetry,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: AppTheme.space24, vertical: AppTheme.space12),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryColor,
+                                          borderRadius: AppTheme.borderRadiusMedium,
+                                          boxShadow: AppTheme.softShadow,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.refresh_rounded,
+                                                size: 18, color: Colors.white),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Try Again',
+                                              style: AppTheme.titleStyle.copyWith(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              // ===== RESULT STATE CARD =====
+              Selector<HomePipelineProvider, bool>(
+                selector: (_, p) => p.state == HomeState.success && p.result != null,
+                builder: (context, hasResult, _) {
+                  if (!hasResult) return const SizedBox.shrink();
+                  return Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 56,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppTheme.space24, vertical: 4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: AppTheme.space16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceActive,
+                          borderRadius: AppTheme.borderRadiusLarge,
+                          boxShadow: AppTheme.floatShadow,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.successColor.withOpacity(0.1),
+                                borderRadius: AppTheme.borderRadiusMedium,
+                              ),
+                              child: Icon(Icons.check_circle_rounded,
+                                  color: AppTheme.successColor, size: 28),
+                            ),
+                            const SizedBox(width: AppTheme.space12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Analysis complete! ✨',
+                                    style: AppTheme.titleStyle.copyWith(
+                                      fontSize: 16,
+                                      color: AppTheme.successColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Tap "View Results" to see details',
+                                    style: AppTheme.captionStyle
+                                        .copyWith(fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // ===== PROCESSING OVERLAY (Stage-Based) =====
+              if (isProcessing)
+                Consumer<HomePipelineProvider>(
+                  builder: (context, pipeline, _) {
+                    return Container(
+                      color: Colors.black.withOpacity(0.5),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            RepaintBoundary(
+                              child: Builder(
+                                builder: (context) {
+                                  try {
+                                    return Lottie.asset(
+                                      'assets/animations/loading.json',
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.contain,
+                                    );
+                                  } catch (_) {
+                                    return const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppTheme.primaryColor),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: AppTheme.space24),
+                            PetMoodGlass(
+                              opacity: 0.92,
+                              borderRadius: AppTheme.borderRadiusLarge,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: AppTheme.space24,
+                                    vertical: AppTheme.space16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Stage indicator
+                                    _PipelineStageIndicator(state: pipeline.state),
+                                    const SizedBox(height: AppTheme.space12),
+                                    ProcessingMessageRotator(
+                                      isActive: true,
+                                      textStyle: AppTheme.titleStyle.copyWith(
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if (pipeline.statusMessage.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        pipeline.statusMessage,
+                                        style: AppTheme.captionStyle.copyWith(
+                                          fontSize: 12,
+                                          color: AppTheme.textLightColor,
+                                        ),
+                                      ),
+                                    ],
+                                    if (isGuest) ...[
+                                      const SizedBox(height: AppTheme.space12),
+                                      Text(
+                                        "Sign in after to save results",
+                                        style: AppTheme.captionStyle.copyWith(
+                                          fontSize: 12,
+                                          color: AppTheme.accentColor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            TextButton.icon(
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                pipeline.cancelProcessing();
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.surfaceActive,
+                                backgroundColor: AppTheme.surfaceActive.withOpacity(0.2),
+                                padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24, vertical: AppTheme.space12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: AppTheme.borderRadiusPill,
+                                ),
+                              ),
+                              icon: const Icon(Icons.close_rounded, size: 20),
+                              label: Text('Cancel', style: AppTheme.titleStyle.copyWith(color: AppTheme.surfaceActive, fontSize: 14)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+      );
   }
 }
 
-class _HomeActionButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final double height;
-
-  const _HomeActionButton({
-    required this.label,
-    required this.color,
-    required this.icon,
-    this.onPressed,
-    this.height = 58,
-  });
+class _PipelineStageIndicator extends StatelessWidget {
+  final HomeState state;
+  const _PipelineStageIndicator({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: SizedBox(
-        width: double.infinity,
-        height: height,
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.white,
-            elevation: 10,
-            shadowColor: color.withOpacity(0.25),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            textStyle: AppTheme.titleStyle.copyWith(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(8),
-                child: Icon(icon, size: 28, color: Colors.white),
+    final stages = [
+      ('Preparing', HomeState.compressing),
+      ('Uploading', HomeState.uploading),
+      ('Analyzing', HomeState.processing),
+    ];
+
+    int activeIndex = stages.indexWhere((s) => s.$2 == state);
+    if (activeIndex < 0) activeIndex = 0;
+    
+    final currentStep = activeIndex + 1;
+    final totalSteps = stages.length;
+    final progress = currentStep / totalSteps;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              stages[activeIndex].$1,
+              style: AppTheme.titleStyle.copyWith(
+                fontSize: 13,
+                color: AppTheme.primaryColor,
               ),
-            ],
+            ),
+            Text(
+              'Step $currentStep of $totalSteps',
+              style: AppTheme.captionStyle.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTheme.space8),
+        ClipRRect(
+          borderRadius: AppTheme.borderRadiusPill,
+          child: AnimatedContainer(
+            duration: AppTheme.animMedium,
+            height: 6,
+            width: double.infinity,
+            alignment: Alignment.centerLeft,
+            decoration: const BoxDecoration(
+              color: AppTheme.surfaceElevated,
+            ),
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: AppTheme.borderRadiusPill,
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

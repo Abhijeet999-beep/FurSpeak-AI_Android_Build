@@ -36,7 +36,7 @@ class GuestModeWarningScreen extends StatelessWidget {
               const SizedBox(height: 32),
               // Title
               const Text(
-                'Guest Mode',
+                'Unlock Full Experience',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 28,
@@ -47,7 +47,7 @@ class GuestModeWarningScreen extends StatelessWidget {
               const SizedBox(height: 16),
               // Description
               const Text(
-                'This feature is not available in guest mode. Sign in to access:',
+                'Track your dog\'s emotional journey over time. Sign in to access:',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 16,
@@ -102,7 +102,7 @@ class GuestModeWarningScreen extends StatelessWidget {
               TextButton(
                 onPressed: onContinue,
                 child: const Text(
-                  'Continue as Guest',
+                  'Keep Exploring',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 16,

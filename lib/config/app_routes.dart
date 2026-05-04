@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:furspeak_ai/models/app_session_state.dart';
 import 'package:go_router/go_router.dart';
 import 'package:furspeak_ai/presentation/screens/splash_screen.dart';
 import 'package:furspeak_ai/presentation/screens/onboarding_screen.dart';
@@ -7,17 +8,55 @@ import 'package:furspeak_ai/presentation/screens/home_screen.dart';
 import 'package:furspeak_ai/presentation/screens/history_screen.dart';
 import 'package:furspeak_ai/presentation/screens/result_screen.dart';
 import 'package:furspeak_ai/presentation/screens/settings_screen.dart';
-import 'package:furspeak_ai/presentation/screens/preview_screen.dart';
-import 'package:furspeak_ai/presentation/screens/video_trimmer_screen.dart';
-import 'package:furspeak_ai/presentation/screens/camera_screen.dart';
 import 'package:furspeak_ai/presentation/screens/login_screen.dart';
 import 'package:furspeak_ai/presentation/screens/signup_screen.dart';
 import 'package:furspeak_ai/presentation/screens/profile_setup_screen.dart';
+import 'package:furspeak_ai/presentation/screens/welcome_screen.dart';
+import 'package:furspeak_ai/presentation/screens/phone_input_screen.dart';
+import 'package:furspeak_ai/presentation/screens/otp_verification_screen.dart';
+import 'package:furspeak_ai/presentation/screens/permission_screen.dart';
 import 'package:furspeak_ai/widgets/root_nav_shell.dart';
 import 'package:furspeak_ai/widgets/error_widget.dart';
-import 'package:furspeak_ai/services/auth_service.dart';
+import 'package:furspeak_ai/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:get_it/get_it.dart';
+import 'package:furspeak_ai/controllers/history_controller.dart';
+import 'package:furspeak_ai/services/result_storage_service.dart';
+// =============================================================================
+// ROUTE ACCESS TABLE
+// =============================================================================
+//
+// ┌─────────────────────┬─────────────────────────────────────────────────────┐
+// │ Category            │ Routes                                            │
+// ├─────────────────────┼─────────────────────────────────────────────────────┤
+// │ PUBLIC              │ /welcome, /signup, /phone-login, /email-login,     │
+// │ (unauthenticated)   │ /otp-verify                                       │
+// ├─────────────────────┼─────────────────────────────────────────────────────┤
+// │ TRANSITIONAL        │ /splash (loading), /onboarding (first-run),        │
+// │ (system-managed)    │ /profile-setup (incomplete profile),               │
+// │                     │ /guest-warning (guest gate), /permissions          │
+// ├─────────────────────┼─────────────────────────────────────────────────────┤
+// │ PROTECTED           │ /home, /history, /settings, /result               │
+// │ (authenticated)     │                                                   │
+// └─────────────────────┴─────────────────────────────────────────────────────┘
+//
+// REDIRECT RULES (evaluated top-to-bottom, first match wins):
+//
+// 1. NOT ready           → /splash   (loading screen)
+// 2. NOT onboarded       → /onboarding
+// 3. NOT authenticated   → /welcome  (unless already on a public route)
+// 4. Auth + !guest +     → /profile-setup
+//    !profileComplete
+// 5. Auth + on a         → /home     (block re-entry to auth/onboarding)
+//    restricted route
+// 6. Otherwise           → null      (allow navigation)
+//
+// LOOP PREVENTION:
+//   redirect returns null when target == current location.
+// =============================================================================
 
 class AppRoutes {
+  // ─── Route Path Constants ──────────────────────────────────────────────────
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
   static const String guestModeWarning = '/guest-warning';
@@ -25,188 +64,277 @@ class AppRoutes {
   static const String history = '/history';
   static const String settings = '/settings';
   static const String result = '/result';
-  static const String login = '/login';
-  static const String preview = '/preview';
-  static const String trim = '/trim';
-  static const String camera = '/camera';
+  static const String welcome = '/welcome';
   static const String signup = '/signup';
+  static const String phoneLogin = '/phone-login';
+  static const String emailLogin = '/email-login';
+  static const String otpVerify = '/otp-verify';
   static const String profileSetup = '/profile-setup';
+  static const String permissions = '/permissions';
 
-  static final List<String> publicRoutes = [
+  // ─── Route Sets ────────────────────────────────────────────────────────────
+
+  /// Routes accessible WITHOUT authentication.
+  static const Set<String> publicRoutes = {
+    welcome,
+    signup,
+    phoneLogin,
+    emailLogin,
+    otpVerify,
+  };
+
+  /// Routes that authenticated users must NOT re-enter.
+  /// (Auth screens + onboarding + splash)
+  static const Set<String> _restrictedWhenAuthenticated = {
     splash,
     onboarding,
-    guestModeWarning,
-    login,
-  ];
+    welcome,
+    signup,
+    phoneLogin,
+    emailLogin,
+    otpVerify,
+  };
 
-  static String? _authGuard(BuildContext context, GoRouterState state) {
-    final authService = AuthService();
-    final isGuest = authService.isGuest;
-    final isAuthenticated = authService.isAuthenticated;
-    final currentPath = state.matchedLocation;
-    if (publicRoutes.contains(currentPath)) {
-      return null;
+  /// Routes that guest users cannot access (require a real account).
+  static const Set<String> guestRestrictedRoutes = {
+    history,
+    settings,
+  };
+
+  static const bool isProd = bool.fromEnvironment('dart.vm.product');
+
+  // ─── PURE REDIRECT FUNCTION ────────────────────────────────────────────────
+  //
+  // This is a PURE function: (AppSessionState, currentPath) → String?
+  //   - NO async
+  //   - NO flags
+  //   - NO side-effects
+  //   - Deterministic: same inputs → same output, always.
+
+  /// Computes the redirect target given the current session state and path.
+  /// Returns null if no redirect is needed.
+  @visibleForTesting
+  static String? computeRedirect(AppSessionState session, String currentPath) {
+    // ── RULE 1: Not ready → stay on splash ──────────────────────────────────
+    if (!session.isReady) {
+      return currentPath == splash ? null : splash;
     }
-    if (!isAuthenticated && !isGuest) {
-      return login;
+
+    // ── RULE 2: Onboarding not completed ────────────────────────────────────
+    if (!session.hasCompletedOnboarding) {
+      return currentPath == onboarding ? null : onboarding;
     }
+
+    // ── RULE 3: Not authenticated → allow public routes, else → /welcome ───
+    if (!session.isAuthenticated) {
+      if (publicRoutes.contains(currentPath)) {
+        return null; // Already on a valid public route
+      }
+      return currentPath == welcome ? null : welcome;
+    }
+
+    // ── RULE 4: Authenticated non-guest without profile → /profile-setup ───
+    if (!session.isGuest && !session.isProfileComplete) {
+      return currentPath == profileSetup ? null : profileSetup;
+    }
+
+    // ── RULE 5: Authenticated user on restricted route → /home ──────────────
+    final isOnRestricted = _restrictedWhenAuthenticated.contains(currentPath);
+
+    // Also redirect away from /profile-setup if profile is already complete
+    final isProfileDone = session.isProfileComplete && currentPath == profileSetup;
+
+    if (isOnRestricted || isProfileDone) {
+      return currentPath == home ? null : home;
+    }
+
+    // ── RULE 6: Guest accessing restricted route → /guest-warning ──────────────
+    if (session.isGuest && guestRestrictedRoutes.contains(currentPath)) {
+      return currentPath == guestModeWarning ? null : guestModeWarning;
+    }
+
+    // ── RULE 7: All checks passed → allow navigation ───────────────────────
     return null;
   }
 
-  static String? _guestGuard(BuildContext context, GoRouterState state) {
-    final authService = AuthService();
+  // ─── GoRouter REDIRECT ENTRYPOINT ──────────────────────────────────────────
+
+  static String? _redirect(
+    BuildContext context,
+    GoRouterState state,
+    AuthProvider authProvider,
+  ) {
+    final session = authProvider.sessionState;
     final currentPath = state.matchedLocation;
-    if (authService.isGuest && currentPath == history) {
-      return guestModeWarning;
-    }
-    return null;
+    final target = computeRedirect(session, currentPath);
+
+    debugPrint(
+      'ROUTER → $session → '
+      'from:$currentPath → '
+      'target:${target ?? "(allow)"}',
+    );
+
+    return target;
   }
 
-  static int _getSelectedIndex(String location) {
-    if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/history')) return 1;
-    if (location.startsWith('/settings')) return 2;
-    return 0;
-  }
+  // ─── Router Factory ────────────────────────────────────────────────────────
 
-  static final GoRouter router = GoRouter(
-    initialLocation: '/',
-    redirect: (context, state) {
-      final authRedirect = _authGuard(context, state);
-      if (authRedirect != null) return authRedirect;
-      final guestRedirect = _guestGuard(context, state);
-      if (guestRedirect != null) return guestRedirect;
-      return null;
-    },
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: onboarding,
-        builder: (context, state) => OnboardingScreen(
-          onComplete: () => context.go(login),
+  static GoRouter createRouter(AuthProvider authProvider) {
+    return GoRouter(
+      initialLocation: splash,
+      debugLogDiagnostics: !isProd,
+      refreshListenable: authProvider,
+      redirect: (context, state) => _redirect(context, state, authProvider),
+      routes: [
+        // ── System / Transitional Routes ──────────────────────────────────
+        GoRoute(
+          path: splash,
+          builder: (context, state) => const SplashScreen(),
+        ),
+        GoRoute(
+          path: onboarding,
+          builder: (context, state) => const OnboardingScreen(),
+        ),
+        GoRoute(
+          path: guestModeWarning,
+          builder: (context, state) => GuestModeWarningScreen(
+            onContinue: () => context.go(home),
+            onSignIn: () => context.go(welcome),
+          ),
+        ),
+        GoRoute(
+          path: permissions,
+          builder: (context, state) => const PermissionScreen(),
+        ),
+        GoRoute(
+          path: profileSetup,
+          builder: (context, state) => const ProfileSetupScreen(),
+        ),
+
+        // ── Auth Routes (Public) ──────────────────────────────────────────
+        GoRoute(
+          path: welcome,
+          builder: (context, state) => const WelcomeScreen(),
+        ),
+        GoRoute(
+          path: signup,
+          builder: (context, state) => const SignUpScreen(),
+        ),
+        GoRoute(
+          path: phoneLogin,
+          builder: (context, state) => const PhoneInputScreen(),
+        ),
+        GoRoute(
+          path: emailLogin,
+          builder: (context, state) => const EmailLoginScreen(),
+        ),
+        GoRoute(
+          path: otpVerify,
+          builder: (context, state) => const OtpVerificationScreen(),
+        ),
+
+        // ── Protected: Result (requires ID query param) ────────────────
+        GoRoute(
+          path: result,
+          redirect: (context, state) {
+            // Pure data-guard: if id is missing → fall back to /home.
+            final id = state.uri.queryParameters['id'];
+            if (id == null || id.isEmpty) {
+              debugPrint(
+                  '⚠️ [ROUTER] /result has no valid id param → redirecting to /home');
+              return home;
+            }
+            return null;
+          },
+          builder: (context, state) {
+            final id = state.uri.queryParameters['id']!;
+            return ResultScreen(resultId: id);
+          },
+        ),
+
+        // ── Protected: Shell Navigation (Home / History / Settings) ──────
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return RootNavShell(navigationShell: navigationShell);
+          },
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: home,
+                  builder: (context, state) => const HomeScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: history,
+                  builder: (context, state) {
+                    return ChangeNotifierProvider<HistoryController>(
+                      create: (_) {
+                        final storage = GetIt.instance<ResultStorageService>();
+                        final controller = HistoryController(storage);
+                        controller.loadHistory();
+                        return controller;
+                      },
+                      child: const HistoryScreen(),
+                    );
+                  },
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: settings,
+                  builder: (context, state) => const SettingsScreen(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+      errorBuilder: (context, state) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Error'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go(home),
+          ),
+        ),
+        body: AppErrorWidget(
+          title: 'Page Not Found',
+          message:
+              'The page you are looking for does not exist or is not available.',
+          icon: Icons.error_outline,
+          onRetry: () => context.go(home),
         ),
       ),
-      GoRoute(
-        path: guestModeWarning,
-        builder: (context, state) => GuestModeWarningScreen(
-          onContinue: () => context.go(home),
-          onSignIn: () => context.go(login),
-        ),
-      ),
-      GoRoute(
-        path: camera,
-        builder: (context, state) => const CameraScreen(),
-      ),
-      GoRoute(
-        path: result,
-        builder: (context, state) {
-          final result = state.extra as Map<String, dynamic>;
-          return ResultScreen(result: result);
-        },
-      ),
-      GoRoute(
-        path: login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: signup,
-        builder: (context, state) => const SignUpScreen(),
-      ),
-      GoRoute(
-        path: profileSetup,
-        builder: (context, state) => const ProfileSetupScreen(),
-        redirect: (context, state) {
-          final authService = AuthService();
-          if (!authService.isAuthenticated) {
-            return guestModeWarning;
-          }
-          return null;
-        },
-      ),
-      GoRoute(
-        path: preview,
-        builder: (context, state) {
-          final params = state.extra as Map<String, dynamic>;
-          return PreviewScreen(
-            filePath: params['filePath'] as String,
-            isVideo: params['isVideo'] as bool,
-          );
-        },
-      ),
-      GoRoute(
-        path: trim,
-        builder: (context, state) {
-          final videoPath = state.extra as String;
-          return VideoTrimmerScreen(
-            videoPath: videoPath,
-            onTrimmed: (trimmedPath) {
-              context.pop(trimmedPath);
-            },
-          );
-        },
-      ),
-      ShellRoute(
-        builder: (context, state, child) => RootNavShell(
-          child: child,
-          selectedIndex: _getSelectedIndex(state.matchedLocation),
-        ),
-        routes: [
-          GoRoute(
-            path: home,
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: '/detect',
-            builder: (context, state) =>
-                const HomeScreen(), // TODO: Add DetectScreen
-          ),
-          GoRoute(
-            path: history,
-            builder: (context, state) => const HistoryScreen(),
-          ),
-          GoRoute(
-            path: settings,
-            builder: (context, state) => const SettingsScreen(),
-          ),
-        ],
-      ),
-    ],
-    errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(
-        title: const Text('Error'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(home),
-        ),
-      ),
-      body: AppErrorWidget(
-        title: 'Page Not Found',
-        message:
-            'The page you are looking for does not exist or is not available.',
-        icon: Icons.error_outline,
-        onRetry: () => context.go(home),
-      ),
-    ),
-  );
+    );
+  }
 }
 
+// =============================================================================
+// Navigation Extension Methods
+// =============================================================================
 extension GoRouterExtension on BuildContext {
+  // --- Auth & Core flows: use go() to REPLACE stack ---
   void goSplash() => go(AppRoutes.splash);
   void goOnboarding() => go(AppRoutes.onboarding);
   void goGuestWarning() => go(AppRoutes.guestModeWarning);
   void goHome() => go(AppRoutes.home);
   void goHistory() => go(AppRoutes.history);
   void goSettings() => go(AppRoutes.settings);
-  void goResult(Map<String, dynamic> result) =>
-      go(AppRoutes.result, extra: result);
-  void goPreview(String filePath, bool isVideo) =>
-      go(AppRoutes.preview, extra: {'filePath': filePath, 'isVideo': isVideo});
-  void goTrim(String videoPath) => go(AppRoutes.trim, extra: videoPath);
-  void goCamera() => go(AppRoutes.camera);
-  void goLogin() => go(AppRoutes.login);
   void goSignUp() => go(AppRoutes.signup);
   void goProfileSetup() => go(AppRoutes.profileSetup);
+  void goWelcome() => go(AppRoutes.welcome);
+  void goPhoneLogin() => go(AppRoutes.phoneLogin);
+  void goEmailLogin() => go(AppRoutes.emailLogin);
+  void goOtpVerify() => go(AppRoutes.otpVerify);
+  void goPermissions() => go(AppRoutes.permissions);
+
+  // --- Detection flows: navigate with ID ---
+  void pushResult(String resultId) =>
+      go('${AppRoutes.result}?id=$resultId');
 }

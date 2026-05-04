@@ -1,85 +1,95 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final _supabase = Supabase.instance.client;
-  bool isGuest = true;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current user
-  User? get currentUser => _supabase.auth.currentUser;
+  // CURRENT USER
+  User? get currentUser => _auth.currentUser;
 
-  // Auth state helpers
-  bool get isAuthenticated => currentUser != null && !isGuest;
-  bool get isGuestMode => isGuest;
+  bool get isAuthenticated => currentUser != null;
+  bool get isGuest => currentUser?.isAnonymous ?? false;
 
-  // Initialize: nothing to do, always start as guest unless user logs in
-  Future<void> initialize() async {
-    isGuest = currentUser == null;
-  }
-
-  // Sign in with email and password
-  Future<AuthResponse> signIn({
-    required String email,
-    required String password,
-  }) async {
-    final response = await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
-    isGuest = false;
-    return response;
-  }
-
-  // Sign up with email and password
-  Future<AuthResponse> signUp({
-    required String email,
-    required String password,
-  }) async {
-    final response = await _supabase.auth.signUp(
-      email: email,
-      password: password,
-    );
-    isGuest = false;
-    return response;
-  }
-
-  // Sign in with Google
-  Future<AuthResponse> signInWithGoogle() async {
-    await _supabase.auth.signInWithOAuth(
-      OAuthProvider.google,
-    );
-    isGuest = false;
-    // After OAuth, the session is set asynchronously. Return current user/session.
-    return AuthResponse(
-      user: _supabase.auth.currentUser,
-      session: _supabase.auth.currentSession,
-    );
-  }
-
-  // Reset password
-  Future<void> resetPassword(String email) async {
-    await _supabase.auth.resetPasswordForEmail(email);
-  }
-
-  // Check if email is verified
-  Future<bool> isEmailVerified() async {
-    final user = _supabase.auth.currentUser;
-    return user?.emailConfirmedAt != null;
-  }
-
-  // Sign out
+  // SIGNOUT
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
-    isGuest = true;
+    await _auth.signOut();
   }
 
-  // Continue as guest
-  Future<AuthResponse> continueAsGuest() async {
-    final response = await _supabase.auth.signInWithPassword(
-      email: 'guest@furspeak.ai',
-      password: 'guest_password',
+  Future<UserCredential> signInWithCredential(AuthCredential credential) async {
+    if (currentUser?.isAnonymous == true) {
+      try {
+        return await currentUser!.linkWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'credential-already-in-use') {
+          // If the credential is in use, sign in to the existing account
+          return await _auth.signInWithCredential(credential);
+        }
+        rethrow;
+      }
+    }
+    return await _auth.signInWithCredential(credential);
+  }
+
+  // SIGN UP
+  Future<UserCredential> signUp({required String email, required String password}) async {
+    if (currentUser?.isAnonymous == true) {
+      final credential = EmailAuthProvider.credential(email: email, password: password);
+      try {
+        return await currentUser!.linkWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'credential-already-in-use') {
+          return await _auth.signInWithCredential(credential);
+        }
+        rethrow;
+      }
+    }
+    return await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
     );
-    isGuest = true;
-    return response;
+  }
+
+  Future<UserCredential> signIn({required String email, required String password}) async {
+    final credential = EmailAuthProvider.credential(email: email, password: password);
+    return await signInWithCredential(credential);
+  }
+
+  Future<UserCredential?> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    if (googleUser == null) {
+      debugPrint("USER CANCELLED GOOGLE SIGN-IN");
+      return null;
+    }
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    try {
+      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      debugPrint("FIREBASE SIGN-IN SUCCESS: ${result.user}");
+      return result;
+    } catch (e) {
+      debugPrint("FIREBASE SIGN-IN ERROR: $e");
+      rethrow;
+    }
+  }
+
+  Future<UserCredential> continueAsGuest() async {
+    return await _auth.signInAnonymously();
+  }
+
+  Future<void> resetPassword(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  Future<bool> isEmailVerified() async {
+    return currentUser?.emailVerified ?? false;
   }
 }

@@ -2,27 +2,29 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get_it/get_it.dart';
-import 'package:isar/isar.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:video_player/video_player.dart';
 import 'package:flutter/services.dart';
-import 'package:furspeak_ai/models/emotion_result.dart';
+import 'package:furspeak_ai/data/models/detection_result.dart';
+import 'package:furspeak_ai/services/result_storage_service.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
-import 'package:furspeak_ai/services/auth_service.dart';
-import 'dart:convert';
-import 'package:furspeak_ai/data/models/emotion_history.dart';
+import 'package:provider/provider.dart';
+import 'package:furspeak_ai/providers/auth_provider.dart';
+import 'package:furspeak_ai/media/services/media_orchestrator.dart';
 
 class ResultScreen extends StatefulWidget {
-  final Map<String, dynamic> result;
+  final String resultId;
 
   const ResultScreen({
     super.key,
-    required this.result,
+    required this.resultId,
   });
 
   @override
@@ -32,121 +34,106 @@ class ResultScreen extends StatefulWidget {
 class _ResultScreenState extends State<ResultScreen> {
   final FlutterTts _flutterTts = FlutterTts();
   VideoPlayerController? _videoController;
-  bool _isPlaying = false;
-  bool _hasSaved = false;
+  bool _isDisposed = false;
+  final String _requestId = UniqueKey().toString();
+  MediaUIState _mediaUIState = MediaUIState.idle;
 
-  // Theme Colors
-  static const Color _bgColor = Color(0xFFFFFAF2); // Vanilla Cream
-  static const Color _primaryColor = Color(0xFF7E8CE0); // Soft Periwinkle
-  static const Color _accentColor = Color(0xFFFFB347); // Gentle Orange
-  static const Color _tertiaryColor = Color(0xFFFFE084); // Pastel Yellow
-  static const Color _successColor = Color(0xFF43E97B); // Mint Green
-
-  Color _getEmotionColor(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return AppTheme.successColor;
-      case 'sad':
-        return AppTheme.primaryColor;
-      case 'angry':
-        return AppTheme.errorColor;
-      case 'fearful':
-        return AppTheme.accentColor;
-      case 'surprised':
-        return AppTheme.tertiaryColor;
-      case 'disgusted':
-        return AppTheme.errorColor;
-      case 'neutral':
-        return AppTheme.textLightColor;
-      case 'relax':
-      case 'relaxed':
-        return AppTheme.primaryColor;
-      case 'playful':
-        return AppTheme.accentColor;
-      default:
-        return AppTheme.primaryColor;
-    }
-  }
-
-  String _getEmotionEmoji(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return '😊';
-      case 'sad':
-        return '😢';
-      case 'angry':
-        return '😠';
-      case 'fearful':
-        return '😨';
-      case 'surprised':
-        return '😲';
-      case 'disgusted':
-        return '🤢';
-      case 'neutral':
-        return '😐';
-      case 'relax':
-      case 'relaxed':
-        return '😌';
-      case 'playful':
-        return '🐾';
-      default:
-        return '🐕';
-    }
-  }
+  /// The persisted detection result, loaded from Isar by ID.
+  DetectionResult? _detectionResult;
+  bool _isLoading = true;
+  bool _showGuestCard = true;
 
   @override
   void initState() {
     super.initState();
-    _speakResult();
-    _autoSaveToHistory();
-    if (widget.result['videoPath'] != null &&
-        widget.result['videoPath']!.isNotEmpty) {
-      _videoController =
-          VideoPlayerController.file(File(widget.result['videoPath']!))
-            ..initialize().then((_) {
-              setState(() {});
-            });
-    }
+    _loadResult();
     HapticFeedback.mediumImpact();
   }
 
-  Future<void> _autoSaveToHistory() async {
-    final authService = AuthService();
-    if (!authService.isGuest && !_hasSaved) {
-      try {
-        final isar = GetIt.instance<Isar>();
-        final history = EmotionHistory(
-          userId: authService.currentUser?.id ?? '',
-          emotion: widget.result['emotion'] as String,
-          confidence: widget.result['confidence'] as double,
-          caption: widget.result['caption'] as String,
-          frameImagePath: widget.result['frame_image_path'] as String?,
-          timestamp: DateTime.now(),
-        );
+  /// Load result from persistent storage by ID.
+  void _loadResult() {
+    final storage = GetIt.instance<ResultStorageService>();
+    final result = storage.getResultById(widget.resultId);
 
-        await isar.writeTxn(() async {
-          await isar.emotionHistorys.put(history);
-        });
+    if (result == null) {
+      debugPrint('⚠️ [RESULT] No result found for id: ${widget.resultId}');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.goHome();
+      });
+      return;
+    }
+
+    _detectionResult = result;
+    _isLoading = false;
+
+    _speakResult();
+    _initVideoIfNeeded();
+  }
+
+  Future<void> _initVideoIfNeeded() async {
+    final r = _detectionResult;
+    if (r == null) return;
+    final videoPath = r.mediaPath;
+    if (videoPath.isEmpty || !r.isVideo) return;
+
+    if (!mounted) return;
+    setState(() {
+      _mediaUIState = MediaUIState.waitingInQueue;
+    });
+
+    mediaOrchestrator.request(
+      MediaRequest(MediaIntent.preview, () async {
+        if (_isDisposed || !mounted) return;
 
         setState(() {
-          _hasSaved = true;
+          _mediaUIState = MediaUIState.executing;
         });
-      } catch (e) {
-        debugPrint('Error saving to history: $e');
-      }
-    }
+
+        final controller = VideoPlayerController.file(File(videoPath));
+        mediaOrchestrator.videoPlayerController = controller;
+
+        try {
+          await controller.initialize();
+          if (_isDisposed || !mounted) {
+            controller.dispose();
+            return;
+          }
+          setState(() {
+            _videoController = controller;
+            _mediaUIState = MediaUIState.idle;
+          });
+        } catch (e) {
+          debugPrint('VideoPlayerController init failed: $e');
+          try {
+            controller.dispose();
+          } catch (_) {}
+          
+          if (!_isDisposed && mounted) {
+            setState(() {
+              _videoController = null;
+              _mediaUIState = MediaUIState.idle;
+            });
+          }
+        }
+      }, _requestId),
+    );
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
+    mediaOrchestrator.cancel(_requestId);
     _videoController?.dispose();
+    _videoController = null;
     _flutterTts.stop();
     super.dispose();
   }
 
   Future<void> _speakResult() async {
+    final r = _detectionResult;
+    if (r == null) return;
     try {
-      final text = widget.result['caption'] ?? '';
+      final text = r.caption;
       if (text.isEmpty || text.contains('No emotion detected')) return;
       await _flutterTts.setLanguage('en-US');
       await _flutterTts.setPitch(1.0);
@@ -162,826 +149,761 @@ class _ResultScreenState extends State<ResultScreen> {
     context.goHome();
   }
 
-  String _getEmotionAnimation(String? emotion) {
-    final e = (emotion ?? 'neutral').toLowerCase();
-    const available = [
-      'dog_1',
-      'dog_2',
-      'dog_3',
-      'dog_4',
-      'dog_5',
-      'dog_6',
-      'dog_7',
-      'dog_8',
-      'corgi_in_box',
-      'corgi_wave',
-      'floating_ball',
-      'floating_bone',
-    ];
-    if (available.contains(e)) {
-      return 'assets/animations/$e.json';
-    }
-    // fallback for common emotions
-    switch (e) {
-      case 'happy':
-        return 'assets/animations/dog_1.json';
-      case 'relaxed':
-      case 'relax':
-        return 'assets/animations/dog_2.json';
-      case 'alert':
-        return 'assets/animations/dog_3.json';
-      case 'angry':
-        return 'assets/animations/dog_4.json';
-      case 'frown':
-        return 'assets/animations/dog_4.json'; // Use angry animation for frown
-      case 'neutral':
-        return 'assets/animations/dog_5.json';
-      default:
-        return 'assets/animations/dog_1.json';
-    }
+  void _handleShare() {
+    HapticFeedback.mediumImpact();
+    // TODO: Implement share_plus functionality here.
+    // final text = 'I just analyzed my dog with FurSpeak AI! Looks like they are ${_detectionResult?.emotion}.';
+    // Share.share(text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Sharing result... (Coming soon)'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppTheme.primaryColor,
+      ),
+    );
   }
 
-  String? _getBestFrameImagePath(Map<String, dynamic> result) {
-    // Check all possible key variants for best frame
-    final keys = [
-      'frame_image_path',
-      'frameImagePath',
-      'frame_image_url',
-      'frameImageUrl',
-      'imagePath',
-      'image_path',
-    ];
-    for (final key in keys) {
-      final value = result[key];
-      if (value != null && value.toString().isNotEmpty) {
-        return value.toString();
+  // ─── MEDIA PREVIEW ──────────────────────────────────────────────────
+  Widget _mediaPreview() {
+    final r = _detectionResult;
+    if (r == null) return _failedPreviewWidget();
+
+    final bool isVideo = r.isVideo;
+    final String localImagePath = r.mediaPath;
+
+    if (isVideo) {
+      if (_mediaUIState == MediaUIState.waitingInQueue || _mediaUIState == MediaUIState.executing) {
+        if (_videoController == null || !_videoController!.value.isInitialized) {
+          return Container(
+            height: 280,
+            width: double.infinity,
+            color: AppTheme.surfaceElevated,
+            child: const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryColor),
+            ),
+          );
+        }
+      }
+
+      if (_videoController != null && _videoController!.value.isInitialized) {
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _videoController!.value.isPlaying ? _videoController!.pause() : _videoController!.play();
+            });
+          },
+          child: Container(
+            height: 280,
+            width: double.infinity,
+            color: Colors.black,
+            child: AspectRatio(
+              aspectRatio: _videoController!.value.aspectRatio,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  VideoPlayer(_videoController!),
+                  if (!_videoController!.value.isPlaying)
+                    Container(
+                      color: Colors.black26,
+                      child: const Icon(Icons.play_circle_fill, size: 64, color: Colors.white),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
       }
     }
-    return null;
-  }
 
-  Widget _mediaPreview() {
-    // Always prefer frame_image_url or frameImageUrl if present and not empty
-    final frameImageUrl =
-        widget.result['frame_image_url'] ?? widget.result['frameImageUrl'];
-    debugPrint('ResultScreen - frame_image_url: $frameImageUrl');
+    if (!isVideo && localImagePath.isNotEmpty) {
+      final file = File(localImagePath);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          height: 280,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _failedPreviewWidget(),
+        );
+      }
+    }
 
-    if (frameImageUrl != null && frameImageUrl.toString().isNotEmpty) {
-      debugPrint('Using network frame_image_url for preview: $frameImageUrl');
+    final frameImageUrl = r.frameImageUrl;
+    if (frameImageUrl != null && frameImageUrl.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: frameImageUrl,
-        height: 260,
+        height: 280,
         width: double.infinity,
         fit: BoxFit.cover,
         placeholder: (context, url) => Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
-          child: Container(height: 260, color: Colors.white),
+          baseColor: AppTheme.surfaceElevated,
+          highlightColor: AppTheme.surfaceBase,
+          child: Container(height: 280, color: AppTheme.surfaceActive),
         ),
-        errorWidget: (context, url, error) {
-          debugPrint('Error loading frame_image_url: $error');
-          return _failedPreviewWidget();
-        },
+        errorWidget: (context, url, error) => _failedPreviewWidget(),
       );
     }
 
-    // If no emotion/dog detected, show failed.json Lottie asset
-    final emotion = widget.result['emotion']?.toString().toLowerCase() ?? '';
-    if (emotion == 'unknown' ||
-        emotion == 'no dog detected' ||
-        emotion.isEmpty) {
+    final emotion = r.emotion.toLowerCase();
+    if (emotion == 'unknown' || emotion == 'no dog detected' || emotion.isEmpty) {
       return SizedBox(
-        height: 260,
+        height: 280,
         child: Center(
           child: Lottie.asset(
-            'assets/animations/failed.json',
-            width: 260,
-            height: 260,
+            LottieRegistry.get('failed'),
+            width: 200,
+            height: 200,
             fit: BoxFit.contain,
           ),
         ),
       );
     }
 
-    debugPrint('No valid preview source found, showing failed widget');
     return _failedPreviewWidget();
   }
 
   Widget _failedPreviewWidget() {
     return Container(
-      height: 260,
-      color: Colors.grey[200],
-      child: const Center(
+      height: 280,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLow,
+        borderRadius: AppTheme.borderRadiusLarge,
+      ),
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.broken_image, color: Colors.grey, size: 100),
-            SizedBox(height: 16),
-            Text('No preview available',
-                style: TextStyle(color: Colors.grey, fontSize: 16)),
+            Icon(Icons.broken_image_rounded, color: AppTheme.textLightColor, size: 64),
+            const SizedBox(height: AppTheme.space16),
+            Text('No preview available', style: AppTheme.captionStyle),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildTimelineSection() {
-    if (widget.result['timeline'] == null) return const SizedBox.shrink();
-
-    final timeline =
-        (widget.result['timeline'] as List).cast<Map<String, dynamic>>();
-    final transitions = widget.result['timeline_summary']?.toString() ?? '';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Emotion Timeline',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF5A5BD9), // Sky Indigo
-          ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transitions,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    color: Color(0xFF777777), // Stone Gray
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: timeline.map((frame) {
-                    return _EmotionChip(
-                      emotion: frame['emotion'] as String,
-                      confidence: 1.0, // Timeline doesn't include confidence
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  final TextEditingController _noteController = TextEditingController();
-
-  Widget _confidenceBadge(double confidence) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF43E97B).withOpacity(0.15), // Mint green pastel
-        borderRadius: BorderRadius.circular(32),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.verified, color: Color(0xFF43E97B), size: 18),
-          const SizedBox(width: 6),
-          Text(
-            '${confidence.toStringAsFixed(1)}%',
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF43E97B),
-              fontSize: 15,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String text, {IconData? icon, Color? color}) {
-    return Row(
-      children: [
-        if (icon != null) Icon(icon, color: color ?? const Color(0xFF5A5BD9)),
-        if (icon != null) const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color ?? const Color(0xFF5A5BD9),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Helper: Generate contextual caption from timeline
-  String _generateContextualCaption(Map<String, dynamic> result) {
-    final timeline = result['timeline'] as List<dynamic>?;
-    if (timeline == null || timeline.isEmpty) {
-      return result['caption'] ?? '';
-    }
-    // Aggregate emotions
-    final emotions = timeline.map((e) => e['emotion'] as String).toList();
-    if (emotions.isEmpty) return result['caption'] ?? '';
-    final first = emotions.first;
-    final last = emotions.last;
-    // Count frequencies
-    final freq = <String, int>{};
-    for (final e in emotions) {
-      freq[e] = (freq[e] ?? 0) + 1;
-    }
-    // Most frequent
-    final mostFrequent = (freq.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value)))
-        .first
-        .key;
-    // Detect transitions
-    final transitions = <String>[];
-    String? prev;
-    for (final e in emotions) {
-      if (prev != null && prev != e) {
-        transitions.add('$prev→$e');
-      }
-      prev = e;
-    }
-    // Build natural caption
-    if (first == last && transitions.isEmpty) {
-      return 'Your dog remained $first throughout the video.';
-    }
-    if (transitions.isEmpty) {
-      return 'Your dog started $first and ended $last.';
-    }
-    // Weighted bias: if last part is happy/relaxed, bias towards positive
-    String moodSummary = '';
-    if (last == 'happy' || last == 'relaxed' || last == 'playful') {
-      moodSummary =
-          'After some $first, your dog became $last, showing positive engagement.';
-    } else if (last == 'alert' || last == 'anxious') {
-      moodSummary =
-          'Your dog started $first and ended $last, showing some caution or alertness.';
-    } else {
-      moodSummary =
-          'Your dog experienced $first, then $mostFrequent, and ended $last.';
-    }
-    // Add transition summary
-    final transitionStr =
-        transitions.isNotEmpty ? 'Transitions: ${transitions.join(', ')}.' : '';
-    return '$moodSummary $transitionStr';
-  }
-
-  Color _emotionColor(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return const Color(0xFF43E97B); // Mint Green
-      case 'alert':
-        return const Color(0xFFFFA726); // Amber
-      case 'relaxed':
-      case 'relax':
-        return const Color(0xFF7E8CE0); // Blue Violet
-      case 'frown':
-        return const Color(0xFFB0B0B0); // Soft Gray
-      case 'angry':
-        return const Color(0xFFF95F62); // Coral Red
-      default:
-        return const Color(0xFF6E6E6E); // Neutral
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('ResultScreen widget.result: ' + widget.result.toString());
-    final result = widget.result;
-    final emotion = result['emotion'] ?? 'Unknown';
-    final confidence = (result['confidence'] ?? 0.0) as double;
-    final emoji = _getEmotionEmoji(emotion);
-    final caption = result['caption'] ?? '';
-    final timelineSummary = result['timeline_summary'] ?? '';
-    final timeline = (result['timeline'] as List?) ?? [];
-    final isError = (emotion == 'unknown' || confidence == 0.0);
-    final color = _emotionColor(emotion);
-    final authService = AuthService();
-    final isGuest = authService.isGuest;
-
-    return WillPopScope(
-      onWillPop: () async {
-        // If a dialog is open, block back
-        if (ModalRoute.of(context)?.isCurrent == false) return false;
-        context.goHome();
-        return false;
-      },
-      child: Scaffold(
+    // Loading / not-found guard
+    if (_isLoading || _detectionResult == null) {
+      return Scaffold(
         backgroundColor: AppTheme.bgColor,
-        appBar: AppBar(
-          title: Text('Analysis Result', style: AppTheme.titleStyle),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-          actions: [
-            Semantics(
-              label: 'Show timeline moods and analysis info',
-              button: true,
-              child: IconButton(
-                icon: const Icon(Icons.info_outline,
-                    color: AppTheme.primaryColor, size: 32),
-                tooltip: 'Show analysis info',
-                onPressed: () {
-                  // Robustly parse timeline and summary
-                  final timelineRaw = widget.result['timeline'];
-                  List<Map<String, dynamic>> timeline = [];
-                  if (timelineRaw is List) {
-                    timeline = timelineRaw.cast<Map<String, dynamic>>();
-                  } else if (timelineRaw is String && timelineRaw.isNotEmpty) {
-                    try {
-                      final decoded = json.decode(timelineRaw);
-                      if (decoded is List) {
-                        timeline = List<Map<String, dynamic>>.from(decoded);
-                      }
-                    } catch (_) {}
-                  }
-                  final moods = timeline
-                      .map((e) => e['emotion'] as String? ?? 'Unknown')
-                      .where((m) => m.isNotEmpty && m != 'Unknown')
-                      .toList();
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Row(
-                        children: [
-                          Icon(Icons.timeline, color: AppTheme.primaryColor),
-                          const SizedBox(width: 8),
-                          const Text('Mood Timeline'),
-                        ],
-                      ),
-                      content: SizedBox(
-                        width: 320,
-                        child: moods.isNotEmpty
-                            ? Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Timeline bar
-                                  SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        for (int i = 0; i < moods.length; i++)
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 2),
-                                            child: Column(
-                                              children: [
-                                                Icon(_moodIcon(moods[i]),
-                                                    color:
-                                                        _emotionColor(moods[i]),
-                                                    size: 28),
-                                                Text(moods[i].capitalize(),
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: _emotionColor(
-                                                          moods[i]),
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    )),
-                                              ],
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Summary
-                                  if (widget.result['timeline_summary'] !=
-                                          null &&
-                                      widget.result['timeline_summary']
-                                          .toString()
-                                          .isNotEmpty)
-                                    Text(
-                                      widget.result['timeline_summary']
-                                          .toString(),
-                                      style: const TextStyle(
-                                          fontSize: 15,
-                                          color: Color(0xFF2C2C2C)),
-                                    ),
-                                  const SizedBox(height: 16),
-                                  // Legend
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 8,
-                                    children: [
-                                      _legendChip('Happy', Icons.emoji_emotions,
-                                          _emotionColor('happy')),
-                                      _legendChip(
-                                          'Relaxed',
-                                          Icons.nightlight_round,
-                                          _emotionColor('relaxed')),
-                                      _legendChip(
-                                          'Angry',
-                                          Icons.warning_amber_rounded,
-                                          _emotionColor('angry')),
-                                      _legendChip('Alert', Icons.visibility,
-                                          _emotionColor('alert')),
-                                      _legendChip(
-                                          'Frown',
-                                          Icons.sentiment_dissatisfied,
-                                          _emotionColor('frown')),
-                                      _legendChip('Playful', Icons.pets,
-                                          _emotionColor('playful')),
-                                    ],
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.info_outline,
-                                      size: 48, color: AppTheme.primaryColor),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'No timeline was generated for this analysis.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: _mediaPreview(),
-                    ),
-                    // Paw watermark overlay
-                    Positioned(
-                      bottom: 12,
-                      right: 18,
-                      child: Opacity(
-                        opacity: 0.18,
-                        child: Icon(Icons.pets, size: 48, color: color),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Tag
-                Text(
-                  'Most expressive moment',
-                  style: TextStyle(
-                    color: color.withOpacity(0.85),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-                const SizedBox(height: 18),
-                // 2. Detected Emotion Summary
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      emotion.toString().capitalize(),
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      emoji,
-                      style: const TextStyle(fontSize: 36),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.13),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  child: Text(
-                    'Confidence: ${confidence.toStringAsFixed(1)}%',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      color: color,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                // 3. Timeline-Based Caption
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEDF6FF),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      isError
-                          ? 'No emotion detected. Please ensure your dog\'s face is visible and try again.'
-                          : caption,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 15,
-                        color: Color(0xFF2C2C2C),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                // 4. What This Means (timeline summary as bullet points)
-                if (timelineSummary != null &&
-                    timelineSummary.toString().isNotEmpty)
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 18, horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'What this means:',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Color(0xFF2C2C2C),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ..._parseTimelineSummary(timelineSummary),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 18),
-                // 5. Emotion Timeline Visualization (optional)
-                if (timeline.isNotEmpty) _buildTimelineBar(timeline, color),
-                const SizedBox(height: 28),
-                // 6. Bottom Actions
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _handleAnalyzeAnother,
-                      icon: const Icon(Icons.pets, color: Colors.white),
-                      label: const Text('Analyze Another'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.successColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        textStyle: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Helper: Parse timeline summary into bullet points with icons
-  List<Widget> _parseTimelineSummary(dynamic summary) {
-    final text = summary.toString();
-    final points = text.split(',');
-    final List<Widget> widgets = [];
-    for (final point in points) {
-      final trimmed = point.trim();
-      if (trimmed.isEmpty) continue;
-      IconData icon = Icons.check_circle;
-      if (trimmed.toLowerCase().contains('relax'))
-        icon = Icons.nightlight_round;
-      if (trimmed.toLowerCase().contains('alert')) icon = Icons.visibility;
-      if (trimmed.toLowerCase().contains('angry'))
-        icon = Icons.warning_amber_rounded;
-      if (trimmed.toLowerCase().contains('frown'))
-        icon = Icons.sentiment_dissatisfied;
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6.0),
-          child: Row(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: const Color(0xFF43E97B), size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  trimmed,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 15,
-                    color: Color(0xFF2C2C2C),
-                  ),
-                ),
-              ),
+              const CircularProgressIndicator(color: AppTheme.primaryColor),
+              const SizedBox(height: AppTheme.space16),
+              Text('Loading result...', style: AppTheme.captionStyle),
             ],
           ),
         ),
       );
     }
-    return widgets;
-  }
 
-  // Optional: Timeline bar visualization
-  Widget _buildTimelineBar(List timeline, Color color) {
-    if (timeline.isEmpty) return const SizedBox.shrink();
-    final emotions = timeline.map((e) => e['emotion'] as String).toList();
-    final unique = emotions.toSet().toList();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          for (int i = 0; i < emotions.length; i++)
-            Container(
-              width: 12,
-              height: 18,
-              margin: const EdgeInsets.symmetric(horizontal: 1),
-              decoration: BoxDecoration(
-                color: _emotionColor(emotions[i]),
-                borderRadius: BorderRadius.circular(6),
-                border: i > 0 && emotions[i] != emotions[i - 1]
-                    ? Border.all(
-                        color: Colors.black.withOpacity(0.18), width: 2)
-                    : null,
-              ),
+    final r = _detectionResult!;
+    final emotionStyle = EmotionStyle.fromEmotion(r.emotion);
+    final confidence = r.confidence;
+    final caption = r.caption;
+    final isError = (r.emotion.toLowerCase() == 'unknown' || confidence == 0.0);
+    final isGuest = context.watch<AuthProvider>().isGuest;
+    
+    String confidenceLabel = 'Low';
+    if (confidence >= 80.0) confidenceLabel = 'High';
+    else if (confidence >= 50.0) confidenceLabel = 'Medium';
+
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.goHome();
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.bgColor,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ═══ 1. MEDIA PREVIEW WITH OVERLAY ═══
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(AppTheme.radiusLarge),
+                      ),
+                      child: _mediaPreview(),
+                    ),
+                    // Back button
+                    Positioned(
+                      top: AppTheme.space8,
+                      left: AppTheme.space8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black26,
+                          borderRadius: AppTheme.borderRadiusMedium,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                          onPressed: () => context.goHome(),
+                        ),
+                      ),
+                    ),
+                    // Emotion badge overlay
+                    Positioned(
+                      bottom: AppTheme.space16,
+                      right: AppTheme.space16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.space12,
+                          vertical: AppTheme.space8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: emotionStyle.color,
+                          borderRadius: AppTheme.borderRadiusPill,
+                          boxShadow: [
+                            BoxShadow(
+                              color: emotionStyle.color.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(emotionStyle.emoji, style: const TextStyle(fontSize: 18)),
+                            const SizedBox(width: 6),
+                            Text(
+                              emotionStyle.label,
+                              style: AppTheme.titleStyle.copyWith(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.all(AppTheme.space24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ═══ 2. EMOTION HEADLINE ═══
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(AppTheme.space12),
+                            decoration: BoxDecoration(
+                              color: emotionStyle.color.withOpacity(0.12),
+                              borderRadius: AppTheme.borderRadiusMedium,
+                            ),
+                            child: Icon(emotionStyle.icon, color: emotionStyle.color, size: 32),
+                          ),
+                          const SizedBox(width: AppTheme.space16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Your dog feels',
+                                  style: AppTheme.captionStyle.copyWith(fontSize: 13),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${emotionStyle.label} ${emotionStyle.emoji}',
+                                  style: AppTheme.headingStyle.copyWith(
+                                    color: emotionStyle.color,
+                                    fontSize: 28,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: AppTheme.space24),
+
+                      // ═══ 3. CONFIDENCE BAR ═══
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.space16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceActive,
+                          borderRadius: AppTheme.borderRadiusMedium,
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Confidence',
+                                  style: AppTheme.titleStyle.copyWith(fontSize: 14),
+                                ),
+                                Text(
+                                  confidenceLabel,
+                                  style: AppTheme.titleStyle.copyWith(
+                                    color: emotionStyle.color,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppTheme.space8),
+                            ClipRRect(
+                              borderRadius: AppTheme.borderRadiusPill,
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0, end: confidence / 100),
+                                duration: const Duration(milliseconds: 1200),
+                                curve: Curves.easeOutCubic,
+                                builder: (context, value, child) {
+                                  return LinearProgressIndicator(
+                                    value: value,
+                                    backgroundColor: emotionStyle.color.withOpacity(0.12),
+                                    valueColor: AlwaysStoppedAnimation<Color>(emotionStyle.color),
+                                    minHeight: 10,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: AppTheme.space16),
+
+                      // ═══ 4. CAPTION CARD ═══
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppTheme.space16),
+                        decoration: BoxDecoration(
+                          color: emotionStyle.actionCardColor,
+                          borderRadius: AppTheme.borderRadiusMedium,
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.chat_bubble_outline_rounded,
+                                    size: 18, color: emotionStyle.color),
+                                const SizedBox(width: AppTheme.space8),
+                                Text(
+                                  'What we detected',
+                                  style: AppTheme.titleStyle.copyWith(
+                                    fontSize: 14,
+                                    color: emotionStyle.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppTheme.space12),
+                            Text(
+                              isError
+                                  ? 'No emotion detected. Please ensure your dog\'s face is visible and try again.'
+                                  : caption,
+                              style: AppTheme.bodyStyle.copyWith(
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: AppTheme.space16),
+
+                      // ═══ 5. SUGGESTED ACTIONS ═══
+                      if (r.suggestions.isNotEmpty) ...[
+                        _ExpandableInsights(
+                          suggestions: r.suggestions,
+                          emotionStyle: emotionStyle,
+                        ),
+                        const SizedBox(height: AppTheme.space16),
+                      ],
+
+                      // ═══ 6. TIMELINE (if video) ═══
+                      if (r.timeline.isNotEmpty)
+                        _TimelineSection(
+                          timeline: r.timeline,
+                          timelineSummary: r.timelineSummary,
+                        ),
+
+                      if (isGuest && _showGuestCard) ...[
+                        const SizedBox(height: AppTheme.space24),
+                        Container(
+                          padding: const EdgeInsets.all(AppTheme.space16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentColor.withOpacity(0.05),
+                            borderRadius: AppTheme.borderRadiusLarge,
+                            border: Border.all(color: AppTheme.accentColor.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.pets, color: AppTheme.accentColor, size: 20),
+                                  const SizedBox(width: AppTheme.space8),
+                                  Expanded(
+                                    child: Text(
+                                      "This is your dog's first insight 🐾",
+                                      style: AppTheme.titleStyle.copyWith(
+                                        color: AppTheme.accentColor,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, size: 20, color: AppTheme.textLightColor),
+                                    onPressed: () {
+                                      setState(() {
+                                        _showGuestCard = false;
+                                      });
+                                    },
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppTheme.space12),
+                              Text(
+                                "Sign in now to save this result and track your dog's emotional journey over time.",
+                                style: AppTheme.bodyStyle.copyWith(fontSize: 14),
+                              ),
+                              const SizedBox(height: AppTheme.space16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        context.goWelcome();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.accentColor,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+                                      ),
+                                      child: const Text('Sign in to Save', style: TextStyle(fontWeight: FontWeight.w600)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppTheme.space8),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _showGuestCard = false;
+                                        });
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppTheme.textColor,
+                                        side: BorderSide(color: AppTheme.textLightColor.withOpacity(0.3)),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+                                      ),
+                                      child: const Text('Keep Exploring'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: AppTheme.space24),
+
+                      // ═══ 7. BOTTOM ACTION BAR ═══
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 56,
+                              child: ElevatedButton.icon(
+                                onPressed: _handleAnalyzeAnother,
+                                icon: const Icon(Icons.refresh_rounded, color: AppTheme.surfaceActive),
+                                label: Text(
+                                  'Scan Again',
+                                  style: AppTheme.titleStyle.copyWith(color: AppTheme.surfaceActive, fontSize: 16),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.surfaceElevated,
+                                  foregroundColor: AppTheme.textColor,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: AppTheme.borderRadiusMedium,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppTheme.space12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 56,
+                              child: ElevatedButton.icon(
+                                onPressed: _handleShare,
+                                icon: const Icon(Icons.share_rounded, color: AppTheme.surfaceActive),
+                                label: Text(
+                                  'Share Result',
+                                  style: AppTheme.titleStyle.copyWith(color: AppTheme.surfaceActive, fontSize: 16),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryColor,
+                                  foregroundColor: AppTheme.surfaceActive,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: AppTheme.borderRadiusMedium,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: AppTheme.space16),
+                    ],
+                  ),
+                ),
+              ].animate(interval: 60.ms).fadeIn(
+                    duration: 500.ms,
+                    curve: Curves.easeOutCubic,
+                  ).slideY(
+                    begin: 0.08,
+                    duration: 500.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
             ),
-          const SizedBox(width: 8),
-          const Text('Timeline',
-              style: TextStyle(fontSize: 13, color: Color(0xFF777777))),
-        ],
+          ),
+        ),
       ),
     );
   }
+}
 
-  // Helper for mood icons
-  IconData _moodIcon(String mood) {
-    switch (mood.toLowerCase()) {
-      case 'happy':
-        return Icons.emoji_emotions;
-      case 'sad':
-        return Icons.sentiment_dissatisfied;
-      case 'angry':
-        return Icons.warning_amber_rounded;
-      case 'fearful':
-        return Icons.visibility;
-      case 'surprised':
-        return Icons.flash_on;
-      case 'disgusted':
-        return Icons.sick;
-      case 'neutral':
-        return Icons.sentiment_neutral;
-      case 'relax':
-      case 'relaxed':
-        return Icons.nightlight_round;
-      case 'playful':
-        return Icons.pets;
-      default:
-        return Icons.pets;
+// ─── TIMELINE SECTION ──────────────────────────────────────────────────
+
+class _TimelineSection extends StatelessWidget {
+  final List timeline;
+  final List<String> timelineSummary;
+  const _TimelineSection({required this.timeline, required this.timelineSummary});
+
+  @override
+  Widget build(BuildContext context) {
+    if (timeline.isEmpty) return const SizedBox.shrink();
+
+    final emotions = timeline
+        .map((e) => (e as Map<String, dynamic>)['emotion']?.toString() ?? 'unknown')
+        .toList();
+
+    // Generate one-sentence summary
+    String summary = 'Your dog showed a variety of emotions.';
+    if (emotions.isNotEmpty) {
+      final first = emotions.first;
+      final last = emotions.last;
+      if (first == last) {
+        summary = 'Your dog remained mostly ${first.toLowerCase()} throughout.';
+      } else {
+        summary = 'Your dog transitioned from ${first.toLowerCase()} to ${last.toLowerCase()}.';
+      }
     }
-  }
 
-  Widget _legendChip(String label, IconData icon, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 13, color: color)),
+        Text(
+          'Mood Timeline',
+          style: AppTheme.titleStyle.copyWith(fontSize: 16),
+        ),
+        const SizedBox(height: AppTheme.space8),
+        Text(summary, style: AppTheme.captionStyle),
+        const SizedBox(height: AppTheme.space12),
+
+        // Timeline bar
+        Container(
+          padding: const EdgeInsets.all(AppTheme.space16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceActive,
+            borderRadius: AppTheme.borderRadiusMedium,
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (int i = 0; i < emotions.length; i++) ...[
+                  if (i > 0)
+                    Container(
+                      width: 16,
+                      height: 2,
+                      color: AppTheme.surfaceElevated,
+                    ),
+                  _TimelineDot(emotion: emotions[i]),
+                ],
+              ],
+            ),
+          ),
+        ),
+
+        // Timeline summary bullets
+        if (timelineSummary.isNotEmpty) ...[
+          const SizedBox(height: AppTheme.space12),
+          ...timelineSummary.map((point) {
+            final style = EmotionStyle.fromEmotion(
+              point.toLowerCase().contains('happy') ? 'happy'
+              : point.toLowerCase().contains('sad') ? 'sad'
+              : point.toLowerCase().contains('angry') ? 'angry'
+              : point.toLowerCase().contains('relax') ? 'relaxed'
+              : 'neutral',
+            );
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(style.icon, color: style.color, size: 18),
+                  const SizedBox(width: AppTheme.space8),
+                  Expanded(
+                    child: Text(
+                      point.trim(),
+                      style: AppTheme.bodyStyle.copyWith(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ],
     );
   }
 }
 
-class _EmotionChip extends StatelessWidget {
+class _TimelineDot extends StatelessWidget {
   final String emotion;
-  final double confidence;
-
-  const _EmotionChip({
-    required this.emotion,
-    required this.confidence,
-  });
+  const _TimelineDot({required this.emotion});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: _emotionColor(emotion).withAlpha((255 * 0.1).toInt()),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: _emotionColor(emotion).withAlpha((255 * 0.2).toInt()),
-          width: 1,
+    final style = EmotionStyle.fromEmotion(emotion);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: style.color.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(style.emoji, style: const TextStyle(fontSize: 16)),
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            emotion,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: _emotionColor(emotion),
-            ),
+        const SizedBox(height: 4),
+        Text(
+          style.label,
+          style: AppTheme.captionStyle.copyWith(
+            fontSize: 10,
+            color: style.color,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(width: 8),
-          Text(
-            '${(confidence * 100).toInt()}%',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              color: _emotionColor(emotion).withAlpha((255 * 0.8).toInt()),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
-  }
-
-  Color _emotionColor(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return const Color(0xFF43E97B); // Mint Green
-      case 'alert':
-        return const Color(0xFFFFA726); // Amber
-      case 'relaxed':
-      case 'relax':
-        return const Color(0xFF7E8CE0); // Blue Violet
-      case 'frown':
-        return const Color(0xFFB0B0B0); // Soft Gray
-      case 'angry':
-        return const Color(0xFFF95F62); // Coral Red
-      default:
-        return const Color(0xFF6E6E6E); // Neutral
-    }
   }
 }
 
 extension StringCasingExtension on String {
   String capitalize() =>
       isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
+}
+
+class _ExpandableInsights extends StatefulWidget {
+  final List<String> suggestions;
+  final EmotionStyle emotionStyle;
+
+  const _ExpandableInsights({required this.suggestions, required this.emotionStyle});
+
+  @override
+  State<_ExpandableInsights> createState() => _ExpandableInsightsState();
+}
+
+class _ExpandableInsightsState extends State<_ExpandableInsights> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceActive,
+        borderRadius: AppTheme.borderRadiusMedium,
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          shape: const RoundedRectangleBorder(),
+          collapsedShape: const RoundedRectangleBorder(),
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _isExpanded = expanded;
+            });
+            if (expanded) {
+              HapticFeedback.lightImpact();
+            }
+          },
+          tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: widget.emotionStyle.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                ),
+                child: Icon(Icons.lightbulb_outline_rounded, size: 20, color: widget.emotionStyle.color),
+              ),
+              const SizedBox(width: AppTheme.space12),
+              Text(
+                'Helpful Insights',
+                style: AppTheme.titleStyle.copyWith(fontSize: 16),
+              ),
+            ],
+          ),
+          childrenPadding: const EdgeInsets.only(left: AppTheme.space16, right: AppTheme.space16, bottom: AppTheme.space16),
+          children: widget.suggestions.map((suggestion) => Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.space12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Icon(Icons.check_circle_outline, size: 16, color: widget.emotionStyle.color),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Expanded(
+                  child: Text(
+                    suggestion,
+                    style: AppTheme.bodyStyle.copyWith(fontSize: 14, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ),
+      ),
+    );
+  }
 }

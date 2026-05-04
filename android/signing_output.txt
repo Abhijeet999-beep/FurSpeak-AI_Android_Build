@@ -1,0 +1,360 @@
+Configuration on demand is an incubating feature.
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :app
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+WARNING: C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+C/C++: Ignoring invalid ABI 'riscv64' found in ABI metadata file 'C:\Users\VICTUS\AppData\Local\Android\sdk\ndk\28.2.13676358\meta\abis.json'.
+
+> Task :firebase_core:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :connectivity_plus:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :camera_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :file_picker:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :ffmpeg_kit_flutter_new_min_gpl:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :firebase_auth:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :device_info_plus:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :flutter_native_video_trimmer:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :flutter_image_compress_common:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :firebase_storage:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :cloud_firestore:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :flutter_secure_storage:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :flutter_tts:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :image_picker_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :isar_flutter_libs:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :path_provider_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :get_thumbnail_video:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :flutter_plugin_android_lifecycle:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :google_sign_in_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :permission_handler_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :video_player_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :shared_preferences_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :sqflite_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :local_auth_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+> Task :app:signingReport
+Variant: debug
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+Variant: release
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+Variant: profile
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\VICTUS\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 89:A8:3D:6D:2C:16:E8:3A:8D:F1:BE:1A:85:32:6C:CF
+SHA1: 99:F6:FE:3E:07:30:5D:06:B6:CA:35:9A:FC:9C:AA:86:DF:2E:C6:7C
+SHA-256: 51:73:21:8A:84:89:DF:67:40:16:E9:54:0F:DE:C0:D7:06:10:6A:32:E5:4D:A7:07:16:CE:B0:00:50:E2:E8:9A
+Valid until: Tuesday, 14 March, 2056
+----------
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.9/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2s
+30 actionable tasks: 26 executed, 4 up-to-date

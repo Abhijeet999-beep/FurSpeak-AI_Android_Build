@@ -1,140 +1,653 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:isar/isar.dart';
-import 'package:intl/intl.dart';
-import 'package:furspeak_ai/data/models/emotion_history.dart';
-import 'package:furspeak_ai/services/auth_service.dart';
-import 'package:furspeak_ai/presentation/screens/guest_mode_warning_screen.dart';
-import 'package:flutter/services.dart';
-import 'package:lottie/lottie.dart';
-import 'package:go_router/go_router.dart';
-import 'package:furspeak_ai/config/app_routes.dart';
-import 'package:furspeak_ai/config/app_theme.dart';
-import 'package:furspeak_ai/widgets/root_nav_shell.dart';
+import 'package:provider/provider.dart';
 
-class HistoryScreen extends StatefulWidget {
+import '../../controllers/history_controller.dart';
+import '../../config/app_theme.dart';
+import '../../config/app_routes.dart';
+import '../../data/models/detection_result.dart';
+import '../../data/models/behavior_insights.dart';
+import 'package:shimmer/shimmer.dart';
+import '../widgets/weekly_trend_card.dart';
+import '../widgets/emotion_distribution_chart.dart';
+import '../widgets/daily_activity_chart.dart';
+import '../widgets/insight_card.dart';
+
+class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
-}
-
-class _HistoryScreenState extends State<HistoryScreen>
-    with SingleTickerProviderStateMixin {
-  late Future<List<EmotionHistory>> _historyFuture;
-  final _authService = AuthService();
-  String? _selectedEmotion;
-  DateTimeRange? _selectedDateRange;
-  late AnimationController _fadeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
-    _checkAndLoadHistory();
-    _fadeController.forward();
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  void _checkAndLoadHistory() {
-    if (!_authService.isGuest) {
-      try {
-        final isar = GetIt.instance<Isar>();
-        _historyFuture =
-            isar.emotionHistorys.where().sortByTimestampDesc().findAll();
-      } catch (e) {
-        print('[HistoryScreen] Error loading history: $e');
-        _historyFuture = Future.value([]);
-      }
-    } else {
-      _historyFuture = Future.value([]);
-    }
-  }
-
-  void _onFilterChanged() {
-    HapticFeedback.selectionClick();
-    setState(() {}); // Stub: would filter results in a real implementation
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Guest access is now handled by route guards and RootNavShell
     return Scaffold(
       backgroundColor: AppTheme.bgColor,
       appBar: AppBar(
-        title: Text(
-          'Emotion History',
-          style: AppTheme.titleStyle.copyWith(color: AppTheme.primaryColor),
-        ),
-        backgroundColor: Colors.white,
+        title: Text('History & Insights', style: AppTheme.titleStyle),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppTheme.primaryColor),
       ),
-      body: SafeArea(
-        child: ListView.builder(
-          padding: const EdgeInsets.all(24),
-          itemCount: 0, // TODO: Implement history items
-          itemBuilder: (context, index) {
-            return const SizedBox(); // TODO: Implement history item widget
-          },
+      body: Consumer<HistoryController>(
+        builder: (context, controller, child) {
+          if (controller.isLoading) {
+            return _buildShimmerLoading();
+          }
+
+          if (controller.error != null) {
+            return _buildErrorState(context, controller);
+          }
+
+          if (controller.results.isEmpty) {
+            return _buildEmptyState(context);
+          }
+
+          return RefreshIndicator(
+            onRefresh: controller.refresh,
+            color: AppTheme.primaryColor,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _buildInsightsHeader(controller),
+                ),
+                if (controller.cachedAnalytics?.intelligence != null && controller.cachedAnalytics!.intelligence.isNotEmpty) ...[
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final insight = controller.cachedAnalytics!.intelligence[index];
+                          return InsightCard(insight: insight);
+                        },
+                        childCount: controller.cachedAnalytics!.intelligence.length,
+                      ),
+                    ),
+                  ),
+                ],
+                if (controller.cachedInsights != null) ...[
+                  SliverToBoxAdapter(
+                    child: WeeklyTrendCard(insights: controller.cachedInsights!),
+                  ),
+                  SliverToBoxAdapter(
+                    child: EmotionDistributionChart(insights: controller.cachedInsights!),
+                  ),
+                  SliverToBoxAdapter(
+                    child: DailyActivityChart(
+                      insights: controller.cachedInsights!,
+                      cachedSpots: controller.cachedDailySpots ?? [],
+                    ),
+                  ),
+                ],
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final result = controller.results[index];
+                        return RepaintBoundary(
+                          child: _HistoryItemCard(result: result),
+                        );
+                      },
+                      childCount: controller.results.length,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── SHIMMER LOADING ────────────────────────────────────────────────
+  Widget _buildShimmerLoading() {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.space16),
+      child: Shimmer.fromColors(
+        baseColor: AppTheme.surfaceElevated,
+        highlightColor: AppTheme.surfaceBase,
+        child: Column(
+          children: List.generate(4, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.space12),
+            child: Container(
+              height: 88,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: AppTheme.borderRadiusMedium,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 72,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(AppTheme.radiusMedium),
+                        bottomLeft: Radius.circular(AppTheme.radiusMedium),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTheme.space12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(height: 14, width: 80, color: Colors.white),
+                          const SizedBox(height: 8),
+                          Container(height: 10, width: 120, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )),
         ),
       ),
     );
   }
 
-  Color _getEmotionColor(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return AppTheme.successColor;
-      case 'alert':
-        return AppTheme.accentColor;
-      case 'angry':
-        return AppTheme.errorColor;
-      case 'relax':
-        return AppTheme.primaryColor;
-      default:
-        return AppTheme.textLightColor;
+  // ─── INSIGHTS HEADER ────────────────────────────────────────────────
+  Widget _buildInsightsHeader(HistoryController controller) {
+    final insights = controller.insights;
+    if (insights == null || insights.totalScans == 0) {
+      return Padding(
+        padding: const EdgeInsets.all(AppTheme.space16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceActive,
+            borderRadius: AppTheme.borderRadiusLarge,
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: AppTheme.borderRadiusMedium,
+                    ),
+                    child: const Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 24),
+                  ),
+                  const SizedBox(width: AppTheme.space12),
+                  Text(
+                    'Behavior Insights',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppTheme.space16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceLow,
+                  borderRadius: AppTheme.borderRadiusMedium,
+                ),
+                child: Text(
+                  'Scan more videos to unlock behavioral insights.\nWe need a bit more data to analyze your dog\'s mood patterns.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.captionStyle.copyWith(color: AppTheme.textLightColor, height: 1.5, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
-  }
 
-  String _getEmotionEmoji(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return '😄';
-      case 'alert':
-        return '⚠️';
-      case 'angry':
-        return '😠';
-      case 'relax':
-        return '😌';
-      default:
-        return '🐶';
-    }
-  }
+    final topEmotion = EmotionStyle.fromEmotion(insights.mostFrequentEmotion);
 
-  Widget _placeholderImage() {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: AppTheme.textLightColor.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.space16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceActive,
+          borderRadius: AppTheme.borderRadiusLarge,
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: AppTheme.borderRadiusMedium,
+                  ),
+                  child: const Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 24),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Text(
+                  'Behavior Insights',
+                  style: AppTheme.titleStyle.copyWith(fontSize: 18),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: topEmotion.color.withOpacity(0.08),
+                borderRadius: AppTheme.borderRadiusMedium,
+              ),
+              child: Text(
+                controller.cachedInsights?.summary ?? 'Your dog has been mostly ${topEmotion.label} recently🐾',
+                style: AppTheme.bodyStyle.copyWith(
+                  fontSize: 14,
+                  color: topEmotion.color,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space16),
+            Row(
+              children: [
+                Expanded(
+                  child: _InsightStatCard(
+                    icon: Icons.analytics_outlined,
+                    value: insights.totalScans.toString(),
+                    label: 'Total Scans',
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Expanded(
+                  child: _InsightStatCard(
+                    icon: topEmotion.icon,
+                    value: topEmotion.label,
+                    label: 'Most Frequent',
+                    color: topEmotion.color,
+                  ),
+                ),
+              ],
+            ),
+            // Emotion distribution preview
+            if (insights.emotionDistribution.isNotEmpty) ...[
+              const SizedBox(height: AppTheme.space16),
+              _EmotionDistributionBar(distribution: insights.emotionDistribution),
+            ],
+          ],
+        ),
       ),
-      child:
-          const Icon(Icons.image_not_supported, color: Colors.grey, size: 32),
+    );
+  }
+
+  // ─── EMPTY STATE ────────────────────────────────────────────────────
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space24),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.pets_rounded, size: 64,
+                  color: AppTheme.primaryColor),
+            ),
+            const SizedBox(height: AppTheme.space24),
+            Text(
+              'No scans yet — try your first analysis',
+              textAlign: TextAlign.center,
+              style: AppTheme.subheadingStyle.copyWith(
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space24),
+            SizedBox(
+              width: 200,
+              child: ElevatedButton.icon(
+                onPressed: () => context.goHome(),
+                icon: const Icon(Icons.camera_alt_rounded),
+                label: const Text('Start Scanning'),
+                style: AppTheme.primaryButtonStyle,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── ERROR STATE ────────────────────────────────────────────────────
+  Widget _buildErrorState(BuildContext context, HistoryController controller) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space16),
+              decoration: BoxDecoration(
+                color: AppTheme.errorColor.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded, size: 48, color: AppTheme.errorColor),
+            ),
+            const SizedBox(height: AppTheme.space16),
+            Text(
+              controller.error ?? 'Something went wrong',
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyStyle.copyWith(fontSize: 16),
+            ),
+            const SizedBox(height: AppTheme.space24),
+            ElevatedButton.icon(
+              onPressed: () => controller.loadHistory(),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: AppTheme.primaryButtonStyle.copyWith(
+                backgroundColor: WidgetStateProperty.all(AppTheme.errorColor),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-extension StringCasingExtension on String {
-  String capitalize() =>
-      isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HISTORY ITEM CARD — Enhanced with emotion badge, relative time, confidence
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class _HistoryItemCard extends StatelessWidget {
+  final DetectionResult result;
+  const _HistoryItemCard({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final emotionStyle = EmotionStyle.fromEmotion(result.emotion);
+    final relativeTime = _formatRelativeTime(result.timestamp);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.space12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceActive,
+        borderRadius: AppTheme.borderRadiusMedium,
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: InkWell(
+        borderRadius: AppTheme.borderRadiusMedium,
+        onTap: () => context.pushResult(result.uuid),
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space12),
+          child: Row(
+            children: [
+              // Thumbnail with emotion color border
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: AppTheme.borderRadiusMedium,
+                  border: Border.all(color: emotionStyle.color.withOpacity(0.3), width: 2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: _buildThumbnail(result),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppTheme.space12),
+
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Emotion badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: emotionStyle.color.withOpacity(0.12),
+                        borderRadius: AppTheme.borderRadiusPill,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(emotionStyle.emoji, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 4),
+                          Text(
+                            emotionStyle.label,
+                            style: AppTheme.captionStyle.copyWith(
+                              fontSize: 12,
+                              color: emotionStyle.color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Relative timestamp
+                    Text(
+                      relativeTime,
+                      style: AppTheme.captionStyle.copyWith(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Confidence indicator
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Circular confidence
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: result.confidence / 100,
+                          strokeWidth: 3,
+                          backgroundColor: emotionStyle.color.withOpacity(0.12),
+                          valueColor: AlwaysStoppedAnimation<Color>(emotionStyle.color),
+                        ),
+                        Text(
+                          '${result.confidence.toStringAsFixed(0)}',
+                          style: AppTheme.captionStyle.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: emotionStyle.color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '%',
+                    style: AppTheme.captionStyle.copyWith(
+                      fontSize: 9,
+                      color: AppTheme.textLightColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: AppTheme.space8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppTheme.textLightColor.withOpacity(0.4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(DetectionResult result) {
+    if (!result.isVideo) {
+      if (File(result.mediaPath).existsSync()) {
+        return Image.file(
+          File(result.mediaPath),
+          fit: BoxFit.cover,
+        );
+      }
+    } else {
+      if (result.frameImagePath != null &&
+          File(result.frameImagePath!).existsSync()) {
+        return Image.file(
+          File(result.frameImagePath!),
+          fit: BoxFit.cover,
+        );
+      }
+    }
+
+    final emotionStyle = EmotionStyle.fromEmotion(result.emotion);
+    return Container(
+      color: emotionStyle.color.withOpacity(0.08),
+      child: Center(
+        child: Text(emotionStyle.emoji, style: const TextStyle(fontSize: 28)),
+      ),
+    );
+  }
+
+  String _formatRelativeTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
+    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
+    return '${(diff.inDays / 365).floor()}y ago';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// REUSABLE INSIGHT STAT CARD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class _InsightStatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  const _InsightStatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.space16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: AppTheme.borderRadiusMedium,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: AppTheme.space8),
+          Text(
+            value,
+            style: AppTheme.titleStyle.copyWith(
+              fontSize: 15,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: AppTheme.captionStyle.copyWith(fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EMOTION DISTRIBUTION BAR (compact visualization)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class _EmotionDistributionBar extends StatelessWidget {
+  final Map<String, int> distribution;
+  const _EmotionDistributionBar({required this.distribution});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = distribution.values.fold<int>(0, (a, b) => a + b);
+    if (total == 0) return const SizedBox.shrink();
+
+    // Sort by count descending
+    final sorted = distribution.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Stacked bar
+        ClipRRect(
+          borderRadius: AppTheme.borderRadiusPill,
+          child: SizedBox(
+            height: 8,
+            child: Row(
+              children: sorted.map((entry) {
+                final ratio = entry.value / total;
+                final style = EmotionStyle.fromEmotion(entry.key);
+                return Expanded(
+                  flex: (ratio * 100).round().clamp(1, 100),
+                  child: Container(color: style.color),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTheme.space8),
+        // Legend
+        Wrap(
+          spacing: AppTheme.space12,
+          runSpacing: 4,
+          children: sorted.take(4).map((entry) {
+            final style = EmotionStyle.fromEmotion(entry.key);
+            final pct = ((entry.value / total) * 100).round();
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8, height: 8,
+                  decoration: BoxDecoration(
+                    color: style.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${style.label} $pct%',
+                  style: AppTheme.captionStyle.copyWith(fontSize: 11),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
 }

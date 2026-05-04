@@ -14,7 +14,7 @@ class _FurSpeakApi implements FurSpeakApi {
     this.baseUrl,
     this.errorLogger,
   }) {
-    baseUrl ??= apiBaseUrl;
+    baseUrl ??= 'http://192.168.0.100:8000/';
   }
 
   final Dio _dio;

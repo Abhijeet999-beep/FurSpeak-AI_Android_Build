@@ -6,18 +6,16 @@ import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
 import 'package:furspeak_ai/widgets/root_nav_shell.dart';
+import 'package:provider/provider.dart';
+import 'package:furspeak_ai/providers/auth_provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  final VoidCallback onComplete;
-
-  const OnboardingScreen({
-    super.key,
-    required this.onComplete,
-  });
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
+
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
@@ -76,7 +74,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      widget.onComplete();
+      // Last page — must persist onboarding state before navigating
+      _onGetStarted();
     }
   }
 
@@ -85,18 +84,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_dontShowAgain) {
       AppConfig.setShowOnboarding(false);
     }
-    context.goLogin();
+    context.read<AuthProvider>().completeOnboarding();
   }
 
   void _onSkip() {
     HapticFeedback.lightImpact();
-    context.goLogin();
+    context.read<AuthProvider>().completeOnboarding();
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: AppTheme.bgColor,
         body: SafeArea(

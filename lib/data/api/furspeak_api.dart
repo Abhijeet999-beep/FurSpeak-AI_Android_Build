@@ -6,11 +6,11 @@ import 'dart:io';
 part 'furspeak_api.g.dart';
 
 const String apiBaseUrl =
-    "https://f40f-2409-40e3-180-2cd9-ac9a-ae4b-86c1-7254.ngrok-free.app/";
+    "http://127.0.0.1:8000/";
 
 @RestApi(
     baseUrl:
-        "https://f40f-2409-40e3-180-2cd9-ac9a-ae4b-86c1-7254.ngrok-free.app/")
+        "http://192.168.31.195:8000/")
 abstract class FurSpeakApi {
   factory FurSpeakApi(Dio dio, {String baseUrl}) = _FurSpeakApi;
 

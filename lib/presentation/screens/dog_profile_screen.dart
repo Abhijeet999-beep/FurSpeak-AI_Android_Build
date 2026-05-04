@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:furspeak_ai/config/app_theme.dart';
 
 class DogProfileScreen extends StatefulWidget {
   const DogProfileScreen({super.key});
@@ -233,12 +234,7 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
                       TextFormField(
                         controller: _nameController,
                         style: const TextStyle(fontFamily: 'Inter'),
-                        decoration: const InputDecoration(
-                          labelText: '🐶 Name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                        ),
+                        decoration: AppTheme.inputDecoration(label: '🐶 Name'),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your dog\'s name';
@@ -262,12 +258,7 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
                           HapticFeedback.selectionClick();
                           setState(() => _selectedBreed = val);
                         },
-                        decoration: const InputDecoration(
-                          labelText: '🐕 Breed',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                        ),
+                        decoration: AppTheme.inputDecoration(label: '🐕 Breed'),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please select your dog\'s breed';
@@ -280,12 +271,7 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
                       TextFormField(
                         controller: _ageController,
                         style: const TextStyle(fontFamily: 'Inter'),
-                        decoration: const InputDecoration(
-                          labelText: '🎂 Age (in years)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                        ),
+                        decoration: AppTheme.inputDecoration(label: '🎂 Age (in years)'),
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -349,9 +335,8 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
                                 }
                               });
                             },
-                            backgroundColor: Colors.white,
-                            selectedColor:
-                                const Color(0xFF7E8CE0).withOpacity(0.2),
+                            backgroundColor: isSelected ? const Color(0xFF7E8CE0).withOpacity(0.2) : Colors.grey.shade100,
+                            selectedColor: const Color(0xFF7E8CE0).withOpacity(0.2),
                             checkmarkColor: const Color(0xFF7E8CE0),
                             labelStyle: TextStyle(
                               color: isSelected
@@ -361,11 +346,7 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(
-                                color: isSelected
-                                    ? const Color(0xFF7E8CE0)
-                                    : Colors.grey[300]!,
-                              ),
+                              side: BorderSide.none,
                             ),
                           );
                         }).toList(),
