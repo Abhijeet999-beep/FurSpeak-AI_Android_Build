@@ -19,31 +19,32 @@ class RootNavShell extends StatelessWidget {
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: AppTheme.borderRadiusLarge,
             ),
+            backgroundColor: AppTheme.surfaceActive,
             title: Row(
               children: [
                 Icon(Icons.pets, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppTheme.space12),
                 Text('Exit App', style: AppTheme.titleStyle),
               ],
             ),
             content: Text(
-              'Are you sure you want to leave?',
-              style: AppTheme.bodyStyle,
+              'Are you sure you want to leave? 🐾',
+              style: AppTheme.bodyStyle.copyWith(color: AppTheme.textLightColor),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: Text('Cancel',
-                    style: TextStyle(
+                    style: AppTheme.bodyStyle.copyWith(
                         color: AppTheme.primaryColor,
                         fontWeight: FontWeight.bold)),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 child: Text('Exit',
-                    style: TextStyle(color: AppTheme.errorColor)),
+                    style: AppTheme.bodyStyle.copyWith(color: AppTheme.errorColor)),
               ),
             ],
           ),
@@ -67,7 +68,6 @@ class RootNavShell extends StatelessWidget {
         }
         final shouldExit = await _showExitDialog(context);
         if (shouldExit) {
-          // Allow the system to handle exit
           SystemNavigator.pop();
         }
       },
@@ -75,9 +75,12 @@ class RootNavShell extends StatelessWidget {
         body: navigationShell,
         bottomNavigationBar: NavigationBar(
           backgroundColor: AppTheme.bgColor,
-          indicatorColor: AppTheme.primaryColor.withOpacity(0.08),
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: AppTheme.primaryColor.withOpacity(0.1),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           selectedIndex: currentIndex,
           onDestinationSelected: (index) {
+            HapticFeedback.selectionClick();
             if (isGuest && (index == 1 || index == 2)) {
               showModalBottomSheet(
                 context: context,
@@ -104,18 +107,21 @@ class RootNavShell extends StatelessWidget {
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
+              selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primaryColor),
               label: 'Home',
+              tooltip: 'Home',
             ),
             NavigationDestination(
               icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history),
+              selectedIcon: Icon(Icons.history_rounded, color: AppTheme.primaryColor),
               label: 'History',
+              tooltip: 'Scan History',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
+              selectedIcon: Icon(Icons.settings_rounded, color: AppTheme.primaryColor),
               label: 'Settings',
+              tooltip: 'Settings',
             ),
           ],
         ),
@@ -123,3 +129,4 @@ class RootNavShell extends StatelessWidget {
     );
   }
 }
+

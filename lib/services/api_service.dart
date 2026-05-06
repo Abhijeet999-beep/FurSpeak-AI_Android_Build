@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../providers/auth_provider.dart';
 import '../config/api_config.dart';
 import '../models/api_pipeline_response.dart';
@@ -61,13 +62,13 @@ class ApiService {
     final String endpointUrl = ApiConfig.getFullUrl(ApiConfig.detectEmotion);
     final DateTime startTime = DateTime.now();
 
-    print('[UPLOAD] ════════════════════════════════════════════');
-    print('[UPLOAD] START → $endpointUrl');
-    print('[UPLOAD] FILE SIZE → $fileSize bytes (${(fileSize / 1024).toStringAsFixed(1)} KB)');
-    print('[UPLOAD] FILE PATH → ${file.path}');
-    print('[UPLOAD] REQUEST ID → $requestId');
-    print('[UPLOAD] TIME → $startTime');
-    print('[UPLOAD] ════════════════════════════════════════════');
+    debugPrint('[UPLOAD] ════════════════════════════════════════════');
+    debugPrint('[UPLOAD] START → $endpointUrl');
+    debugPrint('[UPLOAD] FILE SIZE → $fileSize bytes (${(fileSize / 1024).toStringAsFixed(1)} KB)');
+    debugPrint('[UPLOAD] FILE PATH → ${file.path}');
+    debugPrint('[UPLOAD] REQUEST ID → $requestId');
+    debugPrint('[UPLOAD] TIME → $startTime');
+    debugPrint('[UPLOAD] ════════════════════════════════════════════');
 
     _isUploading = true;
 
@@ -85,7 +86,7 @@ class ApiService {
     } finally {
       _isUploading = false;
       final elapsed = DateTime.now().difference(startTime);
-      print('[UPLOAD] TOTAL WALL-CLOCK → ${elapsed.inMilliseconds}ms');
+      debugPrint('[UPLOAD] TOTAL WALL-CLOCK → ${elapsed.inMilliseconds}ms');
     }
   }
 
@@ -121,7 +122,7 @@ class ApiService {
           rethrow;
         }
         retries++;
-        print('[UPLOAD] RETRY $retries/$_maxRetries → ${e.message}');
+        debugPrint('[UPLOAD] RETRY $retries/$_maxRetries → ${e.message}');
         // Brief backoff before retry
         await Future.delayed(Duration(milliseconds: 500 * retries));
       }
@@ -141,15 +142,13 @@ class ApiService {
     required int attemptNumber,
   }) async {
     try {
-      // --- Auth token (dev bypass if unavailable) ---
+      // --- Auth token ---
       String? token;
       try {
         token = await authProvider.getToken();
       } catch (e) {
-        print("[UPLOAD] ⚠️ getToken() failed ($e). Using dev bypass token.");
-        token = "dev-bypass-token";
+        debugPrint("[UPLOAD] ⚠️ getToken() failed ($e). Proceeding without token.");
       }
-      token ??= "dev-bypass-token";
 
       String fileName = file.path.split('/').last;
 
@@ -167,7 +166,7 @@ class ApiService {
         "request_id": requestId,
       });
 
-      print('[UPLOAD] ATTEMPT $attemptNumber → Sending ${(fileSize / 1024).toStringAsFixed(1)} KB to $endpointUrl');
+      debugPrint('[UPLOAD] ATTEMPT $attemptNumber → Sending ${(fileSize / 1024).toStringAsFixed(1)} KB to $endpointUrl');
 
       // ── HARD TIMEOUT WRAPPING ──────────────────────────────────────
       final response = await _dio.post(
@@ -191,7 +190,7 @@ class ApiService {
         _uploadHardTimeout,
         onTimeout: () {
           final elapsed = DateTime.now().difference(startTime);
-          print('[UPLOAD] ❌ TIMEOUT after ${elapsed.inSeconds}s (hard limit: ${_uploadHardTimeout.inSeconds}s)');
+          debugPrint('[UPLOAD] ❌ TIMEOUT after ${elapsed.inSeconds}s (hard limit: ${_uploadHardTimeout.inSeconds}s)');
           throw PipelineException(
             message: 'Upload timed out after ${_uploadHardTimeout.inSeconds}s. Please try again.',
             stage: PipelineStage.uploading,
@@ -204,12 +203,12 @@ class ApiService {
       final elapsed = DateTime.now().difference(startTime);
       
       if (response.statusCode == 200) {
-        print('[UPLOAD] ✅ SUCCESS → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
-        print('[UPLOAD] RESPONSE → ${response.data}');
+        debugPrint('[UPLOAD] ✅ SUCCESS → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
+        debugPrint('[UPLOAD] RESPONSE → ${response.data}');
         return ApiPipelineResponse.fromJson(response.data);
       } else {
-        print('[UPLOAD] ❌ FAILED → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
-        print('[UPLOAD] RESPONSE BODY → ${response.data}');
+        debugPrint('[UPLOAD] ❌ FAILED → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
+        debugPrint('[UPLOAD] RESPONSE BODY → ${response.data}');
         throw PipelineException(
           message: 'Upload failed with status: ${response.statusCode}.',
           stage: PipelineStage.uploading,
@@ -222,7 +221,7 @@ class ApiService {
       final elapsed = DateTime.now().difference(startTime);
       
       if (CancelToken.isCancel(dioErr)) {
-        print('[UPLOAD] ❌ CANCELLED by user/system (${elapsed.inMilliseconds}ms)');
+        debugPrint('[UPLOAD] ❌ CANCELLED by user/system (${elapsed.inMilliseconds}ms)');
         throw const PipelineException(
           message: 'Request was cancelled.',
           stage: PipelineStage.idle,
@@ -230,16 +229,16 @@ class ApiService {
         );
       }
       
-      print('[UPLOAD] ❌ FAILED → DioException: ${dioErr.type} | ${dioErr.message} (${elapsed.inMilliseconds}ms)');
+      debugPrint('[UPLOAD] ❌ FAILED → DioException: ${dioErr.type} | ${dioErr.message} (${elapsed.inMilliseconds}ms)');
       if (dioErr.response != null) {
-        print('[UPLOAD] RESPONSE STATUS → ${dioErr.response?.statusCode}');
-        print('[UPLOAD] RESPONSE BODY → ${dioErr.response?.data}');
+        debugPrint('[UPLOAD] RESPONSE STATUS → ${dioErr.response?.statusCode}');
+        debugPrint('[UPLOAD] RESPONSE BODY → ${dioErr.response?.data}');
       }
       
       throw _mapDioError(dioErr, fallbackStage: PipelineStage.uploading);
     } catch (e) {
       final elapsed = DateTime.now().difference(startTime);
-      print('[UPLOAD] ❌ FAILED → Unknown error: $e (${elapsed.inMilliseconds}ms)');
+      debugPrint('[UPLOAD] ❌ FAILED → Unknown error: $e (${elapsed.inMilliseconds}ms)');
       throw PipelineException(
         message: 'Upload error: $e',
         stage: PipelineStage.uploading,
@@ -274,7 +273,7 @@ class ApiService {
       try {
         token = await authProvider.getToken();
       } catch (_) {
-        token = "dev-bypass-token";
+        debugPrint("[POLL] ⚠️ getToken() failed. Proceeding without token.");
       }
 
       try {
@@ -306,7 +305,7 @@ class ApiService {
           );
         }
         // Transient network errors during polling → continue retrying
-        print("⚠️ [API SERVICE] Polling heartbeat error, continuing to retry... ${dioErr.message}");
+        debugPrint("⚠️ [API SERVICE] Polling heartbeat error, continuing to retry... ${dioErr.message}");
       }
 
       if (cancelToken.isCancelled) {

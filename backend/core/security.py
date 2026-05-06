@@ -1,8 +1,16 @@
 import os
+import logging
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+logger = logging.getLogger("FurSpeak-Security")
+
 security = HTTPBearer(auto_error=False)
+
+# Environment gate: only "development" allows auth bypass.
+# Production MUST have ENVIRONMENT=production set explicitly.
+_ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+_IS_PRODUCTION = _ENVIRONMENT == "production"
 
 try:
     import firebase_admin
@@ -10,37 +18,71 @@ try:
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
-    print("Warning: firebase-admin not installed. Security bypass active for testing.")
+    if _IS_PRODUCTION:
+        raise RuntimeError("FATAL: firebase-admin is required in production but not installed.")
+    logger.warning("firebase-admin not installed. Auth bypass active for local development only.")
 
 if FIREBASE_AVAILABLE and not firebase_admin._apps:
     try:
-        if os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-            cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+        cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if cred_path:
+            cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin initialized with service account credentials.")
+        elif _IS_PRODUCTION:
+            raise RuntimeError(
+                "FATAL: GOOGLE_APPLICATION_CREDENTIALS must be set in production. "
+                "Cannot start without Firebase Admin credentials."
+            )
         else:
-            print("Warning: Skipping Firebase Admin rigid enforcement. Missing GOOGLE_APPLICATION_CREDENTIALS.")
+            logger.warning("Skipping Firebase Admin init. Missing GOOGLE_APPLICATION_CREDENTIALS (dev mode).")
+    except RuntimeError:
+        raise  # Re-raise fatal errors
     except Exception as e:
-        print(f"Warning: Firebase Admin init failed. {e}")
+        if _IS_PRODUCTION:
+            raise RuntimeError(f"FATAL: Firebase Admin init failed in production: {e}")
+        logger.warning(f"Firebase Admin init failed (dev mode): {e}")
+
 
 async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> str:
-    """ Strict Backend Trusted Extractor resolving Auth dynamically parsing UIDs avoiding spoofing! """
+    """Verify Firebase ID token and extract UID.
+
+    In production: strictly enforces valid Firebase tokens.
+    In development: falls back to a dev UID if Firebase is not configured.
+    """
     token = credentials.credentials if credentials else None
-    
-    # Development Bypass (if Firebase is not configured in local environment)
+
+    # ── PRODUCTION: strict enforcement, no bypass ──────────────────────
+    if _IS_PRODUCTION:
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing authentication token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            decoded_token = auth.verify_id_token(token)
+            return decoded_token['uid']
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid authentication credentials: {str(e)}",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    # ── DEVELOPMENT ONLY: allow bypass if Firebase is not configured ───
     if (
         not FIREBASE_AVAILABLE
         or not getattr(firebase_admin, '_apps', None)
         or not token
-        or token == "development-mock-token"
     ):
-        print(f"[DEV AUTH] Bypassing auth. Token: {token}")
-        # Note in true production this branch shouldn't exist
+        logger.debug(f"[DEV AUTH] Bypassing auth (env={_ENVIRONMENT}). Token present: {token is not None}")
         return "development-uid-123"
 
+    # Firebase IS configured in dev — still validate properly
     try:
         decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        return uid
+        return decoded_token['uid']
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

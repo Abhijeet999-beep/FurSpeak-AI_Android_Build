@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,7 +15,7 @@ import 'package:furspeak_ai/services/result_storage_service.dart';
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
-  print("🟢 DI: Initializing Isar...");
+  debugPrint("🟢 DI: Initializing Isar...");
 
   if (!getIt.isRegistered<Isar>()) {
     final dir = await getApplicationDocumentsDirectory();
@@ -25,9 +26,9 @@ Future<void> setupDependencies() async {
     );
 
     getIt.registerSingleton<Isar>(isarInstance);
-    print("🟢 DI: Isar initialized successfully");
+    debugPrint("🟢 DI: Isar initialized successfully");
   } else {
-    print("🟢 DI: Isar already initialized");
+    debugPrint("🟢 DI: Isar already initialized");
   }
 
   // Register other services if they are not already registered

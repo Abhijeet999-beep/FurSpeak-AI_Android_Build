@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(height: 48),
                       // Title
                       Text(
-                        'PawMood 🐾',
+                        'FurSpeak AI 🐾',
                         style: AppTheme.headingStyle.copyWith(
                           fontSize: 36,
                           color: AppTheme.primaryColor,
@@ -354,14 +354,13 @@ class _AuthButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: textColor,
-          elevation: 4,
+          elevation: 0,
           shadowColor: color.withOpacity(0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: AppTheme.borderRadiusPill,
             side: BorderSide.none,
           ),
-          textStyle: const TextStyle(
-            fontFamily: 'Poppins',
+          textStyle: AppTheme.titleStyle.copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 16,
           ),
@@ -565,10 +564,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
                           foregroundColor: Colors.white,
-                          elevation: 8,
+                          elevation: 0,
                           shadowColor: AppTheme.primaryColor.withOpacity(0.3),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
+                            borderRadius: AppTheme.borderRadiusPill,
                           ),
                         ),
                         child: Text(

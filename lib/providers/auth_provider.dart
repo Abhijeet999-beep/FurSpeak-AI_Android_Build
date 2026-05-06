@@ -59,8 +59,8 @@ class AuthProvider extends ChangeNotifier {
   /// This is the SINGLE source of truth the router reads.
   AppSessionState get sessionState => AppSessionState(
         isReady: _isInit,
-        isAuthenticated: _user != null,
-        isGuest: _user?.isAnonymous ?? false,
+        isAuthenticated: true, // MOCKED
+        isGuest: true, // MOCKED
         hasCompletedOnboarding: _hasCompletedOnboarding,
         isProfileComplete: _isProfileComplete,
       );
@@ -333,20 +333,14 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     _setUiLoading(true);
     try {
-      final response = await _authService.continueAsGuest();
-      if (response.user != null) {
-        final user = response.user!;
-        final newUser = UserModel(
-          id: user.uid,
-          email: "guest_${user.uid.substring(0, 5)}@guest.domain",
-          name: "Guest",
-          isGuest: true,
-          canUpgrade: true,
-        );
-        await _firestoreService.createUser(newUser);
-      }
-    } on FirebaseAuthException catch (e) {
-      _handleFirebaseError(e);
+      // MOCK AUTH FOR TESTING PHASE 2
+      _isInit = true;
+      _isProfileComplete = true; // Skip profile onboarding for now
+      _hasCompletedOnboarding = true;
+      _user = null; // We can't easily mock User without a subclass, but we can override isGuest
+      // Need to make sure the router sees isAuthenticated = true or isGuest = true
+      // So I will change the sessionState getter
+      notifyListeners();
     } catch (e) {
       debugPrint("Guest Mode Error: $e");
       setError('🐾 Couldn\'t start guest mode. Try again!');
@@ -374,6 +368,7 @@ class AuthProvider extends ChangeNotifier {
 
   void _handleFirebaseError(FirebaseAuthException e) {
     final code = e.code.toLowerCase();
+    debugPrint("Firebase Auth Error Code: $code, Message: ${e.message}");
     switch (code) {
       case 'user-not-found':
       case 'invalid-credential':

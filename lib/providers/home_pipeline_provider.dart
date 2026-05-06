@@ -102,11 +102,11 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (_apiService.isUploading) {
-      print('[UPLOAD] ⚠️ APP LIFECYCLE → ${state.name} while upload in-flight!');
-      print('[UPLOAD] BLOCKED — upload must complete before app can safely exit.');
+      debugPrint('[UPLOAD] ⚠️ APP LIFECYCLE → ${state.name} while upload in-flight!');
+      debugPrint('[UPLOAD] BLOCKED — upload must complete before app can safely exit.');
     }
     if (_state == HomeState.uploading || _state == HomeState.processing) {
-      print('[PIPELINE] ⚠️ APP LIFECYCLE → ${state.name} during ${_state.name}');
+      debugPrint('[PIPELINE] ⚠️ APP LIFECYCLE → ${state.name} during ${_state.name}');
     }
   }
 
@@ -420,7 +420,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
                 if (compressedFile?.existsSync() == true) {
                   compressedFile?.deleteSync();
                   developer.log("PIPELINE CLEANUP: temp file deleted safely: $path", name: "FurSpeak");
-                  print("🗑️ Safe to delete compressed file");
+                  debugPrint("🗑️ Safe to delete compressed file");
                 }
               } catch (_) {}
             }
@@ -429,10 +429,10 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       // ── UPLOAD (orchestrator lock is HELD for the entire duration) ────
-      print('[PIPELINE] ════ UPLOAD PHASE START ════');
-      print('[PIPELINE] Upload file: ${uploadFile.path}');
-      print('[PIPELINE] Upload file exists: ${uploadFile.existsSync()}');
-      print('[PIPELINE] Upload file size: ${uploadFile.existsSync() ? uploadFile.lengthSync() : "N/A"} bytes');
+      debugPrint('[PIPELINE] ════ UPLOAD PHASE START ════');
+      debugPrint('[PIPELINE] Upload file: ${uploadFile.path}');
+      debugPrint('[PIPELINE] Upload file exists: ${uploadFile.existsSync()}');
+      debugPrint('[PIPELINE] Upload file size: ${uploadFile.existsSync() ? uploadFile.lengthSync() : "N/A"} bytes');
       
       final uploadStopwatch = Stopwatch()..start();
 
@@ -449,9 +449,9 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
 
       uploadStopwatch.stop();
-      print('[PIPELINE] ════ UPLOAD PHASE COMPLETE ════');
-      print('[PIPELINE] Upload wall-clock: ${uploadStopwatch.elapsedMilliseconds}ms');
-      print("📤 Upload completed successfully");
+      debugPrint('[PIPELINE] ════ UPLOAD PHASE COMPLETE ════');
+      debugPrint('[PIPELINE] Upload wall-clock: ${uploadStopwatch.elapsedMilliseconds}ms');
+      debugPrint("📤 Upload completed successfully");
 
       // ── STALE CHECK after upload ───────────────────────────────────
       if (_requestId != activeRequestId) {
@@ -542,7 +542,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       _changeState(HomeState.success);
       pipelineSuccess = true;
-      print("📦 Pipeline completed successfully");
+      debugPrint("📦 Pipeline completed successfully");
 
       if (pipelineSuccess == true) {
         deleteCompressedFile();

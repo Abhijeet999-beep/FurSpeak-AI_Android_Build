@@ -21,6 +21,27 @@ import tempfile
 
 app = FastAPI(title="FurSpeak AI")
 
+def _safe_remove(path: str):
+    """Remove a temp file if it exists, swallowing errors (e.g., file already deleted or locked)."""
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+def _cleanup_stale_temp_files(max_age_seconds: int = 3600):
+    """Remove temp files older than max_age_seconds from TEMP_DIR."""
+    try:
+        now = time.time()
+        for filename in os.listdir(Config.TEMP_DIR):
+            filepath = os.path.join(Config.TEMP_DIR, filename)
+            if os.path.isfile(filepath):
+                age = now - os.path.getmtime(filepath)
+                if age > max_age_seconds:
+                    _safe_remove(filepath)
+    except Exception:
+        pass  # Non-critical — don't crash the GC loop
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("FurSpeak-API")
 
@@ -40,14 +61,16 @@ async def startup_event():
     logger.info(f"API Started. Device: {dev}")
 
 async def background_gc():
-    """ Background Periodic Memory Cleaning offloading blocking responses. """
+    """ Background Periodic Memory Cleaning + Temp File Cleanup. """
     import gc
     import torch
     while True:
-        await asyncio.sleep(60) # Run every minute seamlessly
+        await asyncio.sleep(60)  # Run every minute
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+        # Clean up temp files older than 1 hour (best_frame images, compressed uploads, etc.)
+        _cleanup_stale_temp_files(max_age_seconds=3600)
 
 app.mount("/static", StaticFiles(directory=Config.TEMP_DIR), name="static")
 
@@ -136,7 +159,6 @@ async def predict(
             response_cache.resolve_flight(file_hash)
             raise FurSpeakException("UNSUPPORTED_MEDIA", "File extension mapped incorrectly natively.", 400)
             
-        # Wait for strict API limits isolating crash logic implicitly skipping workers natively
         try:
             result = await asyncio.wait_for(future, timeout=Config.REQUEST_TIMEOUT_SECONDS)
             result.processing_time = round(time.time() - start_time, 2)
@@ -144,37 +166,40 @@ async def predict(
             
             # 3600 ttl cache
             response_cache.set(file_hash, final_dict, 3600)
-            response_cache.resolve_flight(file_hash) # Unlock natively!
+            response_cache.resolve_flight(file_hash)
 
-            print(f"[TRACE {request_id}] FINAL RESPONSE → {final_dict}")
+            logger.info(f"[REQ:{request_id}] FINAL RESPONSE → {final_dict}")
             
             proc_time = round(time.time() - start_time, 2)
-            print(f"[TRACE {request_id}] TOTAL TIME → {proc_time}s")
             logger.info(f"[REQ:{request_id}] SUCCESS | UID: {uid} | time: {proc_time}s")
+
+            # Cleanup temp file AFTER worker has finished processing
+            _safe_remove(temp_path)
+
             return final_dict
 
         except asyncio.TimeoutError:
-            response_cache.resolve_flight(file_hash) # Unlock if timed out so others don't freeze implicitly 
-            future.cancel() # Trigger Worker skip logic natively
+            response_cache.resolve_flight(file_hash)
+            future.cancel()
             logger.error(f"[REQ:{request_id}] TIMEOUT_ERROR | Exceeded {Config.REQUEST_TIMEOUT_SECONDS}s")
+            # Schedule deferred cleanup — worker may still be reading the file
+            asyncio.get_running_loop().call_later(Config.REQUEST_TIMEOUT_SECONDS, _safe_remove, temp_path)
             return JSONResponse(status_code=504, content={"error_type": "TIMEOUT", "message": "Processing took too long. Try a shorter video."})
 
     except FurSpeakException as fse:
         try: response_cache.resolve_flight(file_hash) 
         except: pass
+        _safe_remove(temp_path)
         logger.warning(f"[REQ:{request_id}] FURSPEAK_EXCEPTION | {fse.error_type}: {fse.message}")
         raise fse
     except Exception as e:
         try: response_cache.resolve_flight(file_hash) 
         except: pass
+        _safe_remove(temp_path)
         import traceback
         error_msg = str(e)
         logger.error(f"❌ ERROR IN PREDICT ENDPOINT: {error_msg}")
         logger.error(traceback.format_exc())
         return JSONResponse(status_code=500, content={"error": "Backend processing failed", "details": error_msg})
-    finally:
-        # Strict explicit Temp cleanup decoupled from inference boundaries
-        if os.path.exists(temp_path):
-             os.remove(temp_path)
 
 app.include_router(api_v1_router)

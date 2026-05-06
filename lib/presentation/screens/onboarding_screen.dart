@@ -120,12 +120,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
                         _pages.length,
-                        (index) => Container(
-                          width: 8,
-                          height: 8,
+                        (index) => AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: _currentPage == index ? 28 : 10,
+                          height: 10,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(5),
                             color: _currentPage == index
                                 ? AppTheme.primaryColor
                                 : AppTheme.primaryColor.withOpacity(0.2),

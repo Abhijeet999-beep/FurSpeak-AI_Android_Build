@@ -235,7 +235,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8),
                       child: Text(
-                        'OR SAVE YOUR RESULTS',
+                        'or sign in to save',
                         style: AppTheme.bodyStyle.copyWith(
                           fontSize: 12,
                           color: AppTheme.textLightColor,
@@ -293,6 +293,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     delay: const Duration(milliseconds: 720),
                   )
                   .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
+
+              const SizedBox(height: AppTheme.space12),
+
+              // ─── Terms & Privacy (Play Store requirement) ───
+              Text(
+                'By continuing, you agree to our Terms of Service\nand Privacy Policy',
+                textAlign: TextAlign.center,
+                style: AppTheme.captionStyle.copyWith(
+                  fontSize: 12,
+                  color: AppTheme.textLightColor.withOpacity(0.6),
+                  height: 1.5,
+                ),
+              ).animate().fadeIn(delay: const Duration(milliseconds: 800)),
 
               const SizedBox(height: AppTheme.space16),
             ],

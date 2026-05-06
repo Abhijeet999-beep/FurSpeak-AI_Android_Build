@@ -207,7 +207,7 @@ class _CameraScreenState extends State<CameraScreen>
           style: AppTheme.headingStyle.copyWith(fontSize: 22, color: AppTheme.primaryColor),
         ),
         content: Text(
-          'PawMood requires Camera and Microphone access to record and analyze your dog\'s emotions. Please enable permissions in your device settings.',
+          'FurSpeak AI requires Camera and Microphone access to record and analyze your dog\'s emotions. Please enable permissions in your device settings.',
           style: AppTheme.bodyStyle.copyWith(color: AppTheme.textLightColor, fontSize: 15),
         ),
         actions: [

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/config/app_routes.dart';
+import 'package:provider/provider.dart';
+import 'package:furspeak_ai/providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,13 +15,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _autoClearTemp = true;
-  bool _autoSaveHistory = true;
-  bool _pushNotifications = false;
-  bool _dailySummaries = false;
-  TimeOfDay _summaryTime = const TimeOfDay(hour: 8, minute: 0);
-  String _defaultDog = 'Buddy';
-  final List<String> _dogProfiles = ['Buddy', 'Luna', 'Max', 'Bella'];
   bool _voiceNarration = false;
 
   @override
@@ -34,22 +31,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _setVoiceNarration(bool value) async {
+    HapticFeedback.selectionClick();
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _voiceNarration = value;
     });
     await prefs.setBool('voiceNarration', value);
-  }
-
-  Future<void> _pickSummaryTime() async {
-    HapticFeedback.selectionClick();
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _summaryTime,
-    );
-    if (picked != null) {
-      setState(() => _summaryTime = picked);
-    }
   }
 
   void _showAboutDialog() {
@@ -58,35 +45,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       applicationName: 'FurSpeak AI',
       applicationVersion: '1.0.0',
-      applicationLegalese: '© 2024 FurSpeak AI',
+      applicationLegalese: '© 2024 FurSpeak AI. All rights reserved.',
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16.0),
+          padding: const EdgeInsets.only(top: AppTheme.space16),
           child: Text(
-            'FurSpeak AI helps you understand your dog\'s emotions using AI-powered analysis. Built with love for dog owners everywhere!',
-            style: const TextStyle(fontFamily: 'Inter'),
+            'FurSpeak AI helps you understand your dog\'s emotions using AI-powered analysis. Built with love for dog owners everywhere! 🐾',
+            style: AppTheme.bodyStyle,
           ),
         ),
       ],
-    );
-  }
-
-  void _showPrivacyPolicy() {
-    HapticFeedback.selectionClick();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy',
-            style:
-                TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
-        content: const Text('Our privacy policy will be available soon.',
-            style: TextStyle(fontFamily: 'Inter')),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close')),
-        ],
-      ),
     );
   }
 
@@ -95,22 +63,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Contact Support',
-            style:
-                TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
-        content: const Text('Email us at support@furspeak.ai',
-            style: TextStyle(fontFamily: 'Inter')),
+        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusLarge),
+        backgroundColor: AppTheme.surfaceActive,
+        title: Text('Contact Support', style: AppTheme.titleStyle.copyWith(color: AppTheme.primaryColor)),
+        content: Text(
+          'Have a question or need help?\n\nEmail us at support@furspeak.ai 📧',
+          style: AppTheme.bodyStyle.copyWith(color: AppTheme.textLightColor),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close')),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Close', style: AppTheme.bodyStyle.copyWith(color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+          ),
         ],
       ),
     );
   }
 
+  Future<void> _handleSignOut() async {
+    HapticFeedback.mediumImpact();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusLarge),
+        backgroundColor: AppTheme.surfaceActive,
+        title: Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppTheme.accentColor, size: 24),
+            const SizedBox(width: AppTheme.space12),
+            Text('Sign Out', style: AppTheme.titleStyle),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to sign out? You can always sign back in later.',
+          style: AppTheme.bodyStyle.copyWith(color: AppTheme.textLightColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: AppTheme.bodyStyle.copyWith(color: AppTheme.textLightColor, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space12),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Sign Out', style: AppTheme.bodyStyle.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirmed && mounted) {
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final isGuest = authProvider.isGuest;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -119,195 +137,192 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFCF5), // Creamy White
+        backgroundColor: AppTheme.bgColor,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             'Settings',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF5A5BD9), // Sky Indigo
+            style: AppTheme.headingStyle.copyWith(
+              fontSize: 22,
+              color: AppTheme.primaryColor,
             ),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.bgColor,
           elevation: 0,
-          iconTheme:
-              const IconThemeData(color: Color(0xFF5A5BD9)), // Sky Indigo
+          iconTheme: const IconThemeData(color: AppTheme.primaryColor),
         ),
         body: SafeArea(
           child: ListView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppTheme.space24),
             children: [
-              // General Settings
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'General',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5A5BD9), // Sky Indigo
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsTile(
-                        icon: Icons.notifications,
-                        title: 'Notifications',
-                        subtitle: 'Manage notification preferences',
-                        onTap: () {
-                          // Handle notifications settings
-                        },
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.language,
-                        title: 'Language',
-                        subtitle: 'English',
-                        onTap: () {
-                          // Handle language settings
-                        },
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.dark_mode,
-                        title: 'Dark Mode',
-                        subtitle: 'System default',
-                        trailing: Switch(
-                          value: false,
-                          onChanged: (value) {
-                            // Handle dark mode toggle
-                          },
-                        ),
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.volume_up,
-                        title: 'Enable Voice Narration',
-                        subtitle: 'Let the app speak emotion results out loud.',
-                        trailing: Switch(
-                          value: _voiceNarration,
-                          onChanged: (value) => _setVoiceNarration(value),
-                        ),
-                      ),
-                    ],
+              // ─── General Settings ─────────────────────
+              _buildSectionCard(
+                title: 'General',
+                icon: Icons.tune_rounded,
+                children: [
+                  _SettingsTile(
+                    icon: Icons.volume_up_rounded,
+                    title: 'Voice Narration',
+                    subtitle: 'Read emotion results aloud',
+                    trailing: Switch.adaptive(
+                      value: _voiceNarration,
+                      onChanged: _setVoiceNarration,
+                      activeColor: AppTheme.primaryColor,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Account Settings
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Account',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5A5BD9), // Sky Indigo
+                  const SizedBox(height: AppTheme.space8),
+                  _SettingsTile(
+                    icon: Icons.language_rounded,
+                    title: 'Language',
+                    subtitle: 'English',
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('🌍 More languages coming soon!', style: AppTheme.bodyStyle.copyWith(color: Colors.white, fontSize: 14)),
+                          backgroundColor: AppTheme.textColor,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          margin: const EdgeInsets.all(AppTheme.space16),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsTile(
-                        icon: Icons.person,
-                        title: 'Profile',
-                        subtitle: 'Manage your profile information',
-                        onTap: () {
-                          // Handle profile settings
-                        },
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.security,
-                        title: 'Security',
-                        subtitle: 'Password and security settings',
-                        onTap: () {
-                          // Handle security settings
-                        },
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.delete,
-                        title: 'Delete Account',
-                        subtitle: 'Permanently delete your account',
-                        textColor: const Color(0xFFF95F62), // Coral Red
-                        onTap: () {
-                          // Handle account deletion
-                        },
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 24),
-              // About Section
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
+              const SizedBox(height: AppTheme.space24),
+
+              // ─── Account Settings ─────────────────────
+              _buildSectionCard(
+                title: 'Account',
+                icon: Icons.person_rounded,
+                children: [
+                  if (!isGuest) ...[
+                    _SettingsTile(
+                      icon: Icons.person_outline_rounded,
+                      title: 'Profile',
+                      subtitle: 'Manage your profile information',
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        context.go(AppRoutes.profileSetup);
+                      },
+                    ),
+                    const SizedBox(height: AppTheme.space8),
+                  ],
+                  _SettingsTile(
+                    icon: Icons.logout_rounded,
+                    title: isGuest ? 'Sign In' : 'Sign Out',
+                    subtitle: isGuest ? 'Create an account to save your results' : 'Sign out of your account',
+                    onTap: isGuest
+                        ? () {
+                            HapticFeedback.selectionClick();
+                            context.go(AppRoutes.welcome);
+                          }
+                        : _handleSignOut,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space24),
+
+              // ─── About Section ────────────────────────
+              _buildSectionCard(
+                title: 'About',
+                icon: Icons.info_outline_rounded,
+                children: [
+                  _SettingsTile(
+                    icon: Icons.auto_awesome_rounded,
+                    title: 'Version',
+                    subtitle: '1.0.0',
+                    onTap: null,
+                  ),
+                  const SizedBox(height: AppTheme.space8),
+                  _SettingsTile(
+                    icon: Icons.description_rounded,
+                    title: 'Terms of Service',
+                    subtitle: 'Read our terms and conditions',
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _showAboutDialog();
+                    },
+                  ),
+                  const SizedBox(height: AppTheme.space8),
+                  _SettingsTile(
+                    icon: Icons.privacy_tip_rounded,
+                    title: 'Privacy Policy',
+                    subtitle: 'How we handle your data',
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _showAboutDialog();
+                    },
+                  ),
+                  const SizedBox(height: AppTheme.space8),
+                  _SettingsTile(
+                    icon: Icons.support_agent_rounded,
+                    title: 'Contact Support',
+                    subtitle: 'Get help from our team',
+                    onTap: _showContactSupport,
+                  ),
+                  const SizedBox(height: AppTheme.space8),
+                  _SettingsTile(
+                    icon: Icons.favorite_rounded,
+                    title: 'About FurSpeak AI',
+                    subtitle: 'Learn more about the app',
+                    onTap: _showAboutDialog,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space24),
+
+              // ─── Footer ──────────────────────────────
+              Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'About',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5A5BD9), // Sky Indigo
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsTile(
-                        icon: Icons.info,
-                        title: 'Version',
-                        subtitle: '1.0.0',
-                        onTap: null,
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.description,
-                        title: 'Terms of Service',
-                        subtitle: 'Read our terms and conditions',
-                        onTap: () {
-                          // Handle terms of service
-                        },
-                      ),
-                      const Divider(),
-                      _SettingsTile(
-                        icon: Icons.privacy_tip,
-                        title: 'Privacy Policy',
-                        subtitle: 'Read our privacy policy',
-                        onTap: () {
-                          // Handle privacy policy
-                        },
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.space16),
+                  child: Text(
+                    'Made with 🐾 for dog lovers everywhere',
+                    style: AppTheme.captionStyle.copyWith(
+                      fontSize: 13,
+                      color: AppTheme.textLightColor.withOpacity(0.6),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceActive,
+        borderRadius: AppTheme.borderRadiusLarge,
+        boxShadow: AppTheme.floatShadow,
+      ),
+      padding: const EdgeInsets.all(AppTheme.space16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: AppTheme.primaryColor),
+              const SizedBox(width: AppTheme.space8),
+              Text(
+                title,
+                style: AppTheme.titleStyle.copyWith(
+                  color: AppTheme.primaryColor,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space16),
+          ...children,
+        ],
       ),
     );
   }
@@ -332,36 +347,66 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: textColor ?? const Color(0xFF5A5BD9), // Sky Indigo
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textColor ?? const Color(0xFF2C2C2C), // Charcoal Gray
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: AppTheme.borderRadiusMedium,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.space12,
+            vertical: AppTheme.space12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (textColor ?? AppTheme.primaryColor).withOpacity(0.08),
+                  borderRadius: AppTheme.borderRadiusMedium,
+                ),
+                child: Icon(
+                  icon,
+                  color: textColor ?? AppTheme.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppTheme.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTheme.titleStyle.copyWith(
+                        fontSize: 15,
+                        color: textColor ?? AppTheme.textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppTheme.captionStyle.copyWith(
+                        fontSize: 13,
+                        color: AppTheme.textLightColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              trailing ??
+                  (onTap != null
+                      ? Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppTheme.primaryColor.withOpacity(0.4),
+                          size: 22,
+                        )
+                      : const SizedBox.shrink()),
+            ],
+          ),
         ),
       ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 14,
-          color: const Color(0xFF777777), // Stone Gray
-        ),
-      ),
-      trailing: trailing ??
-          (onTap != null
-              ? const Icon(
-                  Icons.chevron_right,
-                  color: Color(0xFF5A5BD9), // Sky Indigo
-                )
-              : null),
-      onTap: onTap,
     );
   }
 }

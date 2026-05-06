@@ -161,7 +161,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Join PawMood and understand your furry friend',
+                          'Join FurSpeak AI and understand your furry friend',
                           style: AppTheme.bodyStyle
                               .copyWith(color: AppTheme.textLightColor),
                         ),
@@ -295,11 +295,11 @@ class _SignUpScreenState extends State<SignUpScreen>
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryColor,
                               foregroundColor: Colors.white,
-                              elevation: 10,
+                              elevation: 0,
                               shadowColor:
                                   AppTheme.primaryColor.withOpacity(0.3),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(22),
+                                borderRadius: AppTheme.borderRadiusPill,
                               ),
                             ),
                             child: Text(

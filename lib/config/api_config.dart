@@ -5,7 +5,7 @@ import 'dart:io' show Platform;
 
 class ApiConfig {
   // Toggle this bool manually if you are testing on EMULATOR vs REAL DEVICE
-  static const bool isRunningOnEmulator = false; 
+  static const bool isRunningOnEmulator = true; 
 
   static String get _localBaseUrl {
     // 1. Check .env for IP override — wrapped defensively so a missing .env

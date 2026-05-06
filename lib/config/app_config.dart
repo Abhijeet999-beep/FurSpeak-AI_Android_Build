@@ -6,11 +6,7 @@ class AppConfig {
   static const String appName = 'FurSpeak AI';
   static const String appVersion = '1.0.0';
 
-  // API Endpoints
-  static const String apiBaseUrl =
-      'http://192.168.31.195:8000';
-  static const String predictEndpoint = '/detect/';
-  static const String historyEndpoint = '/history';
+  // API Endpoints: see ApiConfig (lib/config/api_config.dart) — single source of truth.
 
   // Theme Colors
   static const Color primaryColor = Color(0xFF5A5BD9); // Sky Indigo
@@ -33,7 +29,6 @@ class AppConfig {
       secondary: secondaryColor,
       tertiary: tertiaryColor,
       error: errorColor,
-      background: backgroundColor,
       surface: surfaceColor,
       onPrimary: Colors.white,
       onSecondary: textPrimaryColor,

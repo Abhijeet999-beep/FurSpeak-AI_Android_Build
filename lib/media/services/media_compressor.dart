@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:ffmpeg_kit_flutter_new_min_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min_gpl/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min_gpl/ffmpeg_kit_config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -40,11 +41,11 @@ class MediaCompressor {
   ///   -movflags +faststart → moov atom at file start → faster upload init
   static Future<File?> compressVideo(File file) async {
     final fileSize = await file.length();
-    print('🎬 [COMPRESSOR] Video size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
+    debugPrint('🎬 [COMPRESSOR] Video size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
 
     // ── Tier 0: Skip — file is already tiny ──────────────────────────────
     if (fileSize < _skipThresholdBytes) {
-      print('⚡ [COMPRESSOR] < 5 MB — skipping compression (Tier 0 fast path)');
+      debugPrint('⚡ [COMPRESSOR] < 5 MB — skipping compression (Tier 0 fast path)');
       return file;
     }
 
@@ -66,7 +67,7 @@ class MediaCompressor {
     final String tierLabel   = isLightPass
         ? 'Tier 1 light (5–15 MB) → ${resolution}p @ ${fps}fps CRF $crf'
         : 'Tier 2 full  (>15 MB)  → ${resolution}p @ ${fps}fps CRF $crf';
-    print('📦 [COMPRESSOR] $tierLabel | ultrafast, 2 threads, GOP $gop, hwaccel auto');
+    debugPrint('📦 [COMPRESSOR] $tierLabel | ultrafast, 2 threads, GOP $gop, hwaccel auto');
 
     // ── Benchmark: wall-clock time for compression ────────────────────────
     final stopwatch = Stopwatch()..start();
@@ -91,7 +92,7 @@ class MediaCompressor {
     FFmpegKitConfig.disableLogs();
 
     stopwatch.stop();
-    print('⏱️ [COMPRESSOR] FFmpeg wall-clock: ${stopwatch.elapsedMilliseconds} ms');
+    debugPrint('⏱️ [COMPRESSOR] FFmpeg wall-clock: ${stopwatch.elapsedMilliseconds} ms');
 
     final returnCode = await session.getReturnCode();
 
@@ -99,7 +100,7 @@ class MediaCompressor {
       final compressedFile = File(targetPath);
       final newSize = await compressedFile.length();
       final reduction = ((fileSize - newSize) / fileSize * 100).toStringAsFixed(1);
-      print(
+      debugPrint(
         '✅ [COMPRESSOR] ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB '
         '→ ${(newSize / 1024).toStringAsFixed(0)} KB ($reduction% reduction) '
         '| ${resolution}p @ ${fps}fps | ${stopwatch.elapsedMilliseconds}ms',
@@ -114,7 +115,7 @@ class MediaCompressor {
       return compressedFile;
     } else {
       final failLog = await session.getFailStackTrace();
-      print('❌ [COMPRESSOR] FFmpeg failed — using original. Trace: $failLog');
+      debugPrint('❌ [COMPRESSOR] FFmpeg failed — using original. Trace: $failLog');
       return file; // graceful fallback: send the original
     }
   }
@@ -122,10 +123,10 @@ class MediaCompressor {
   /// Compresses an image. Skips for files < 500 KB.
   static Future<File?> compressImage(File file) async {
     final fileSize = await file.length();
-    print('🖼️ [COMPRESSOR] Image size: ${(fileSize / 1024).toStringAsFixed(0)} KB');
+    debugPrint('🖼️ [COMPRESSOR] Image size: ${(fileSize / 1024).toStringAsFixed(0)} KB');
 
     if (fileSize < _imageSkipThresholdBytes) {
-      print('⚡ [COMPRESSOR] Image < 500 KB — skipping compression (fast path)');
+      debugPrint('⚡ [COMPRESSOR] Image < 500 KB — skipping compression (fast path)');
       return file;
     }
 
@@ -146,15 +147,15 @@ class MediaCompressor {
     );
 
     stopwatch.stop();
-    print('⏱️ [COMPRESSOR] Image compress wall-clock: ${stopwatch.elapsedMilliseconds} ms');
+    debugPrint('⏱️ [COMPRESSOR] Image compress wall-clock: ${stopwatch.elapsedMilliseconds} ms');
 
     if (result != null) {
       final newSize = await File(result.path).length();
-      print('✅ [COMPRESSOR] Image: ${(fileSize / 1024).toStringAsFixed(0)} KB → ${(newSize / 1024).toStringAsFixed(0)} KB');
+      debugPrint('✅ [COMPRESSOR] Image: ${(fileSize / 1024).toStringAsFixed(0)} KB → ${(newSize / 1024).toStringAsFixed(0)} KB');
       return File(result.path);
     }
 
-    print('⚠️ [COMPRESSOR] Image compression returned null — using original.');
+    debugPrint('⚠️ [COMPRESSOR] Image compression returned null — using original.');
     return file;
   }
 
@@ -168,6 +169,6 @@ class MediaCompressor {
   /// Cancels any ongoing FFmpeg compression
   static void cancelCurrentCompression() {
     FFmpegKit.cancel();
-    print('🛑 [COMPRESSOR] FFmpeg execution cancelled.');
+    debugPrint('🛑 [COMPRESSOR] FFmpeg execution cancelled.');
   }
 }
