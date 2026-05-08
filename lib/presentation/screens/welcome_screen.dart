@@ -47,6 +47,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (mounted) {
       setState(() => _loadingProvider = null);
       if (authProvider.errorType != null) {
+        if (!AppRoutes.isProd) {
+          debugPrint("🛠️ [DEV] Guest Auth failed. Enabling debug bypass for validation.");
+          authProvider.enableDebugBypass();
+          return;
+        }
         final errorMsg = AuthErrorMapper.getErrorMessage(authProvider.errorType!);
         if (errorMsg.isNotEmpty) {
           _showErrorSnackBar(errorMsg);

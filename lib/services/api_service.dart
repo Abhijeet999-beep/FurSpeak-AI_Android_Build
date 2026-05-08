@@ -46,6 +46,7 @@ class ApiService {
     required File file,
     required String requestId,
     required AuthProvider authProvider,
+    required bool isVideo,
     CancelToken? cancelToken,
     Function(double)? onProgress,
   }) async {
@@ -59,7 +60,13 @@ class ApiService {
     }
 
     final int fileSize = file.lengthSync();
-    final String endpointUrl = ApiConfig.getFullUrl(ApiConfig.detectEmotion);
+    final String endpointUrl = isVideo 
+        ? ApiConfig.getFullUrl(ApiConfig.detectVideo)
+        : ApiConfig.getFullUrl(ApiConfig.detectImage);
+    
+    // Explicit debug log for validation
+    debugPrint('🚀 [API SERVICE] TARGET ENDPOINT: $endpointUrl');
+    
     final DateTime startTime = DateTime.now();
 
     debugPrint('[UPLOAD] ════════════════════════════════════════════');
@@ -349,7 +356,7 @@ class ApiService {
 
       case DioExceptionType.connectionError:
         return PipelineException(
-          message: 'Unable to connect. Ensure your phone and server are on the same WiFi network.',
+          message: 'Unable to connect to the server. Please check your internet connection and try again.',
           stage: fallbackStage,
           canRetry: true,
         );

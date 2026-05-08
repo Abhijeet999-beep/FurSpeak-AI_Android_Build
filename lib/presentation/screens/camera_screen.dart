@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 // go_router removed — camera uses native Navigator (imperative flow)
 import 'package:permission_handler/permission_handler.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/utils/action_lock.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -27,6 +28,7 @@ class _CameraScreenState extends State<CameraScreen>
   bool _isInitialized = false;
   bool _isPermissionGranted = false;
   bool _isDisposed = false;
+  bool _isProcessing = false;
   FlashMode _flashMode = FlashMode.off;
 
   // Blinking animation for recording indicator
@@ -244,21 +246,27 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Future<void> _onCapturePressed() async {
-    if (_controller == null || !_controller!.value.isInitialized || _isDisposed) {
+    if (_controller == null || !_controller!.value.isInitialized || _isDisposed || _isProcessing) {
       return;
     }
-    try {
-      HapticFeedback.mediumImpact();
-      final file = await _controller!.takePicture();
-      if (!mounted || _isDisposed) return;
-      Navigator.pop(context, file.path);
-    } catch (e) {
-      if (!mounted || _isDisposed) return;
-      _showFriendlySnackBar(
-        '📷 Could not capture image. Please try again.',
-        Icons.camera_alt_rounded,
-      );
-    }
+    if (globalActionLock.isLocked) return;
+
+    await globalActionLock.execute(() async {
+      setState(() => _isProcessing = true);
+      try {
+        HapticFeedback.mediumImpact();
+        final file = await _controller!.takePicture();
+        if (!mounted || _isDisposed) return;
+        Navigator.pop(context, file.path);
+      } catch (e) {
+        if (!mounted || _isDisposed) return;
+        setState(() => _isProcessing = false);
+        _showFriendlySnackBar(
+          '📷 Could not capture image. Please try again.',
+          Icons.camera_alt_rounded,
+        );
+      }
+    });
   }
 
   Future<void> _onRecordStart() async {
@@ -300,7 +308,9 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Future<void> _onRecordStop() async {
-    if (!_isRecording || _isDisposed) return;
+    if (!_isRecording || _isDisposed || _isProcessing) return;
+    if (globalActionLock.isLocked) return;
+
     _recordTimer?.cancel();
     _blinkController.stop();
     _blinkController.reset();
@@ -309,17 +319,22 @@ class _CameraScreenState extends State<CameraScreen>
       _recordProgress = 0.0;
       _recordSeconds = 0;
     });
-    try {
-      final file = await _controller!.stopVideoRecording();
-      if (!mounted || _isDisposed) return;
-      Navigator.pop(context, file.path);
-    } catch (e) {
-      if (!mounted || _isDisposed) return;
-      _showFriendlySnackBar(
-        '🎥 Could not save recording. Please try again.',
-        Icons.videocam_off_rounded,
-      );
-    }
+    
+    await globalActionLock.execute(() async {
+      setState(() => _isProcessing = true);
+      try {
+        final file = await _controller!.stopVideoRecording();
+        if (!mounted || _isDisposed) return;
+        Navigator.pop(context, file.path);
+      } catch (e) {
+        if (!mounted || _isDisposed) return;
+        setState(() => _isProcessing = false);
+        _showFriendlySnackBar(
+          '🎥 Could not save recording. Please try again.',
+          Icons.videocam_off_rounded,
+        );
+      }
+    });
   }
 
   void _onCameraSwitch() {
@@ -372,10 +387,12 @@ class _CameraScreenState extends State<CameraScreen>
     }
 
     return PopScope(
-      canPop: !_isRecording,
+      canPop: !_isRecording && !_isProcessing,
       onPopInvokedWithResult: (didPop, _) async {
-        if (!didPop && _isRecording) {
-          await _onRecordStop();
+        if (!didPop) {
+          if (_isRecording && !_isProcessing) {
+            await _onRecordStop();
+          }
         }
       },
       child: Scaffold(
@@ -580,9 +597,9 @@ class _CameraScreenState extends State<CameraScreen>
                     // Capture / Stop button with progress ring
                     Center(
                       child: GestureDetector(
-                        onTap: _isRecording ? _onRecordStop : _onCapturePressed,
-                        onLongPress: _isRecording ? null : _onRecordStart,
-                        onLongPressUp: _isRecording ? _onRecordStop : null,
+                        onTap: _isProcessing ? null : (_isRecording ? _onRecordStop : _onCapturePressed),
+                        onLongPress: (_isRecording || _isProcessing) ? null : _onRecordStart,
+                        onLongPressUp: (_isRecording && !_isProcessing) ? _onRecordStop : null,
                         child: SizedBox(
                           width: 100,
                           height: 100,
@@ -631,15 +648,24 @@ class _CameraScreenState extends State<CameraScreen>
                                     width: 4,
                                   ),
                                 ),
-                                child: Icon(
-                                  _isRecording
-                                      ? Icons.stop_rounded
-                                      : Icons.camera_alt_rounded,
-                                  color: _isRecording
-                                      ? Colors.white
-                                      : const Color(0xFF5A5BD9),
-                                  size: 36,
-                                ),
+                                child: _isProcessing
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 3,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5A5BD9)),
+                                        ),
+                                      )
+                                    : Icon(
+                                        _isRecording
+                                            ? Icons.stop_rounded
+                                            : Icons.camera_alt_rounded,
+                                        color: _isRecording
+                                            ? Colors.white
+                                            : const Color(0xFF5A5BD9),
+                                        size: 36,
+                                      ),
                               ),
                             ],
                           ),

@@ -170,3 +170,6 @@ dist
 # Temporary folders
 tmp/
 temp/
+
+# firebase 
+firebase-adminsdk.json.json

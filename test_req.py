@@ -13,7 +13,7 @@ def post_file(filename):
     data.append(b'--' + boundary.encode('utf-8') + b'--')
     data.append(b'')
     body = b'\r\n'.join(data)
-    req = urllib.request.Request('http://localhost:8000/api/v1/predict', data=body)
+    req = urllib.request.Request('http://localhost:8000/api/v1/detect/image', data=body)
     req.add_header('Content-Type', f'multipart/form-data; boundary={boundary}')
     req.add_header('Authorization', 'Bearer development-mock-token')
     try:

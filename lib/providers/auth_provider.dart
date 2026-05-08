@@ -9,6 +9,7 @@ import 'dart:developer';
 import '../core/di/service_locator.dart';
 import '../data/models/dog_profile.dart';
 import '../models/app_session_state.dart';
+import '../config/app_routes.dart';
 
 enum AuthErrorType {
   network,
@@ -51,16 +52,24 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   AuthErrorType? get errorType => _errorType;
 
-  bool get isAuthenticated => _user != null;
-  bool get isGuest => _user?.isAnonymous ?? false;
+  bool get isAuthenticated => _user != null || (!AppRoutes.isProd && _debugBypass);
+  bool _debugBypass = false;
+
+  void enableDebugBypass() {
+    if (!AppRoutes.isProd) {
+      _debugBypass = true;
+      notifyListeners();
+    }
+  }
+  bool get isGuest => (_user?.isAnonymous ?? false) || (!AppRoutes.isProd && _debugBypass);
   bool get hasVerificationId => _verificationId != null;
 
   /// Immutable snapshot of session state for GoRouter redirect.
   /// This is the SINGLE source of truth the router reads.
   AppSessionState get sessionState => AppSessionState(
         isReady: _isInit,
-        isAuthenticated: true, // MOCKED
-        isGuest: true, // MOCKED
+        isAuthenticated: isAuthenticated,
+        isGuest: isGuest,
         hasCompletedOnboarding: _hasCompletedOnboarding,
         isProfileComplete: _isProfileComplete,
       );
@@ -333,14 +342,8 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     _setUiLoading(true);
     try {
-      // MOCK AUTH FOR TESTING PHASE 2
-      _isInit = true;
-      _isProfileComplete = true; // Skip profile onboarding for now
-      _hasCompletedOnboarding = true;
-      _user = null; // We can't easily mock User without a subclass, but we can override isGuest
-      // Need to make sure the router sees isAuthenticated = true or isGuest = true
-      // So I will change the sessionState getter
-      notifyListeners();
+      await _authService.continueAsGuest();
+      // Auth listener will fire → drive navigation
     } catch (e) {
       debugPrint("Guest Mode Error: $e");
       setError('🐾 Couldn\'t start guest mode. Try again!');

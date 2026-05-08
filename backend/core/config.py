@@ -1,26 +1,76 @@
 import os
+import logging
+from pydantic_settings import BaseSettings
+
+logger = logging.getLogger("FurSpeak-Config")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-class Config:
-    DEBUG_VISUAL = os.getenv("DEBUG_VISUAL", "False").lower() in ("true", "1", "t")
-    TEMP_DIR = os.path.join(BASE_DIR, os.getenv("TEMP_DIR", "temp"))
-    
+_DEV_JWT_SECRET = "super-secret-key-for-dev"
+
+
+class Settings(BaseSettings):
+    DEBUG_VISUAL: bool = False
+    TEMP_DIR: str = os.path.join(BASE_DIR, "temp")
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
+
     # YOLO Model paths
-    DOG_DETECTOR_MODEL_PATH = os.path.join(BASE_DIR, "models", "yolov8m.pt")
-    BEHAVIOR_MODEL_PATH = os.path.join(BASE_DIR, "models", "best.pt")
+    DOG_DETECTOR_MODEL_PATH: str = os.path.join(BASE_DIR, "ml", "weights", "yolov8m.pt")
+    BEHAVIOR_MODEL_PATH: str = os.path.join(BASE_DIR, "ml", "weights", "best.pt")
 
-    MAX_VIDEO_DURATION_SECONDS = int(os.getenv("MAX_VIDEO_DURATION_SECONDS", 60))
-    MAX_FRAMES_TO_PROCESS = int(os.getenv("MAX_FRAMES_TO_PROCESS", 60))
-    MAX_TIMELINE_LENGTH = int(os.getenv("MAX_TIMELINE_LENGTH", 30)) # Limit payload bloat
+    # Strict Video Input Rules
+    MAX_VIDEO_DURATION_SECONDS: int = 20
+    MAX_FILE_SIZE_BYTES: int = 200 * 1024 * 1024  # 200 MB
+    MAX_RESOLUTION_HEIGHT: int = 720
 
-    # Concurrency & Limits
-    MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", 2))
-    REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", 120))
-    MAX_FILE_SIZE_BYTES = int(os.getenv("MAX_FILE_SIZE_BYTES", 50 * 1024 * 1024)) # 50 MB
-    
-    # Telemetry
-    MODEL_VERSION = os.getenv("MODEL_VERSION", "yolov8m-v1-behavior-beta")
+    # Internal Processing Limits
+    MAX_FRAMES_TO_PROCESS: int = 30
+    MAX_TIMELINE_LENGTH: int = 20
+
+    # Concurrency & Timeouts
+    IMAGE_TIMEOUT_SECONDS: int = 10
+    VIDEO_JOB_TIMEOUT_SECONDS: int = 180
+
+    # DB & Firebase Config
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./furspeak.db")
+    FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase-adminsdk.json")
+    FIREBASE_STORAGE_BUCKET: str = os.getenv("FIREBASE_STORAGE_BUCKET", "furspeak-4ddd4.appspot.com")
+    FIREBASE_CREDENTIALS_JSON: str | None = os.getenv("FIREBASE_CREDENTIALS_JSON")
+
+    JWT_SECRET: str = os.getenv("JWT_SECRET", _DEV_JWT_SECRET)
+    JWT_ALGORITHM: str = "HS256"
+    GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
+    SENTRY_DSN: str | None = os.getenv("SENTRY_DSN")
+
+    MODEL_VERSION: str = "yolov8m-v1-behavior-beta"
+
+    # Canonical emotion labels emitted by the behavior model.
+    # Single source of truth for model → UI → insights mapping.
+    EMOTION_CLASSES: list = ['relax', 'happy', 'angry', 'frown', 'alert']
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
+
+
+settings = Settings()
+
+# ── Production safety gates ─────────────────────────────────────────
+if settings.is_production:
+    if settings.JWT_SECRET == _DEV_JWT_SECRET:
+        raise RuntimeError(
+            "FATAL: JWT_SECRET is set to the default development value. "
+            "You MUST set a secure JWT_SECRET environment variable in production."
+        )
+    if len(settings.JWT_SECRET) < 32:
+        raise RuntimeError(
+            "FATAL: JWT_SECRET must be at least 32 characters in production."
+        )
 
 # Ensure base directories exist
-os.makedirs(Config.TEMP_DIR, exist_ok=True)
+os.makedirs(settings.TEMP_DIR, exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "ml", "weights"), exist_ok=True)

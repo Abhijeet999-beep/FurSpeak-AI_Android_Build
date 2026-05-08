@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
@@ -10,6 +11,8 @@ import 'package:furspeak_ai/providers/dog_provider.dart';
 
 import 'package:furspeak_ai/providers/home_pipeline_provider.dart';
 import 'package:furspeak_ai/core/di/service_locator.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -49,11 +52,31 @@ void _cleanupTempDirectoryAsynchronously() {
 }
 
 void main() async {
+  if (kDebugMode) {
+    enableFlutterDriverExtension();
+  }
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ MUST be first — ApiConfig.baseUrl reads dotenv synchronously
+  // Load .env first to get Sentry DSN
   await dotenv.load(fileName: '.env');
-  debugPrint('✅ [INIT] .env loaded. ENVIRONMENT=${dotenv.env['ENVIRONMENT']} URL=${dotenv.env['LOCAL_API_URL']}');
+  final dsn = dotenv.env['SENTRY_DSN'];
+
+  if (dsn != null && dsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = dsn;
+        options.tracesSampleRate = 0.5;
+        options.environment = dotenv.env['ENVIRONMENT'] ?? 'production';
+      },
+      appRunner: () => _runAppWithProviders(),
+    );
+  } else {
+    await _runAppWithProviders();
+  }
+}
+
+Future<void> _runAppWithProviders() async {
+  debugPrint('✅ [INIT] ENVIRONMENT=${dotenv.env['ENVIRONMENT']}');
 
   await Firebase.initializeApp(); // 🔥 Firebase init
   debugPrint('✅ [INIT] Firebase initialized');
@@ -66,7 +89,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DogProvider()),
-
         ChangeNotifierProvider(create: (_) => HomePipelineProvider()),
       ],
       child: const MyApp(),

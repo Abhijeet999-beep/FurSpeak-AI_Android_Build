@@ -33,8 +33,6 @@ def generate_realistic_video(path, duration_sec=5, fps=24, resolution=(640, 480)
     except Exception as e:
         print(f"Ensure internet connection: {e}")
 
-API_URL = "http://localhost:8000/api/v1/predict"
-
 def test_endpoint(file_path, req_id="1", modifier=None):
     start = time.time()
     try:
@@ -48,7 +46,11 @@ def test_endpoint(file_path, req_id="1", modifier=None):
             if modifier:
                 headers["x-modifier"] = modifier
                 
-            response = requests.post(API_URL, files=files, headers=headers)
+            # Select correct endpoint based on extension
+            endpoint = "/api/v1/detect/video" if file_path.endswith(('.mp4', '.avi', '.mov')) else "/api/v1/detect/image"
+            target_url = f"http://localhost:8000{endpoint}"
+            
+            response = requests.post(target_url, files=files, headers=headers)
             
         latency = round(time.time() - start, 2)
         print(f"[REQ {req_id}] [{response.status_code}] Latency: {latency}s")

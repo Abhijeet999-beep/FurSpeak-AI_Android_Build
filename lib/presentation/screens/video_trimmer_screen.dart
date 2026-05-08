@@ -42,6 +42,8 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
 
   final String _requestId = UniqueKey().toString();
 
+  bool _isManualMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +61,10 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
         mediaOrchestrator.videoPlayerController = controller;
         setState(() {
           _totalDuration = controller.value.duration;
-          _endValue = _totalDuration.inMilliseconds.toDouble();
+          final maxMs = (widget.maxDurationSeconds * 1000).toDouble();
+          _endValue = _totalDuration.inMilliseconds.toDouble() > maxMs 
+              ? maxMs 
+              : _totalDuration.inMilliseconds.toDouble();
           _isLoading = false;
         });
       }
@@ -152,13 +157,13 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
         title: Column(
           children: [
             Text(
-              'Trim Video',
+              'Review Video',
               style: AppTheme.titleStyle.copyWith(
                 color: Colors.white,
                 fontSize: 16,
               ),
             ),
-            if (!_isLoading)
+            if (!_isLoading && _isManualMode)
               Text(
                 '${_formatDuration(_selectedDuration)} selected  •  ${widget.maxDurationSeconds}s max',
                 style: AppTheme.captionStyle.copyWith(
@@ -250,56 +255,93 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
 
         const SizedBox(height: AppTheme.space16),
 
-        // ── WhatsApp-Style Trim Timeline ──────────────────────────────
-        _buildTrimTimeline(maxDur),
-
-        const SizedBox(height: AppTheme.space12),
-
-        // ── Duration Info Row ─────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Start time
-              _TimeLabel(
-                label: _formatDuration(
-                    Duration(milliseconds: _startValue.toInt())),
-                icon: Icons.flag_outlined,
+        if (needsTrim && !_isManualMode) ...[
+          // Magic Trim mode
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
+            child: Container(
+              padding: const EdgeInsets.all(AppTheme.space16),
+              decoration: BoxDecoration(
+                color: _handleColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                border: Border.all(color: _handleColor.withOpacity(0.3)),
               ),
-              // Selected duration chip
-              _SelectedDurationChip(
-                duration: _formatDuration(_selectedDuration),
-                isOverLimit: _isOverLimit,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.auto_awesome_rounded, color: _handleColor),
+                      const SizedBox(width: AppTheme.space12),
+                      Expanded(
+                        child: Text(
+                          'Video is a bit long! We\'ll analyze the first ${widget.maxDurationSeconds} seconds automatically.',
+                          style: AppTheme.bodyStyle.copyWith(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.space12),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _isManualMode = true),
+                    icon: const Icon(Icons.edit_rounded, size: 16),
+                    label: const Text('Adjust Manually'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: _handleColor,
+                    ),
+                  ),
+                ],
               ),
-              // End time
-              _TimeLabel(
-                label:
-                    _formatDuration(Duration(milliseconds: _endValue.toInt())),
-                icon: Icons.flag_rounded,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: AppTheme.space8),
-
-        // ── Helper text ───────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-          child: Text(
-            needsTrim
-                ? 'Drag the handles to select up to ${widget.maxDurationSeconds} seconds'
-                : '✅ This video is short enough — no trimming needed!',
-            textAlign: TextAlign.center,
-            style: AppTheme.captionStyle.copyWith(
-              color: Colors.white38,
-              fontSize: 12,
             ),
           ),
-        ),
-
-        const SizedBox(height: AppTheme.space16),
+          const SizedBox(height: AppTheme.space16),
+        ] else if (needsTrim && _isManualMode) ...[
+          // ── WhatsApp-Style Trim Timeline ──────────────────────────────
+          _buildTrimTimeline(maxDur),
+          const SizedBox(height: AppTheme.space12),
+          // ── Duration Info Row ─────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Start time
+                _TimeLabel(
+                  label: _formatDuration(
+                      Duration(milliseconds: _startValue.toInt())),
+                  icon: Icons.flag_outlined,
+                ),
+                // Selected duration chip
+                _SelectedDurationChip(
+                  duration: _formatDuration(_selectedDuration),
+                  isOverLimit: _isOverLimit,
+                ),
+                // End time
+                _TimeLabel(
+                  label:
+                      _formatDuration(Duration(milliseconds: _endValue.toInt())),
+                  icon: Icons.flag_rounded,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.space8),
+          // ── Helper text ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
+            child: Text(
+              'Drag the handles to select up to ${widget.maxDurationSeconds} seconds',
+              textAlign: TextAlign.center,
+              style: AppTheme.captionStyle.copyWith(
+                color: Colors.white38,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppTheme.space16),
+        ],
 
         // ── Action Buttons ────────────────────────────────────────────
         Padding(

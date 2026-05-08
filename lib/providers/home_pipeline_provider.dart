@@ -440,6 +440,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
         file: uploadFile,
         requestId: activeRequestId!,
         authProvider: authProvider,
+        isVideo: _isVideo,
         cancelToken: _cancelToken,
         onProgress: (progress) {
           if (progress >= 1.0 && _state == HomeState.uploading) {

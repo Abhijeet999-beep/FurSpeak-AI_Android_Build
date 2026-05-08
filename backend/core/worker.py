@@ -5,6 +5,8 @@ logger = logging.getLogger("GPU-Worker")
 
 job_queue = asyncio.Queue()
 
+inference_lock = asyncio.Lock()
+
 async def gpu_worker():
     """ Runs continuously in the background separating GPU loads across bounded Queues perfectly. """
     logger.info("Initializing Single-GPU Worker Loop...")
@@ -23,7 +25,8 @@ async def gpu_worker():
             
             try:
                 # YOLO execution is deeply blocking processing structures. Offloading sequentially explicitly handles serial GPU boundaries safely.
-                result = await asyncio.to_thread(func, *args, **kwargs)
+                async with inference_lock:
+                    result = await asyncio.to_thread(func, *args, **kwargs)
                 if not future.cancelled() and not future.done():
                     future.set_result(result)
             except Exception as e:

@@ -11,8 +11,8 @@ def test_app_health():
 
 def test_detect_endpoint_exists():
     """Test that the detect endpoint exists"""
-    response = client.post("/detect/")
-    assert response.status_code == 422  # Should return validation error for missing file
+    response = client.post("/api/v1/detect/image")
+    assert response.status_code == 401  # Should return 401 Not Authenticated (missing token)
 
 def test_app_structure():
     """Test that the app has the expected structure"""

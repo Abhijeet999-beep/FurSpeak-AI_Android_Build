@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:image_picker/image_picker.dart';
+import 'package:furspeak_ai/utils/action_lock.dart';
+import 'package:furspeak_ai/presentation/widgets/permission_interstitial.dart';
 import 'package:video_player/video_player.dart';
 import 'package:furspeak_ai/presentation/screens/video_trimmer_screen.dart';
 import 'package:furspeak_ai/presentation/screens/camera_screen.dart';
@@ -66,79 +68,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const SizedBox(height: AppTheme.space16),
             Text('Choose how to scan 🐶', style: AppTheme.titleStyle.copyWith(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: AppTheme.space16),
+            
+            // Camera Options
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
-              child: InkWell(
-                onTap: () => Navigator.pop(context, 'camera'),
-                borderRadius: AppTheme.borderRadiusMedium,
-                child: Container(
-                  padding: const EdgeInsets.all(AppTheme.space12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
-                    borderRadius: AppTheme.borderRadiusMedium,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildPickerOption(
+                      title: 'Camera Photo',
+                      subtitle: 'Snap a pic',
+                      icon: '📷',
+                      onTap: () => Navigator.pop(context, 'camera_photo'),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceLow,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(child: Text('📷', style: TextStyle(fontSize: 24))),
-                      ),
-                      const SizedBox(width: AppTheme.space16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Take Photo', style: AppTheme.titleStyle.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
-                            Text('Use your camera', style: AppTheme.captionStyle.copyWith(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: AppTheme.space12),
+                  Expanded(
+                    child: _buildPickerOption(
+                      title: 'Camera Video',
+                      subtitle: 'Record dog',
+                      icon: '🎥',
+                      onTap: () => Navigator.pop(context, 'camera_video'),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             const SizedBox(height: AppTheme.space12),
+            
+            // Gallery Options
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
-              child: InkWell(
-                onTap: () => Navigator.pop(context, 'gallery'),
-                borderRadius: AppTheme.borderRadiusMedium,
-                child: Container(
-                  padding: const EdgeInsets.all(AppTheme.space12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
-                    borderRadius: AppTheme.borderRadiusMedium,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildPickerOption(
+                      title: 'Gallery Photo',
+                      subtitle: 'From albums',
+                      icon: '🖼️',
+                      onTap: () => Navigator.pop(context, 'gallery_photo'),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceLow,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(child: Text('🖼️', style: TextStyle(fontSize: 24))),
-                      ),
-                      const SizedBox(width: AppTheme.space16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Choose from Gallery', style: AppTheme.titleStyle.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
-                            Text('Pick from your photos', style: AppTheme.captionStyle.copyWith(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: AppTheme.space12),
+                  Expanded(
+                    child: _buildPickerOption(
+                      title: 'Gallery Video',
+                      subtitle: 'From movies',
+                      icon: '🎞️',
+                      onTap: () => Navigator.pop(context, 'gallery_video'),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
@@ -147,8 +127,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildPickerOption({
+    required String title,
+    required String subtitle,
+    required String icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppTheme.borderRadiusMedium,
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.space12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceLow,
+          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1)),
+          borderRadius: AppTheme.borderRadiusMedium,
+        ),
+        child: Column(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 28)),
+            const SizedBox(height: AppTheme.space8),
+            Text(title, 
+              textAlign: TextAlign.center,
+              style: AppTheme.titleStyle.copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(subtitle, 
+              textAlign: TextAlign.center,
+              style: AppTheme.captionStyle.copyWith(fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _triggerMediaPicker() {
+    // Called from within SquishButton's globalActionLock.execute(),
+    // so we must NOT re-acquire the lock here.
+    _showMediaPicker();
+  }
+
   Future<void> _showMediaPicker() async {
-    if (_isPickerOpen) return;
+    String? choice;
     setState(() => _isPickerOpen = true);
 
     try {
@@ -157,21 +175,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       HapticFeedback.mediumImpact();
 
-      // PERMISSION CHECK
-      final status = await Permission.camera.status;
-      if (!status.isGranted) {
-        final result = await Permission.camera.request();
-        if (!result.isGranted) {
-          if (mounted) {
-            _showFriendlySnackBar('We need access to see your dog 🐶', Icons.no_photography_rounded);
-          }
-          return;
-        }
-      }
-
       // OPEN BOTTOM SHEET ONCE
       if (!mounted) return;
-      final choice = await showModalBottomSheet<String>(
+      choice = await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,
         backgroundColor: AppTheme.surfaceActive,
@@ -180,46 +186,98 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         builder: (_) => _buildMediaPickerSheet(),
       );
-
-      if (choice == null) return;
-
-      if (choice == 'camera') {
-        if (!mounted) return;
-        final result = await Navigator.push<String>(
-          context,
-          MaterialPageRoute(builder: (_) => const CameraScreen()),
-        );
-
-        if (result != null && mounted) {
-          final isVideo = result.toLowerCase().endsWith('.mp4') ||
-              result.toLowerCase().endsWith('.mov') ||
-              result.toLowerCase().endsWith('.avi');
-
-          _showFriendlySnackBar(
-            isVideo ? '🎥 Video captured!' : '📷 Image captured!',
-            isVideo ? Icons.videocam : Icons.camera_alt,
-          );
-
-          await _startPipeline(result, isVideo);
-        }
-        return;
-      }
-
-      if (choice == 'gallery') {
-        final picker = ImagePicker();
-        final picked = await picker.pickImage(source: ImageSource.gallery);
-        if (picked == null) return;
-
-        if (!mounted) return;
-        _showFriendlySnackBar('📷 Image selected!', Icons.camera_alt);
-        await _startPipeline(picked.path, false);
-      }
     } catch (e) {
       debugPrint('MediaPicker Error: $e');
     } finally {
       if (mounted) {
         setState(() => _isPickerOpen = false);
       }
+    }
+
+    // Handle choice outside of the ActionLock so we don't block other UI interactions
+    // while the user is using the native camera or gallery
+    if (choice == null) return;
+
+    if (choice.startsWith('camera')) {
+      // PERMISSION CHECK
+      final status = await Permission.camera.status;
+      if (!status.isGranted) {
+        if (status.isDenied) {
+          final shouldRequest = await showEducationalPermissionSheet(context);
+          if (!shouldRequest) return;
+        }
+        
+        // Request camera and microphone together
+        await [Permission.camera, Permission.microphone].request();
+        
+        final newStatus = await Permission.camera.status;
+        if (!newStatus.isGranted) {
+          if (newStatus.isPermanentlyDenied) {
+            if (mounted) {
+              _showFriendlySnackBar(
+                  'Camera access disabled. Please enable it in Settings.', Icons.settings);
+            }
+          } else {
+            if (mounted) {
+              _showFriendlySnackBar(
+                  'We need access to see your dog 🐶', Icons.no_photography_rounded);
+            }
+          }
+          return;
+        }
+      }
+
+      if (!mounted) return;
+      
+      String? result;
+      bool isVideo = choice == 'camera_video';
+
+      if (isVideo) {
+        // Use our custom CameraScreen for video capture or native if preferred
+        // For now, let's assume CameraScreen handles both or we use native for simplicity if needed
+        // But user checklist says "Verify you use pickVideo()"
+        final picker = ImagePicker();
+        final pickedVideo = await picker.pickVideo(source: ImageSource.camera);
+        result = pickedVideo?.path;
+      } else {
+        result = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(builder: (_) => const CameraScreen()),
+        );
+      }
+
+      if (result != null && mounted) {
+        _showFriendlySnackBar(
+          isVideo ? '🎥 Video captured!' : '📷 Image captured!',
+          isVideo ? Icons.videocam : Icons.camera_alt,
+        );
+
+        await _startPipeline(result, isVideo);
+      }
+      return;
+    }
+
+    if (choice.startsWith('gallery')) {
+      final picker = ImagePicker();
+      XFile? picked;
+      bool isVideo = choice == 'gallery_video';
+
+      if (isVideo) {
+        picked = await picker.pickVideo(source: ImageSource.gallery);
+      } else {
+        picked = await picker.pickImage(source: ImageSource.gallery);
+      }
+      
+      if (picked == null) return;
+
+      if (!mounted) return;
+      
+      _showFriendlySnackBar(
+        isVideo ? '🎥 Video selected!' : '📷 Image selected!',
+        isVideo ? Icons.videocam : Icons.camera_alt,
+      );
+      
+      await _startPipeline(picked.path, isVideo);
     }
   }
 
@@ -293,9 +351,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         context.select((HomePipelineProvider p) => p.isProcessing);
     final isGuest = context.select((AuthProvider p) => p.isGuest);
 
-    return Scaffold(
-      backgroundColor: AppTheme.bgColor,
-      body: Stack(
+    return PopScope(
+      canPop: !isProcessing,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (isProcessing) {
+          _showFriendlySnackBar('Still thinking! Cancel to go back.', Icons.hourglass_top_rounded);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.bgColor,
+        body: Stack(
         children: [
           IgnorePointer(
             ignoring: isProcessing,
@@ -393,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           child: SquishButton(
                             onPressed: isProcessing || _isPickerOpen
                                 ? null
-                                : _showMediaPicker,
+                                : _triggerMediaPicker,
                             pressScale: 0.95,
                             child: Container(
                               width: double.infinity,
@@ -785,8 +851,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _PipelineStageIndicator extends StatelessWidget {

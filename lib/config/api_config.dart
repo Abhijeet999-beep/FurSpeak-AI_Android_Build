@@ -8,30 +8,23 @@ class ApiConfig {
   static const bool isRunningOnEmulator = true; 
 
   static String get _localBaseUrl {
-    // 1. Check .env for IP override — wrapped defensively so a missing .env
-    //    never crashes the app with NotInitializedError.
+    // Check .env for IP override
     try {
       final configuredIp = dotenv.env['LOCAL_API_URL'];
       if (configuredIp != null && configuredIp.isNotEmpty) {
         return configuredIp;
       }
-    } catch (_) {
-      // dotenv not loaded yet — fall through to defaults
-    }
+    } catch (_) {}
 
-    // 2. Fallback defaults
-    if (isRunningOnEmulator) {
-      return 'http://10.0.2.2:8000';
-    } else {
-      return 'http://127.0.0.1:8000'; // ← ADB reverse proxy (USB tunnel)
-    }
+    return 'http://10.0.2.2:8000';
   }
   
   static const String _stagingBaseUrl = 'https://staging-api.furspeak.ai';
-  static const String _productionBaseUrl = 'https://api.furspeak.ai';
+  static const String _productionBaseUrl = 'https://furspeak-ai-production.up.railway.app';
 
   // API Endpoints
-  static const String _detectEndpoint = '/api/v1/predict'; // Fixed endpoint path
+  static const String _detectImageEndpoint = '/api/v1/detect/image';
+  static const String _detectVideoEndpoint = '/api/v1/detect/video';
   static const String _staticEndpoint = '/api/v1/static';
 
   // Get base URL based on environment
@@ -52,9 +45,10 @@ class ApiConfig {
   }
 
   // Detection Endpoints
-  static String get detectEmotion => _detectEndpoint;
+  static String get detectImage => _detectImageEndpoint;
+  static String get detectVideo => _detectVideoEndpoint;
   static String get staticFiles => _staticEndpoint;
-  static String get statusEndpoint => '/api/v1/status';
+  static String get statusEndpoint => '/api/v1/detect/status';
 
   // Helper method to get full URL
   static String getFullUrl(String endpoint) => '$baseUrl$endpoint';

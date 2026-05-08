@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
+import '../../theme/app_theme.dart';
 
 class GuestModeWarningScreen extends StatelessWidget {
   final VoidCallback onContinue;
@@ -16,16 +16,15 @@ class GuestModeWarningScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFCF5), // Creamy White
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Warning Icon Animation
               Semantics(
-                label: 'Warning animation',
+                label: 'Friendly reminder animation',
                 child: Lottie.asset(
                   'assets/animations/floating_bone.json',
                   width: 200,
@@ -33,48 +32,45 @@ class GuestModeWarningScreen extends StatelessWidget {
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppTheme.space32),
               // Title
-              const Text(
-                'Unlock Full Experience',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+              Text(
+                'Unlock the Full Experience',
+                style: context.text.displayMedium?.copyWith(
+                  color: context.colors.primary,
                   fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF5A5BD9), // Sky Indigo
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Description
-              const Text(
-                'Track your dog\'s emotional journey over time. Sign in to access:',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  color: Color(0xFF777777), // Stone Gray
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.space16),
+              // Description
+              Text(
+                'Create an account to save your furry friend\'s emotional journey over time and unlock these features:',
+                style: context.text.bodyLarge?.copyWith(
+                  color: Colors.black54,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppTheme.space24),
               // Feature List
               _FeatureItem(
-                icon: Icons.history,
-                text: 'Emotion history tracking',
-                color: const Color(0xFFF95F62), // Coral Red
+                icon: Icons.history_rounded,
+                text: 'Track emotional history & trends',
+                color: context.colors.primary,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 12.0),
               _FeatureItem(
-                icon: Icons.cloud_sync,
-                text: 'Cloud sync across devices',
-                color: const Color(0xFFFFA726), // Citrus Orange
+                icon: Icons.cloud_sync_rounded,
+                text: 'Sync across all your devices',
+                color: context.colors.secondary,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 12.0),
               _FeatureItem(
-                icon: Icons.settings,
-                text: 'Advanced settings and preferences',
-                color: const Color(0xFF3EDBF0), // Aqua Blue
+                icon: Icons.pets_rounded,
+                text: 'Personalized pet profiles',
+                color: context.colors.tertiary,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 40.0),
               // Sign In Button
               SizedBox(
                 width: double.infinity,
@@ -82,31 +78,39 @@ class GuestModeWarningScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onSignIn,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A5BD9), // Sky Indigo
+                    backgroundColor: context.colors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
                     ),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Poppins',
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Create Free Account',
+                    style: TextStyle(
+                      fontFamily: AppTheme.primaryFont,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
-                    elevation: 4,
                   ),
-                  child: const Text('Sign in to Access'),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTheme.space16),
               // Continue as Guest Button
               TextButton(
                 onPressed: onContinue,
-                child: const Text(
-                  'Keep Exploring',
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+                  ),
+                ),
+                child: Text(
+                  'Maybe Later',
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: AppTheme.primaryFont,
                     fontSize: 16,
-                    color: Color(0xFF5A5BD9), // Sky Indigo
+                    color: context.colors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -133,10 +137,13 @@ class _FeatureItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space16,
+        vertical: 12.0,
+      ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         border: Border.all(
           color: color.withOpacity(0.2),
           width: 1,
@@ -145,15 +152,13 @@ class _FeatureItem extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, color: color, size: 24),
-          const SizedBox(width: 12),
+          const SizedBox(width: 12.0),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                color: color,
-                fontWeight: FontWeight.w500,
+              style: context.text.bodyMedium?.copyWith(
+                color: color.withOpacity(0.8), // Softer text color
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/utils/action_lock.dart';
 
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 /// FurSpeak AI — Animation & Haptics System (V2)
@@ -44,16 +45,17 @@ class FurHaptics {
 //
 // A physics-based "squishy" button wrapper that scales down on press
 // and springs back with a slight overshoot (easeOutBack).
+// Automatically prevents double-taps for async actions using ActionLock.
 //
 // Usage:
 //   SquishButton(
-//     onPressed: () => doSomething(),
+//     onPressed: () async => doSomething(),
 //     child: YourButtonContent(),
 //   )
 
 class SquishButton extends StatefulWidget {
   final Widget child;
-  final VoidCallback? onPressed;
+  final FutureOr<void> Function()? onPressed;
   final double pressScale;
   final bool enableHaptic;
 
@@ -98,14 +100,19 @@ class _SquishButtonState extends State<SquishButton>
   }
 
   void _onTapDown(TapDownDetails _) {
-    if (widget.onPressed == null) return;
+    if (widget.onPressed == null || globalActionLock.isLocked) return;
     _controller.forward();
     if (widget.enableHaptic) FurHaptics.tap();
   }
 
-  void _onTapUp(TapUpDetails _) {
+  void _onTapUp(TapUpDetails _) async {
     _controller.reverse();
-    widget.onPressed?.call();
+    if (widget.onPressed != null) {
+      if (globalActionLock.isLocked) return;
+      await globalActionLock.execute(() async {
+        await widget.onPressed!();
+      });
+    }
   }
 
   void _onTapCancel() {

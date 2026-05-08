@@ -2,7 +2,12 @@ from abc import ABC, abstractmethod
 import time
 import hashlib
 from typing import Optional, Dict
+from collections import OrderedDict
 import asyncio
+import logging
+
+logger = logging.getLogger("FurSpeak-Cache")
+
 
 class ResponseCache(ABC):
     @abstractmethod
@@ -13,31 +18,37 @@ class ResponseCache(ABC):
     def set(self, file_hash: str, response: dict, ttl_seconds: int):
         pass
 
+
 class InMemoryResponseCache(ResponseCache):
     def __init__(self, max_size: int = 100):
-        self._cache: Dict[str, dict] = {}
-        self._in_flight: Dict[str, asyncio.Event] = {} # Cache Stampede Protection
+        # H9 fix: Use OrderedDict for proper LRU ordering
+        self._cache: OrderedDict[str, dict] = OrderedDict()
+        self._in_flight: Dict[str, asyncio.Event] = {}  # Cache Stampede Protection
         self.max_size = max_size
 
     def get(self, file_hash: str) -> Optional[dict]:
         if file_hash in self._cache:
             entry = self._cache[file_hash]
-            if time.time() < entry['expires_at']:
-                return entry['data']
+            if time.time() < entry["expires_at"]:
+                # Move to end (most recently used)
+                self._cache.move_to_end(file_hash)
+                return entry["data"]
             else:
                 del self._cache[file_hash]
         return None
 
     def set(self, file_hash: str, response: dict, ttl_seconds: int = 3600):
-        if len(self._cache) >= self.max_size:
-            self._cache.clear()
-        
+        # H9 fix: Evict OLDEST entry instead of clearing entire cache
+        while len(self._cache) >= self.max_size:
+            evicted_key, _ = self._cache.popitem(last=False)
+            logger.debug(f"LRU evicted cache entry: {evicted_key[:12]}...")
+
         self._cache[file_hash] = {
-            'data': response,
-            'expires_at': time.time() + ttl_seconds
+            "data": response,
+            "expires_at": time.time() + ttl_seconds,
         }
 
-    # Stampede Lock Checks mapping in-flight futures optimally avoiding concurrent execution
+    # Stampede Lock — prevents concurrent processing of the same file hash
     def start_flight(self, file_hash: str) -> asyncio.Event:
         event = asyncio.Event()
         self._in_flight[file_hash] = event
@@ -50,6 +61,7 @@ class InMemoryResponseCache(ResponseCache):
 
     def get_flight_event(self, file_hash: str) -> Optional[asyncio.Event]:
         return self._in_flight.get(file_hash)
+
 
 def compute_sha256(file_path: str) -> str:
     sha256_hash = hashlib.sha256()
