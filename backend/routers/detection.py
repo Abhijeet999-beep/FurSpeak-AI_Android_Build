@@ -2,18 +2,22 @@ from fastapi import APIRouter, Depends, UploadFile, File, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.database import get_db
 from backend.core.dependencies import get_current_user
+from backend.core.security import verify_app_check
 from backend.core.rate_limiter import get_rate_limiter
 from backend.schemas.base import BaseResponse
 from backend.services.detection_service import DetectionService
 from backend.models.user import User
 
-router = APIRouter(prefix="/detect", tags=["detection"])
+router = APIRouter(
+    prefix="/detect", 
+    tags=["detection"],
+    dependencies=[Depends(verify_app_check)]
+)
 
 image_limiter = get_rate_limiter(12, 60)
 video_limiter = get_rate_limiter(5, 60)
 polling_limiter = get_rate_limiter(30, 60)
 
-router = APIRouter(prefix="/detect", tags=["detection"])
 
 @router.post("/image", response_model=BaseResponse, dependencies=[Depends(image_limiter)])
 async def detect_image(

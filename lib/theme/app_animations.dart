@@ -100,18 +100,28 @@ class _SquishButtonState extends State<SquishButton>
   }
 
   void _onTapDown(TapDownDetails _) {
-    if (widget.onPressed == null || globalActionLock.isLocked) return;
+    debugPrint('SquishButton: _onTapDown. Locked: ${globalActionLock.isLocked}');
+    if (widget.onPressed == null || globalActionLock.isLocked) {
+      debugPrint('SquishButton: Tap ignored. onPressed null? ${widget.onPressed == null}');
+      return;
+    }
     _controller.forward();
     if (widget.enableHaptic) FurHaptics.tap();
   }
 
   void _onTapUp(TapUpDetails _) async {
+    debugPrint('SquishButton: _onTapUp');
     _controller.reverse();
     if (widget.onPressed != null) {
-      if (globalActionLock.isLocked) return;
+      if (globalActionLock.isLocked) {
+        debugPrint('SquishButton: Action skipped. Locked: true');
+        return;
+      }
+      debugPrint('SquishButton: Executing action...');
       await globalActionLock.execute(() async {
         await widget.onPressed!();
       });
+      debugPrint('SquishButton: Action completed.');
     }
   }
 

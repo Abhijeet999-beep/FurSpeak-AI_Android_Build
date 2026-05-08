@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:ffmpeg_kit_flutter_new_min_gpl/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min_gpl/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min_gpl/ffmpeg_kit_config.dart';
@@ -24,29 +25,32 @@ class MediaCompressor {
   ///   Tier 1  5–15 MB → 480p @ 15 fps, CRF 32, ultrafast, GOP 15
   ///   Tier 2  > 15 MB → 720p @ 20 fps, CRF 28, ultrafast, GOP 20
   ///
-  /// Why 480p / 15fps for Tier 1?
-  ///   The YOLO model internally resizes every frame to 640×640 anyway, so
-  ///   480p gives it all the spatial detail it needs. Half the resolution
-  ///   means ~75% fewer pixels per frame; half the frame rate halves the
-  ///   number of frames. Combined that is ≈90% fewer pixel-frames to encode,
-  ///   cutting wall-clock time from ~15s to ~2–4s on mid-range Android.
-  ///
   /// Shared flags:
-  ///   -hwaccel auto     → use hardware decoding where available (no-op on
-  ///                       unsupported devices, free speedup where supported)
-  ///   -threads 2        → cap CPU to 2 cores → UI render thread never starved
-  ///   -preset ultrafast → fastest libx264 preset → 4–6 s saved on mobile
-  ///   -g <fps>          → 1 I-frame per second → backend cv2 MSEC seek O(1)
-  ///   -c:a copy         → stream-copy audio → zero re-encode overhead
-  ///   -movflags +faststart → moov atom at file start → faster upload init
-  static Future<File?> compressVideo(File file) async {
+  ///   -hwaccel auto     → use hardware decoding where available
+  ///   -threads 2        → cap CPU to 2 cores
+  ///   -preset ultrafast → fastest libx264 preset
+  static Future<File?> compressVideo(File file, {void Function(double)? onProgress}) async {
     final fileSize = await file.length();
     debugPrint('🎬 [COMPRESSOR] Video size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
 
     // ── Tier 0: Skip — file is already tiny ──────────────────────────────
     if (fileSize < _skipThresholdBytes) {
       debugPrint('⚡ [COMPRESSOR] < 5 MB — skipping compression (Tier 0 fast path)');
+      onProgress?.call(1.0);
       return file;
+    }
+
+    // ── Get Duration for progress tracking ──────────────────────────────
+    double duration = 0;
+    try {
+      final infoSession = await FFprobeKit.getMediaInformation(file.path);
+      final info = infoSession.getMediaInformation();
+      if (info != null) {
+        duration = double.tryParse(info.getDuration() ?? '0') ?? 0;
+        debugPrint('⏱️ [COMPRESSOR] Video duration: ${duration.toStringAsFixed(2)}s');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [COMPRESSOR] Could not get duration via FFprobe: $e');
     }
 
     final dir = await getTemporaryDirectory();
@@ -56,67 +60,59 @@ class MediaCompressor {
     );
 
     // ── Tier selection ────────────────────────────────────────────────────
-    // Tier 1 (5–15 MB): 480p @ 15fps — YOLO needs at most 640px, 15fps is
-    //   sufficient for emotion trend. ~90% fewer pixel-frames vs 1080p@30fps.
-    // Tier 2 (> 15 MB): 720p @ 20fps — slightly higher quality for large files.
     final bool   isLightPass = fileSize <= _lightThresholdBytes;
-    final String resolution  = isLightPass ? '480'  : '720';   // output height
-    final String fps         = isLightPass ? '15'   : '20';    // output frame rate
-    final String gop         = isLightPass ? '15'   : '20';    // 1 I-frame/sec
-    final String crf         = isLightPass ? '32'   : '28';    // quality
-    final String tierLabel   = isLightPass
-        ? 'Tier 1 light (5–15 MB) → ${resolution}p @ ${fps}fps CRF $crf'
-        : 'Tier 2 full  (>15 MB)  → ${resolution}p @ ${fps}fps CRF $crf';
-    debugPrint('📦 [COMPRESSOR] $tierLabel | ultrafast, 2 threads, GOP $gop, hwaccel auto');
+    final String resolution  = isLightPass ? '480'  : '720';   
+    final String fps         = isLightPass ? '15'   : '20';    
+    final String gop         = isLightPass ? '15'   : '20';    
+    final String crf         = isLightPass ? '32'   : '28';    
+    
+    debugPrint('📦 [COMPRESSOR] Compressing to ${resolution}p @ ${fps}fps...');
 
-    // ── Benchmark: wall-clock time for compression ────────────────────────
+    // ── Progress Callback ────────────────────────────────────────────────
+    if (onProgress != null && duration > 0) {
+      FFmpegKitConfig.enableStatisticsCallback((stats) {
+        final double progress = (stats.getTime() / (duration * 1000)).clamp(0.0, 1.0);
+        onProgress(progress);
+      });
+    }
+
     final stopwatch = Stopwatch()..start();
 
     final session = await FFmpegKit.executeWithArguments([
-      '-hwaccel',  'auto',              // HW decode where available (no-op if unsupported)
+      '-hwaccel',  'auto',
       '-i',        file.path,
-      '-vf',       'scale=-2:$resolution',  // e.g. → 480p or 720p, keep AR
-      '-r',        fps,                // halve frame rate → fewer frames to encode
+      '-vf',       'scale=-2:$resolution',
+      '-r',        fps,
       '-c:v',      'libx264',
-      '-preset',   'ultrafast',        // fastest libx264 preset → min CPU time
+      '-preset',   'ultrafast',
       '-crf',      crf,
-      '-g',        gop,                // I-frame every output-fps frames ≈ 1 s
-      '-threads',  '2',               // 2 cores max → UI thread never starved
-      '-c:a',      'copy',             // stream-copy audio → zero overhead
-      '-movflags', '+faststart',       // moov at file start → faster upload
-      '-y',                            // overwrite without prompt
+      '-g',        gop,
+      '-threads',  '2',
+      '-c:a',      'copy',
+      '-movflags', '+faststart',
+      '-y',
       targetPath,
     ]);
 
-    // Suppress verbose FFmpeg logs (keeps debug console clean)
-    FFmpegKitConfig.disableLogs();
+    // Cleanup callback
+    FFmpegKitConfig.enableStatisticsCallback(null);
 
     stopwatch.stop();
-    debugPrint('⏱️ [COMPRESSOR] FFmpeg wall-clock: ${stopwatch.elapsedMilliseconds} ms');
-
     final returnCode = await session.getReturnCode();
 
     if (ReturnCode.isSuccess(returnCode)) {
+      onProgress?.call(1.0);
       final compressedFile = File(targetPath);
       final newSize = await compressedFile.length();
-      final reduction = ((fileSize - newSize) / fileSize * 100).toStringAsFixed(1);
-      debugPrint(
-        '✅ [COMPRESSOR] ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB '
-        '→ ${(newSize / 1024).toStringAsFixed(0)} KB ($reduction% reduction) '
-        '| ${resolution}p @ ${fps}fps | ${stopwatch.elapsedMilliseconds}ms',
-      );
-
-      // Clean up temp camera/trim files — never delete gallery originals
+      debugPrint('✅ [COMPRESSOR] Finished in ${stopwatch.elapsedMilliseconds}ms. New size: ${(newSize / 1024).toStringAsFixed(0)} KB');
+      
       if (file.path.contains('camera_') || file.path.contains('trim_')) {
-        if (!file.path.contains('DCIM')) {
-          try { await file.delete(); } catch (_) {}
-        }
+        try { await file.delete(); } catch (_) {}
       }
       return compressedFile;
     } else {
-      final failLog = await session.getFailStackTrace();
-      debugPrint('❌ [COMPRESSOR] FFmpeg failed — using original. Trace: $failLog');
-      return file; // graceful fallback: send the original
+      debugPrint('❌ [COMPRESSOR] FFmpeg failed — using original.');
+      return file; 
     }
   }
 

@@ -33,6 +33,10 @@ class Settings(BaseSettings):
 
     # DB & Firebase Config
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./furspeak.db")
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
     FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase-adminsdk.json")
     FIREBASE_STORAGE_BUCKET: str = os.getenv("FIREBASE_STORAGE_BUCKET", "furspeak-4ddd4.appspot.com")
     FIREBASE_CREDENTIALS_JSON: str | None = os.getenv("FIREBASE_CREDENTIALS_JSON")
@@ -41,6 +45,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     SENTRY_DSN: str | None = os.getenv("SENTRY_DSN")
+    DISABLE_APP_CHECK: bool = os.getenv("DISABLE_APP_CHECK", "false").lower() == "true"
 
     MODEL_VERSION: str = "yolov8m-v1-behavior-beta"
 

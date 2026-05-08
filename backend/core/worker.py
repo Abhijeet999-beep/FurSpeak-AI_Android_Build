@@ -7,6 +7,10 @@ job_queue = asyncio.Queue()
 
 inference_lock = asyncio.Lock()
 
+def get_queue_size() -> int:
+    """Returns the number of pending items in the GPU job queue."""
+    return job_queue.qsize()
+
 async def gpu_worker():
     """ Runs continuously in the background separating GPU loads across bounded Queues perfectly. """
     logger.info("Initializing Single-GPU Worker Loop...")

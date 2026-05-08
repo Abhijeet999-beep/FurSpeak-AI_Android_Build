@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import '../providers/auth_provider.dart';
 import '../config/api_config.dart';
 import '../models/api_pipeline_response.dart';
 import '../models/pipeline_types.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Central API service for the FurSpeak pipeline.
 ///
@@ -17,9 +19,31 @@ import '../models/pipeline_types.dart';
 class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
+      baseUrl: ApiConfig.baseUrl,
       connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 60),
+      sendTimeout: const Duration(minutes: 5),
+      headers: {
+        'Accept': 'application/json',
+        'x-source': 'mobile_app',
+      },
     ),
   );
+
+  ApiService() {
+    _testConnection();
+  }
+
+  /// Temporary health check for debugging connectivity.
+  Future<void> _testConnection() async {
+    try {
+      debugPrint('🔍 [API SERVICE] Testing connection to: ${ApiConfig.baseUrl}/health');
+      final response = await _dio.get('/health');
+      debugPrint('🔍 [API SERVICE] Health check response: ${response.data}');
+    } catch (e) {
+      debugPrint('❌ [API SERVICE] Health check failed: $e');
+    }
+  }
 
   /// True when an upload is actively in-flight.
   /// Used by lifecycle observers to prevent silent cancellation.
@@ -60,17 +84,16 @@ class ApiService {
     }
 
     final int fileSize = file.lengthSync();
-    final String endpointUrl = isVideo 
-        ? ApiConfig.getFullUrl(ApiConfig.detectVideo)
-        : ApiConfig.getFullUrl(ApiConfig.detectImage);
+    final String endpointPath = isVideo ? ApiConfig.detectVideo : ApiConfig.detectImage;
+    final String fullUrl = ApiConfig.getFullUrl(endpointPath);
     
     // Explicit debug log for validation
-    debugPrint('🚀 [API SERVICE] TARGET ENDPOINT: $endpointUrl');
+    debugPrint('🚀 [API SERVICE] TARGET ENDPOINT: $endpointPath (Full: $fullUrl)');
     
     final DateTime startTime = DateTime.now();
 
     debugPrint('[UPLOAD] ════════════════════════════════════════════');
-    debugPrint('[UPLOAD] START → $endpointUrl');
+    debugPrint('[UPLOAD] START → $endpointPath');
     debugPrint('[UPLOAD] FILE SIZE → $fileSize bytes (${(fileSize / 1024).toStringAsFixed(1)} KB)');
     debugPrint('[UPLOAD] FILE PATH → ${file.path}');
     debugPrint('[UPLOAD] REQUEST ID → $requestId');
@@ -84,7 +107,7 @@ class ApiService {
         file: file,
         fileSize: fileSize,
         requestId: requestId,
-        endpointUrl: endpointUrl,
+        endpointUrl: endpointPath, // Pass relative path
         startTime: startTime,
         authProvider: authProvider,
         cancelToken: cancelToken,
@@ -149,12 +172,25 @@ class ApiService {
     required int attemptNumber,
   }) async {
     try {
-      // --- Auth token ---
-      String? token;
+      // --- Auth tokens ---
+      String? authToken;
+      String? appCheckToken;
+      
       try {
-        token = await authProvider.getToken();
+        authToken = await authProvider.getToken();
       } catch (e) {
-        debugPrint("[UPLOAD] ⚠️ getToken() failed ($e). Proceeding without token.");
+        debugPrint("[UPLOAD] ⚠️ getToken() failed ($e).");
+      }
+
+      try {
+        final bool disableAppCheck = dotenv.env['DISABLE_APP_CHECK'] == 'true';
+        if (!disableAppCheck) {
+          appCheckToken = await FirebaseAppCheck.instance.getToken();
+        } else {
+          debugPrint("[UPLOAD] ⏩ App Check skipped (disabled in .env).");
+        }
+      } catch (e) {
+        debugPrint("[UPLOAD] ⚠️ getAppCheckToken() failed ($e).");
       }
 
       String fileName = file.path.split('/').last;
@@ -183,7 +219,8 @@ class ApiService {
         options: Options(
           headers: {
             "x-source": "mobile_app",
-            "Authorization": "Bearer $token"
+            "Authorization": "Bearer $authToken",
+            "X-Firebase-AppCheck": appCheckToken,
           },
           sendTimeout: const Duration(seconds: 120),
           receiveTimeout: const Duration(seconds: 120),
@@ -237,6 +274,7 @@ class ApiService {
       }
       
       debugPrint('[UPLOAD] ❌ FAILED → DioException: ${dioErr.type} | ${dioErr.message} (${elapsed.inMilliseconds}ms)');
+      debugPrint('[UPLOAD] ❌ ERROR OBJECT → ${dioErr.error}');
       if (dioErr.response != null) {
         debugPrint('[UPLOAD] RESPONSE STATUS → ${dioErr.response?.statusCode}');
         debugPrint('[UPLOAD] RESPONSE BODY → ${dioErr.response?.data}');

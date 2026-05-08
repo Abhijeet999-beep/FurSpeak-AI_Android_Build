@@ -1,6 +1,6 @@
 import os
 import logging
-from fastapi import HTTPException, Security, status
+from fastapi import HTTPException, Security, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from backend.core.config import settings
 
@@ -15,7 +15,7 @@ _IS_PRODUCTION = _ENVIRONMENT == "production"
 
 try:
     import firebase_admin
-    from firebase_admin import credentials, auth
+    from firebase_admin import credentials, auth, app_check
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
@@ -117,4 +117,35 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Secu
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid authentication credentials: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+async def verify_app_check(request: Request) -> bool:
+    """Verify Firebase App Check token for production security.
+    
+    Enforces that the request is coming from a legitimate instance of the app.
+    In development, this check is bypassed to facilitate testing.
+    """
+    if not _IS_PRODUCTION or settings.DISABLE_APP_CHECK:
+        if settings.DISABLE_APP_CHECK and _IS_PRODUCTION:
+            logger.warning("SECURITY WARNING: App Check is DISABLED in production mode via DISABLE_APP_CHECK flag.")
+        return True
+
+    app_check_token = request.headers.get("X-Firebase-AppCheck")
+    
+    if not app_check_token:
+        logger.warning("BLOCKING: Missing App Check token in production request.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing required device integrity token (App Check).",
+        )
+
+    try:
+        app_check.verify_token(app_check_token)
+        return True
+    except Exception as e:
+        logger.error(f"BLOCKING: App Check verification failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Device integrity verification failed. Please ensure you are using the official app.",
         )

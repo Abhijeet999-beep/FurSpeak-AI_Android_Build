@@ -159,20 +159,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _triggerMediaPicker() {
+  Future<void> _triggerMediaPicker() async {
     // Called from within SquishButton's globalActionLock.execute(),
-    // so we must NOT re-acquire the lock here.
-    _showMediaPicker();
+    // so we must await here to keep the lock held until the picker is ready.
+    await _showMediaPicker();
   }
 
   Future<void> _showMediaPicker() async {
+    print('HomeScreen: _showMediaPicker starting...');
     String? choice;
     setState(() => _isPickerOpen = true);
 
     try {
       final pipeline = context.read<HomePipelineProvider>();
-      if (pipeline.isProcessing) return;
+      if (pipeline.isProcessing) {
+        print('HomeScreen: _showMediaPicker aborted - pipeline is processing.');
+        return;
+      }
 
+      print('HomeScreen: Triggering HapticFeedback and BottomSheet...');
       HapticFeedback.mediumImpact();
 
       // OPEN BOTTOM SHEET ONCE
@@ -186,12 +191,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         builder: (_) => _buildMediaPickerSheet(),
       );
+      print('HomeScreen: BottomSheet closed with choice: $choice');
     } catch (e) {
       debugPrint('MediaPicker Error: $e');
+      print('HomeScreen: _showMediaPicker error: $e');
     } finally {
       if (mounted) {
         setState(() => _isPickerOpen = false);
       }
+      print('HomeScreen: _showMediaPicker finished.');
     }
 
     // Handle choice outside of the ActionLock so we don't block other UI interactions
@@ -435,7 +443,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(AppTheme.space16),
-                        child: Lottie.asset(
+                        /* child: Lottie.asset(
                           LottieRegistry.get('dog_happy'),
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
@@ -444,6 +452,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   size: 64, color: AppTheme.primaryColor),
                             );
                           },
+                        ), */
+                        child: const Center(
+                          child: Icon(Icons.pets_rounded,
+                              size: 64, color: AppTheme.primaryColor),
                         ),
                       ),
                     ),
@@ -788,7 +800,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 // Stage indicator
-                                _PipelineStageIndicator(state: pipeline.state),
+                                _PipelineStageIndicator(
+                                  state: pipeline.state,
+                                  uploadProgress: pipeline.uploadProgress,
+                                  compressionProgress: pipeline.compressionProgress,
+                                  processingProgress: pipeline.processingProgress,
+                                ),
                                 const SizedBox(height: AppTheme.space12),
                                 ProcessingMessageRotator(
                                   isActive: true,
@@ -858,7 +875,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
 class _PipelineStageIndicator extends StatelessWidget {
   final HomeState state;
-  const _PipelineStageIndicator({required this.state});
+  final double uploadProgress;
+  final double compressionProgress;
+  final double processingProgress;
+
+  const _PipelineStageIndicator({
+    required this.state,
+    this.uploadProgress = 0.0,
+    this.compressionProgress = 0.0,
+    this.processingProgress = 0.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -873,7 +899,18 @@ class _PipelineStageIndicator extends StatelessWidget {
 
     final currentStep = activeIndex + 1;
     final totalSteps = stages.length;
-    final progress = currentStep / totalSteps;
+
+    // Calculate granular progress within the current stage
+    double stageInternalProgress = 0.0;
+    if (state == HomeState.compressing) {
+      stageInternalProgress = compressionProgress;
+    } else if (state == HomeState.uploading) {
+      stageInternalProgress = uploadProgress;
+    } else if (state == HomeState.processing) {
+      stageInternalProgress = processingProgress;
+    }
+
+    final totalProgress = (activeIndex + stageInternalProgress) / totalSteps;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -909,7 +946,7 @@ class _PipelineStageIndicator extends StatelessWidget {
               color: AppTheme.surfaceElevated,
             ),
             child: FractionallySizedBox(
-              widthFactor: progress,
+              widthFactor: totalProgress.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor,

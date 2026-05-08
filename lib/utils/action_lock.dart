@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 /// Global action lock for the FurSpeak AI application.
 /// Prevents multiple async actions from being executed simultaneously,
@@ -12,12 +13,19 @@ class ActionLock {
   /// Executes [action] if the lock is not currently active.
   /// Automatically releases the lock when [action] completes.
   Future<void> execute(Future<void> Function() action) async {
-    if (_isLocked) return;
+    if (_isLocked) {
+      debugPrint('ActionLock: Execution blocked - already locked.');
+      return;
+    }
+    debugPrint('ActionLock: Locking action...');
     _isLocked = true;
     try {
       await action();
+    } catch (e) {
+      debugPrint('ActionLock: Error during action: $e');
     } finally {
       _isLocked = false;
+      debugPrint('ActionLock: Action released.');
     }
   }
 

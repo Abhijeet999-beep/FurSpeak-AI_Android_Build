@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
@@ -80,6 +81,24 @@ Future<void> _runAppWithProviders() async {
 
   await Firebase.initializeApp(); // 🔥 Firebase init
   debugPrint('✅ [INIT] Firebase initialized');
+
+  // Initialize Firebase App Check for production security (Priority 4)
+  final bool disableAppCheck = dotenv.env['DISABLE_APP_CHECK'] == 'true';
+  if (disableAppCheck) {
+    debugPrint('⏩ [INIT] Firebase App Check skipped (disabled in .env)');
+  } else {
+    try {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: kDebugMode 
+            ? AndroidProvider.debug 
+            : AndroidProvider.playIntegrity,
+        appleProvider: AppleProvider.deviceCheck,
+      );
+      debugPrint('✅ [INIT] Firebase App Check activated');
+    } catch (e) {
+      debugPrint('⚠️ [INIT] Firebase App Check failed to activate: $e');
+    }
+  }
 
   await setupDependencies(); // 🔥 DI Setup
   debugPrint('✅ [INIT] Dependencies ready');

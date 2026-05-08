@@ -2,27 +2,23 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (OpenCV, FFmpeg, curl for healthcheck)
+# Install system dependencies (FFmpeg for video, curl for healthcheck, libgomp1 for ML)
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
     ffmpeg \
     curl \
+    libgomp1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements first for better caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy application code into /app/backend to maintain package structure
+COPY . /app/backend
 
-# Create temp directory
-RUN mkdir -p temp
+# Create temp directory inside the package or root
+RUN mkdir -p /app/backend/temp
 
 # Expose port
 EXPOSE 8000

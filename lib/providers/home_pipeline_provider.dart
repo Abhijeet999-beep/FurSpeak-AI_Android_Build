@@ -63,6 +63,14 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
   AppError? _error;
   AppError? get error => _error;
 
+  double _uploadProgress = 0.0;
+  double _compressionProgress = 0.0;
+  double _processingProgress = 0.0;
+
+  double get uploadProgress => _uploadProgress;
+  double get compressionProgress => _compressionProgress;
+  double get processingProgress => _processingProgress;
+
   /// The UUID of the last successfully persisted result.
   /// Used for ID-based navigation: `/result?id=<lastResultId>`
   String? _lastResultId;
@@ -79,11 +87,14 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       case HomeState.idle:
         return '';
       case HomeState.compressing:
-        return 'Processing media...';
+        final pct = (_compressionProgress * 100).toInt();
+        return 'Processing media... ($pct%)';
       case HomeState.uploading:
-        return 'Uploading...';
+        final pct = (_uploadProgress * 100).toInt();
+        return 'Uploading... ($pct%)';
       case HomeState.processing:
-        return 'Analyzing your pet...';
+        final pct = (_processingProgress * 100).toInt();
+        return 'Analyzing your pet... ($pct%)';
       case HomeState.success:
         return 'Analysis complete!';
       case HomeState.cancelled:
@@ -96,6 +107,23 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
   ApiService get _apiService => GetIt.instance<ApiService>();
 
   CancelToken? _cancelToken;
+  Timer? _processingTimer;
+
+  void _startProcessingSimulation() {
+    _processingProgress = 0.0;
+    _processingTimer?.cancel();
+    _processingTimer = Timer.periodic(const Duration(milliseconds: 400), (timer) {
+      if (_state != HomeState.processing) {
+        timer.cancel();
+        return;
+      }
+      // Slow crawl: 0 -> 0.95
+      if (_processingProgress < 0.95) {
+        _processingProgress += 0.015; 
+        notifyListeners();
+      }
+    });
+  }
 
   // ─── LIFECYCLE PROTECTION ──────────────────────────────────────────
   @override
@@ -112,6 +140,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _processingTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -181,6 +210,10 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _error = null;
     _lastResultId = null;
     _hasNavigated = false;
+    _uploadProgress = 0.0;
+    _compressionProgress = 0.0;
+    _processingProgress = 0.0;
+    _processingTimer?.cancel();
     notifyListeners();
   }
 
@@ -370,7 +403,13 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
         Future<File?> getCompression() async {
           if (_isVideo) {
-            return await MediaCompressor.compressVideo(originalFile);
+            return await MediaCompressor.compressVideo(
+              originalFile,
+              onProgress: (p) {
+                _compressionProgress = p;
+                notifyListeners();
+              },
+            );
           } else {
             return await MediaCompressor.compressImage(originalFile);
           }
@@ -443,8 +482,12 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
         isVideo: _isVideo,
         cancelToken: _cancelToken,
         onProgress: (progress) {
+          _uploadProgress = progress;
           if (progress >= 1.0 && _state == HomeState.uploading) {
             _changeState(HomeState.processing);
+            _startProcessingSimulation();
+          } else {
+            notifyListeners();
           }
         },
       );
@@ -465,6 +508,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (data.status == 'processing') {
         debugPrint("🔄 [PIPELINE] Backend returned 'processing'. Initiating polling.");
         _changeState(HomeState.processing);
+        _startProcessingSimulation();
 
         data = await _apiService.pollStatus(
           requestId: activeRequestId,

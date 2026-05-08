@@ -24,7 +24,13 @@ class ModelLoader:
         from backend.core.config import settings
 
         self.device = self._detect_device()
-        # M2 fix: replaced print() with logger
+        
+        # O1 fix: Limit threads on CPU to reduce memory overhead
+        if self.device.type == "cpu":
+            torch.set_num_threads(1)
+            torch.set_num_interop_threads(1)
+            logger.info("CPU detected: Limiting torch threads to 1 for low-memory stability.")
+
         logger.info(f"Initializing YOLO models on device: {self.device}")
 
         try:
@@ -34,8 +40,13 @@ class ModelLoader:
             # Move models to fixed device enforcing no runtime switching
             self.dog_detector.to(self.device)
             self.behavior_model.to(self.device)
+            
+            # O2 fix: Fuse layers for optimized inference memory/speed
+            self.dog_detector.fuse()
+            self.behavior_model.fuse()
+            
             self._initialized = True
-            logger.info("Models loaded successfully")
+            logger.info("Models loaded and fused successfully")
         except Exception as e:
             logger.error(f"Model loading failed: {e}")
             self.dog_detector = None
