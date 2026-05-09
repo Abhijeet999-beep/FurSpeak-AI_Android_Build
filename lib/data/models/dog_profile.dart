@@ -14,6 +14,11 @@ class DogProfile {
   final String name;
   final String breed;
   final int age;
+  final String? gender;
+  final double? weight;
+  final DateTime? birthday;
+  final String? activityLevel;
+  final String? notes;
   final String? imageUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,6 +28,11 @@ class DogProfile {
     required this.name,
     required this.breed,
     required this.age,
+    this.gender,
+    this.weight,
+    this.birthday,
+    this.activityLevel,
+    this.notes,
     this.imageUrl,
     required this.createdAt,
     required this.updatedAt,
@@ -36,6 +46,11 @@ class DogProfile {
     String? name,
     String? breed,
     int? age,
+    String? gender,
+    double? weight,
+    DateTime? birthday,
+    String? activityLevel,
+    String? notes,
     String? imageUrl,
   }) {
     return DogProfile(
@@ -43,6 +58,11 @@ class DogProfile {
       name: name ?? this.name,
       breed: breed ?? this.breed,
       age: age ?? this.age,
+      gender: gender ?? this.gender,
+      weight: weight ?? this.weight,
+      birthday: birthday ?? this.birthday,
+      activityLevel: activityLevel ?? this.activityLevel,
+      notes: notes ?? this.notes,
       imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt,
       updatedAt: DateTime.now(),

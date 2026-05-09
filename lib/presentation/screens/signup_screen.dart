@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/config/app_typography.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:provider/provider.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/utils/auth_error_mapper.dart';
@@ -102,24 +104,17 @@ class _SignUpScreenState extends State<SignUpScreen>
       prefixIcon: icon,
     ).copyWith(
       suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: BorderSide.none,
-      ),
+      // We keep these specific overrides only if they differ from the global theme
+      // but here we should ideally move them to AppTheme if they are standard.
+      // For now, let's use the standardized radius.
+      fillColor: AppTheme.surfaceActive, // Use surfaceActive for a cleaner white/off-white look
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppTheme.borderRadiusMedium,
         borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
       ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: AppTheme.borderRadiusMedium,
         borderSide: BorderSide.none,
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(color: AppTheme.errorColor, width: 2),
       ),
     );
   }
@@ -339,35 +334,39 @@ class _SignUpScreenState extends State<SignUpScreen>
               ),
               // Loading overlay
               if (isLoading)
-                Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Builder(builder: (context) {
-                            try {
-                              return Lottie.asset(
-                                'assets/animations/loading.json',
-                                width: 90,
-                                height: 90,
+                Positioned.fill(
+                  child: PetMoodGlass(
+                    opacity: 0.8,
+                    borderRadius: BorderRadius.zero,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: AppTheme.borderRadiusExtraLarge,
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Builder(builder: (context) {
+                              return RepaintBoundary(
+                                child: Lottie.asset(
+                                  LottieRegistry.get('loading'),
+                                  width: 90,
+                                  height: 90,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const CircularProgressIndicator(),
+                                ),
                               );
-                            } catch (_) {
-                              return const CircularProgressIndicator();
-                            }
-                          }),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Creating your account... 🐾',
-                            style: AppTheme.titleStyle.copyWith(fontSize: 16),
-                          ),
-                        ],
+                            }),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Creating your account... 🐾',
+                              style: AppTypography.h3.copyWith(fontSize: 16),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

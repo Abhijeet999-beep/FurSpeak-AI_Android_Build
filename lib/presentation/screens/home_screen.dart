@@ -2,27 +2,23 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:lottie/lottie.dart';
-
 import 'package:image_picker/image_picker.dart';
-import 'package:furspeak_ai/utils/action_lock.dart';
-import 'package:furspeak_ai/presentation/widgets/permission_interstitial.dart';
-import 'package:video_player/video_player.dart';
-import 'package:furspeak_ai/presentation/screens/video_trimmer_screen.dart';
-import 'package:furspeak_ai/presentation/screens/camera_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
-
-import 'package:furspeak_ai/utils/error_mapper.dart';
-import 'package:provider/provider.dart';
+import 'package:furspeak_ai/presentation/widgets/permission_interstitial.dart';
+import 'package:furspeak_ai/presentation/screens/camera_screen.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
-
 import 'package:furspeak_ai/providers/home_pipeline_provider.dart';
-import 'package:furspeak_ai/media/services/media_validator.dart';
+import 'package:furspeak_ai/presentation/screens/video_trimmer_screen.dart';
+import 'package:furspeak_ai/utils/error_mapper.dart';
+import 'package:furspeak_ai/utils/media_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,78 +46,107 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildMediaPickerSheet() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppTheme.space16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: AppTheme.space8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceElevated,
-                borderRadius: AppTheme.borderRadiusPill,
+    return PetMoodGlass(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppTheme.space24, AppTheme.space12, AppTheme.space24, AppTheme.space32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Container(
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.textColor.withValues(alpha: 0.08),
+                  borderRadius: AppTheme.borderRadiusPill,
+                ),
               ),
-            ),
-            const SizedBox(height: AppTheme.space16),
-            Text('Choose how to scan 🐶', style: AppTheme.titleStyle.copyWith(fontSize: 18, fontWeight: FontWeight.w600)),
-            const SizedBox(height: AppTheme.space16),
-            
-            // Camera Options
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
-              child: Row(
+              const SizedBox(height: AppTheme.space24),
+              
+              Text(
+                'Capture a Moment 🐶',
+                style: AppTheme.titleStyle.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(height: AppTheme.space8),
+              Text(
+                'Choose how you want to see their world',
+                style: AppTheme.captionStyle.copyWith(
+                  color: AppTheme.textLightColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: AppTheme.space32),
+              
+              // Camera Options
+              Row(
                 children: [
                   Expanded(
-                    child: _buildPickerOption(
-                      title: 'Camera Photo',
-                      subtitle: 'Snap a pic',
-                      icon: '📷',
-                      onTap: () => Navigator.pop(context, 'camera_photo'),
+                    child: SquishButton(
+                      useGlobalLock: false,
+                      onPressed: () => Navigator.pop(context, 'camera_photo'),
+                      child: _buildPickerOption(
+                        title: 'Snap Photo',
+                        subtitle: 'Quick & easy',
+                        icon: '📸',
+                        color: AppTheme.primaryColor,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: AppTheme.space12),
+                  const SizedBox(width: AppTheme.space16),
                   Expanded(
-                    child: _buildPickerOption(
-                      title: 'Camera Video',
-                      subtitle: 'Record dog',
-                      icon: '🎥',
-                      onTap: () => Navigator.pop(context, 'camera_video'),
+                    child: SquishButton(
+                      useGlobalLock: false,
+                      onPressed: () => Navigator.pop(context, 'camera_video'),
+                      child: _buildPickerOption(
+                        title: 'Record Video',
+                        subtitle: 'Best for context',
+                        icon: '🎥',
+                        color: AppTheme.accentColor,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppTheme.space12),
-            
-            // Gallery Options
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
-              child: Row(
+              const SizedBox(height: AppTheme.space16),
+              
+              // Gallery Options
+              Row(
                 children: [
                   Expanded(
-                    child: _buildPickerOption(
-                      title: 'Gallery Photo',
-                      subtitle: 'From albums',
-                      icon: '🖼️',
-                      onTap: () => Navigator.pop(context, 'gallery_photo'),
+                    child: SquishButton(
+                      useGlobalLock: false,
+                      onPressed: () => Navigator.pop(context, 'gallery_photo'),
+                      child: _buildPickerOption(
+                        title: 'From Gallery',
+                        subtitle: 'Use existing photo',
+                        icon: '🖼️',
+                        color: AppTheme.tertiaryColor,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: AppTheme.space12),
+                  const SizedBox(width: AppTheme.space16),
                   Expanded(
-                    child: _buildPickerOption(
-                      title: 'Gallery Video',
-                      subtitle: 'From movies',
-                      icon: '🎞️',
-                      onTap: () => Navigator.pop(context, 'gallery_video'),
+                    child: SquishButton(
+                      useGlobalLock: false,
+                      onPressed: () => Navigator.pop(context, 'gallery_video'),
+                      child: _buildPickerOption(
+                        title: 'Import Video',
+                        subtitle: 'Longer moments',
+                        icon: '🎞️',
+                        color: const Color(0xFF7B61FF),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -131,83 +156,89 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required String title,
     required String subtitle,
     required String icon,
-    required VoidCallback onTap,
+    required Color color,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppTheme.borderRadiusMedium,
-      child: Container(
-        padding: const EdgeInsets.all(AppTheme.space12),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceLow,
-          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1)),
-          borderRadius: AppTheme.borderRadiusMedium,
-        ),
-        child: Column(
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 28)),
-            const SizedBox(height: AppTheme.space8),
-            Text(title, 
-              textAlign: TextAlign.center,
-              style: AppTheme.titleStyle.copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
-            Text(subtitle, 
-              textAlign: TextAlign.center,
-              style: AppTheme.captionStyle.copyWith(fontSize: 11)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: AppTheme.borderRadiusLarge,
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Text(icon, style: const TextStyle(fontSize: 28)),
+          ),
+          const SizedBox(height: AppTheme.space16),
+          Text(
+            title, 
+            textAlign: TextAlign.center,
+            style: AppTheme.titleStyle.copyWith(
+              fontSize: 14, 
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle, 
+            textAlign: TextAlign.center,
+            style: AppTheme.captionStyle.copyWith(
+              fontSize: 11,
+              color: AppTheme.textLightColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _triggerMediaPicker() async {
-    // Called from within SquishButton's globalActionLock.execute(),
-    // so we must await here to keep the lock held until the picker is ready.
+    debugPrint('HomeScreen: _triggerMediaPicker called');
     await _showMediaPicker();
   }
 
   Future<void> _showMediaPicker() async {
-    print('HomeScreen: _showMediaPicker starting...');
-    String? choice;
+    debugPrint('HomeScreen: _showMediaPicker called, _isPickerOpen=$_isPickerOpen');
+    if (_isPickerOpen) return;
+    
     setState(() => _isPickerOpen = true);
+    String? choice;
 
     try {
       final pipeline = context.read<HomePipelineProvider>();
-      if (pipeline.isProcessing) {
-        print('HomeScreen: _showMediaPicker aborted - pipeline is processing.');
-        return;
-      }
+      debugPrint('HomeScreen: pipeline.isProcessing=${pipeline.isProcessing}');
+      if (pipeline.isProcessing) return;
 
-      print('HomeScreen: Triggering HapticFeedback and BottomSheet...');
-      HapticFeedback.mediumImpact();
+      FurHaptics.impact();
 
-      // OPEN BOTTOM SHEET ONCE
       if (!mounted) return;
       choice = await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppTheme.surfaceActive,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         builder: (_) => _buildMediaPickerSheet(),
       );
-      print('HomeScreen: BottomSheet closed with choice: $choice');
     } catch (e) {
       debugPrint('MediaPicker Error: $e');
-      print('HomeScreen: _showMediaPicker error: $e');
     } finally {
       if (mounted) {
         setState(() => _isPickerOpen = false);
       }
-      print('HomeScreen: _showMediaPicker finished.');
     }
 
-    // Handle choice outside of the ActionLock so we don't block other UI interactions
-    // while the user is using the native camera or gallery
     if (choice == null) return;
 
     if (choice.startsWith('camera')) {
-      // PERMISSION CHECK
       final status = await Permission.camera.status;
       if (!status.isGranted) {
         if (status.isDenied) {
@@ -215,7 +246,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           if (!shouldRequest) return;
         }
         
-        // Request camera and microphone together
         await [Permission.camera, Permission.microphone].request();
         
         final newStatus = await Permission.camera.status;
@@ -235,18 +265,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
       }
 
-      if (!mounted) return;
-      
+      final picker = ImagePicker();
       String? result;
       bool isVideo = choice == 'camera_video';
 
       if (isVideo) {
-        // Use our custom CameraScreen for video capture or native if preferred
-        // For now, let's assume CameraScreen handles both or we use native for simplicity if needed
-        // But user checklist says "Verify you use pickVideo()"
-        final picker = ImagePicker();
-        final pickedVideo = await picker.pickVideo(source: ImageSource.camera);
-        result = pickedVideo?.path;
+        final XFile? pickedVideo = await picker.pickVideo(
+          source: ImageSource.camera,
+          maxDuration: const Duration(seconds: 60),
+        );
+        if (pickedVideo != null) {
+          if (!mounted) return;
+          result = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => VideoTrimmerScreen(
+                videoPath: pickedVideo.path,
+                onTrimmed: (path) => Navigator.pop(context, path),
+              ),
+            ),
+          );
+        }
       } else {
         result = await Navigator.push<String>(
           context,
@@ -255,6 +294,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       if (result != null && mounted) {
+        if (!isVideo) {
+          final cropped = await MediaUtils.cropImage(File(result));
+          if (cropped != null) {
+            result = cropped.path;
+          } else {
+            // User cancelled crop, abort pipeline
+            return;
+          }
+        }
+
         _showFriendlySnackBar(
           isVideo ? '🎥 Video captured!' : '📷 Image captured!',
           isVideo ? Icons.videocam : Icons.camera_alt,
@@ -266,6 +315,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     if (choice.startsWith('gallery')) {
+      // Permission check for gallery
+      if (Platform.isAndroid) {
+        final status = await Permission.photos.status;
+        final videoStatus = await Permission.videos.status;
+        if (!status.isGranted && !videoStatus.isGranted) {
+          await [Permission.photos, Permission.videos].request();
+        }
+      }
+
       final picker = ImagePicker();
       XFile? picked;
       bool isVideo = choice == 'gallery_video';
@@ -280,12 +338,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       if (!mounted) return;
       
+      String? finalPath;
+      if (isVideo) {
+        finalPath = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VideoTrimmerScreen(
+              videoPath: picked!.path,
+              onTrimmed: (path) => Navigator.pop(context, path),
+            ),
+          ),
+        );
+      } else {
+        final cropped = await MediaUtils.cropImage(File(picked.path));
+        if (cropped != null) {
+          finalPath = cropped.path;
+        }
+      }
+
+      if (finalPath == null) return;
+
       _showFriendlySnackBar(
         isVideo ? '🎥 Video selected!' : '📷 Image selected!',
         isVideo ? Icons.videocam : Icons.camera_alt,
       );
       
-      await _startPipeline(picked.path, isVideo);
+      await _startPipeline(finalPath, isVideo);
     }
   }
 
@@ -344,8 +422,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         backgroundColor: AppTheme.textColor,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
         duration: const Duration(seconds: 2),
         margin: const EdgeInsets.all(AppTheme.space16),
       ),
@@ -354,10 +431,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Isolate rebuilds to just the isProcessing boundary
-    final isProcessing =
-        context.select((HomePipelineProvider p) => p.isProcessing);
+    final isProcessing = context.select((HomePipelineProvider p) => p.isProcessing);
     final isGuest = context.select((AuthProvider p) => p.isGuest);
+    final error = context.select((HomePipelineProvider p) => p.error);
+
 
     return PopScope(
       canPop: !isProcessing,
@@ -370,507 +447,407 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Scaffold(
         backgroundColor: AppTheme.bgColor,
         body: Stack(
-        children: [
-          IgnorePointer(
-            ignoring: isProcessing,
-            child: SafeArea(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: AppTheme.space24),
-                    // Header
-                    Text(
-                      'How is your dog feeling today? 🐾',
-                      textAlign: TextAlign.center,
-                      style: AppTheme.headingStyle.copyWith(
-                        color: AppTheme.primaryColor,
-                        fontSize: 26,
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.space8),
-                    Text(
-                      'Let\'s find out together',
-                      textAlign: TextAlign.center,
-                      style: AppTheme.captionStyle.copyWith(
-                        fontSize: 15,
-                        color: AppTheme.textLightColor,
-                      ),
-                    ),
-                    if (isGuest) ...[
-                      const SizedBox(height: AppTheme.space12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.space12,
-                            vertical: AppTheme.space8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentColor.withOpacity(0.1),
-                          borderRadius: AppTheme.borderRadiusPill,
-                          border: Border.all(
-                              color: AppTheme.accentColor.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.pets,
-                                size: 14, color: AppTheme.accentColor),
-                            const SizedBox(width: AppTheme.space8),
-                            Flexible(
-                              child: Text(
-                                "Scanning as guest — sign in to save your dog's insights",
-                                style: AppTheme.captionStyle.copyWith(
-                                  color: AppTheme.accentColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: AppTheme.space24),
-
-                    // Animated Dog Card
-                    Container(
-                      width: double.infinity,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceActive,
-                        borderRadius: AppTheme.borderRadiusLarge,
-                        boxShadow: AppTheme.floatShadow,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTheme.space16),
-                        /* child: Lottie.asset(
-                          LottieRegistry.get('dog_happy'),
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(Icons.pets_rounded,
-                                  size: 64, color: AppTheme.primaryColor),
-                            );
-                          },
-                        ), */
-                        child: const Center(
-                          child: Icon(Icons.pets_rounded,
-                              size: 64, color: AppTheme.primaryColor),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // ═══ PRIMARY CTA: Scan Emotion ═══
-                    Opacity(
-                      opacity: _isPickerOpen ? 0.6 : 1.0,
-                      child: IgnorePointer(
-                        ignoring: _isPickerOpen,
-                        child: BoundedPulse(
-                          child: SquishButton(
-                            onPressed: isProcessing || _isPickerOpen
-                                ? null
-                                : _triggerMediaPicker,
-                            pressScale: 0.95,
-                            child: Container(
-                              width: double.infinity,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.primaryGradient,
-                                borderRadius: AppTheme.borderRadiusLarge,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        AppTheme.primaryColor.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      borderRadius: AppTheme.borderRadiusMedium,
-                                    ),
-                                    child: const Icon(
-                                        Icons.document_scanner_rounded,
-                                        size: 24,
-                                        color: Colors.white),
-                                  ),
-                                  const SizedBox(width: AppTheme.space12),
-                                  Text(
-                                    'Scan Emotion',
-                                    style: AppTheme.titleStyle.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: AppTheme.space16),
-
-                    // View Results CTA (only when result ready)
-                    Selector<HomePipelineProvider, bool>(
-                      selector: (_, p) => p.state == HomeState.success,
-                      builder: (context, isResult, _) {
-                        if (!isResult) return const SizedBox.shrink();
-
-                        return BoundedPulse(
-                          maxPulses: 3,
-                          child: SquishButton(
-                            onPressed: () {
-                              final pipeline =
-                                  context.read<HomePipelineProvider>();
-                              final resultId = pipeline.consumeSuccess();
-                              if (resultId != null) {
-                                context.pushResult(resultId);
-                                pipeline.resetPipeline();
-                              } else {
-                                if (pipeline.lastResultId != null)
-                                  context.pushResult(pipeline.lastResultId!);
-                                pipeline.resetPipeline();
-                              }
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: AppTheme.successColor,
-                                borderRadius: AppTheme.borderRadiusLarge,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        AppTheme.successColor.withOpacity(0.3),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.auto_awesome_rounded,
-                                      size: 22, color: Colors.white),
-                                  const SizedBox(width: AppTheme.space8),
-                                  Text(
-                                    'View Results ✨',
-                                    style: AppTheme.titleStyle.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    const Spacer(),
-                  ],
+          children: [
+            // Background Pattern
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: Opacity(
+                  opacity: 0.05,
+                  child: Lottie.asset(
+                    LottieRegistry.get('paw_prints_bg'),
+                    fit: BoxFit.cover,
+                    repeat: true,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),
-          ),
-          // ===== ERROR STATE CARD =====
-          Selector<HomePipelineProvider, AppError?>(
-            selector: (_, p) => p.state == HomeState.error ? p.error : null,
-            builder: (context, error, _) {
-              if (error == null) return const SizedBox.shrink();
-
-              return Positioned(
-                left: 0,
-                right: 0,
-                bottom: 56,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: Material(
-                    elevation: 0,
-                    borderRadius: AppTheme.borderRadiusLarge,
-                    color: AppTheme.surfaceActive,
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        borderRadius: AppTheme.borderRadiusLarge,
-                        color: AppTheme.surfaceActive,
-                        boxShadow: AppTheme.floatShadow,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Emoji hero
-                          Text(
-                            error.emoji,
-                            style: const TextStyle(fontSize: 40),
-                          ),
-                          const SizedBox(height: AppTheme.space12),
-                          // Main message
-                          Text(
-                            error.userMessage,
-                            textAlign: TextAlign.center,
-                            style: AppTheme.titleStyle.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+            IgnorePointer(
+              ignoring: isProcessing,
+              child: SafeArea(
+                bottom: false, // Handle bottom padding manually for better control
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              AppTheme.space24,
+                              0,
+                              AppTheme.space24,
+                              MediaQuery.of(context).padding.bottom + AppTheme.space24,
                             ),
-                          ),
-                          // Hint / guidance
-                          if (error.hint != null) ...[
-                            const SizedBox(height: AppTheme.space8),
-                            Text(
-                              error.hint!,
-                              textAlign: TextAlign.center,
-                              style: AppTheme.captionStyle.copyWith(
-                                fontSize: 13,
-                                color: AppTheme.textLightColor,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: AppTheme.space16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TextButton(
-                                onPressed: () => context
-                                    .read<HomePipelineProvider>()
-                                    .reset(),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppTheme.textLightColor,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 10),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: AppTheme.space24),
+                                StaggeredEntrance(
+                                  children: [
+                                    Text(
+                                      'How is your dog feeling today? 🐾',
+                                      textAlign: TextAlign.center,
+                                      style: AppTheme.headingStyle.copyWith(
+                                        color: AppTheme.primaryColor,
+                                        fontSize: 26,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppTheme.space8),
+                                    Text(
+                                      'Let\'s find out together',
+                                      textAlign: TextAlign.center,
+                                      style: AppTheme.captionStyle.copyWith(
+                                        fontSize: 15,
+                                        color: AppTheme.textLightColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                child: const Text('Dismiss'),
-                              ),
-                              if (error.canRetry) ...[
-                                const SizedBox(width: AppTheme.space12),
-                                SquishButton(
-                                  onPressed: _handleRetry,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: AppTheme.space24,
-                                        vertical: AppTheme.space12),
+                                if (isGuest) ...[
+                                  const SizedBox(height: AppTheme.space12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space8),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.primaryColor,
-                                      borderRadius: AppTheme.borderRadiusMedium,
-                                      boxShadow: AppTheme.softShadow,
+                                      color: AppTheme.surfaceContainerLow,
+                                      borderRadius: AppTheme.borderRadiusPill,
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.refresh_rounded,
-                                            size: 18, color: Colors.white),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Try Again',
-                                          style: AppTheme.titleStyle.copyWith(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
+                                        const Icon(Icons.pets, size: 14, color: AppTheme.accentColor),
+                                        const SizedBox(width: AppTheme.space8),
+                                        Flexible(
+                                          child: Text(
+                                            "Scanning as guest — sign in to save your dog's insights",
+                                            style: AppTheme.captionStyle.copyWith(
+                                              color: AppTheme.accentColor,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          // ===== RESULT STATE CARD =====
-          Selector<HomePipelineProvider, bool>(
-            selector: (_, p) =>
-                p.state == HomeState.success && p.result != null,
-            builder: (context, hasResult, _) {
-              if (!hasResult) return const SizedBox.shrink();
-              return Positioned(
-                left: 0,
-                right: 0,
-                bottom: 56,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.space24, vertical: 4),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: AppTheme.space16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceActive,
-                      borderRadius: AppTheme.borderRadiusLarge,
-                      boxShadow: AppTheme.floatShadow,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.successColor.withOpacity(0.1),
-                            borderRadius: AppTheme.borderRadiusMedium,
-                          ),
-                          child: Icon(Icons.check_circle_rounded,
-                              color: AppTheme.successColor, size: 28),
-                        ),
-                        const SizedBox(width: AppTheme.space12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Analysis complete! ✨',
-                                style: AppTheme.titleStyle.copyWith(
-                                  fontSize: 16,
-                                  color: AppTheme.successColor,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Tap "View Results" to see details',
-                                style: AppTheme.captionStyle
-                                    .copyWith(fontSize: 13),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+                                ],
+                                const SizedBox(height: AppTheme.space24),
 
-          // ===== PROCESSING OVERLAY (Stage-Based) =====
-          if (isProcessing)
-            Consumer<HomePipelineProvider>(
-              builder: (context, pipeline, _) {
-                return Container(
-                  color: Colors.black.withOpacity(0.5),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        RepaintBoundary(
-                          child: Builder(
-                            builder: (context) {
-                              try {
-                                return Lottie.asset(
-                                  'assets/animations/loading.json',
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.contain,
-                                );
-                              } catch (_) {
-                                return const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppTheme.primaryColor),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.space24),
-                        PetMoodGlass(
-                          opacity: 0.92,
-                          borderRadius: AppTheme.borderRadiusLarge,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppTheme.space24,
-                                vertical: AppTheme.space16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Stage indicator
-                                _PipelineStageIndicator(
-                                  state: pipeline.state,
-                                  uploadProgress: pipeline.uploadProgress,
-                                  compressionProgress: pipeline.compressionProgress,
-                                  processingProgress: pipeline.processingProgress,
+                                // Animated Dog Card
+                                StaggeredEntrance(
+                                  children: [
+                                    Container(
+                                      width: double.infinity,
+                                      height: 280,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surfaceContainerLowest,
+                                        borderRadius: AppTheme.borderRadiusExtraLarge,
+                                        boxShadow: AppTheme.softShadow,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(AppTheme.space24),
+                                      child: RepaintBoundary(
+                                        child: Lottie.asset(
+                                          LottieRegistry.get('dog_happy'),
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Center(
+                                              child: Icon(Icons.pets_rounded, size: 80, color: AppTheme.primaryColor),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: AppTheme.space12),
-                                ProcessingMessageRotator(
-                                  isActive: true,
-                                  textStyle: AppTheme.titleStyle.copyWith(
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                if (pipeline.statusMessage.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    pipeline.statusMessage,
-                                    style: AppTheme.captionStyle.copyWith(
-                                      fontSize: 12,
-                                      color: AppTheme.textLightColor,
+
+                                const SizedBox(height: 32),
+
+                                // ═══ PRIMARY CTA: Scan Emotion ═══
+                                Opacity(
+                                  opacity: _isPickerOpen ? 0.6 : 1.0,
+                                  child: IgnorePointer(
+                                    ignoring: _isPickerOpen,
+                                    child: BoundedPulse(
+                                      child: SquishButton(
+                                        useGlobalLock: false,
+                                        onPressed: isProcessing || _isPickerOpen ? null : _triggerMediaPicker,
+                                        pressScale: 0.95,
+                                        child: Container(
+                                          width: double.infinity,
+                                          height: 64,
+                                          decoration: BoxDecoration(
+                                            gradient: AppTheme.primaryGradient,
+                                            borderRadius: AppTheme.borderRadiusPill,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 8),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withValues(alpha: 0.15),
+                                                  borderRadius: AppTheme.borderRadiusMedium,
+                                                ),
+                                                child: const Icon(Icons.auto_awesome_rounded, size: 24, color: Colors.white),
+                                              ),
+                                              const SizedBox(width: AppTheme.space16),
+                                              Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Scan Emotion',
+                                                    style: AppTheme.titleStyle.copyWith(
+                                                      color: Colors.white,
+                                                      fontSize: 20,
+                                                      fontWeight: FontWeight.w800,
+                                                      letterSpacing: -0.5,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    'Photo or Video',
+                                                    style: AppTheme.captionStyle.copyWith(
+                                                      color: Colors.white.withValues(alpha: 0.8),
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ],
-                                if (isGuest) ...[
-                                  const SizedBox(height: AppTheme.space12),
-                                  Text(
-                                    "Sign in after to save results",
-                                    style: AppTheme.captionStyle.copyWith(
-                                      fontSize: 12,
-                                      color: AppTheme.accentColor,
-                                      fontWeight: FontWeight.w600,
+                                ),
+
+                                const SizedBox(height: AppTheme.space16),
+
+                                // View Results CTA
+                                Selector<HomePipelineProvider, bool>(
+                                  selector: (_, p) => p.state == HomeState.success,
+                                  builder: (context, isResult, _) {
+                                    if (!isResult) return const SizedBox.shrink();
+
+                                    return BoundedPulse(
+                                      maxPulses: 3,
+                                      child: SquishButton(
+                                        onPressed: () {
+                                          final pipeline = context.read<HomePipelineProvider>();
+                                          final resultId = pipeline.consumeSuccess();
+                                          if (resultId != null) {
+                                            context.pushResult(resultId);
+                                            pipeline.resetPipeline();
+                                          } else if (pipeline.lastResultId != null) {
+                                            context.pushResult(pipeline.lastResultId!);
+                                            pipeline.resetPipeline();
+                                          }
+                                        },
+                                        child: Container(
+                                          width: double.infinity,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.successColor,
+                                            borderRadius: AppTheme.borderRadiusPill,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppTheme.successColor.withValues(alpha: 0.3),
+                                                blurRadius: 16,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(Icons.auto_awesome_rounded, size: 22, color: Colors.white),
+                                              const SizedBox(width: AppTheme.space8),
+                                              Text(
+                                                'View Results ✨',
+                                                style: AppTheme.titleStyle.copyWith(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Error State
+            Selector<HomePipelineProvider, AppError?>(
+              selector: (_, p) => p.state == HomeState.error ? p.error : null,
+              builder: (context, error, _) {
+                if (error == null) return const SizedBox.shrink();
+
+                return Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 56,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    child: Material(
+                      elevation: 0,
+                      borderRadius: AppTheme.borderRadiusLarge,
+                      color: AppTheme.surfaceContainerHigh,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: AppTheme.borderRadiusLarge,
+                          color: AppTheme.surfaceContainerHigh,
+                          boxShadow: AppTheme.floatShadow,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(error.emoji, style: const TextStyle(fontSize: 40)),
+                            const SizedBox(height: AppTheme.space12),
+                            Text(
+                              error.userMessage,
+                              textAlign: TextAlign.center,
+                              style: AppTheme.titleStyle.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (error.hint != null) ...[
+                              const SizedBox(height: AppTheme.space8),
+                              Text(
+                                error.hint!,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.captionStyle.copyWith(
+                                  fontSize: 13,
+                                  color: AppTheme.textLightColor,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: AppTheme.space16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextButton(
+                                  onPressed: () => context.read<HomePipelineProvider>().reset(),
+                                  child: const Text('Dismiss'),
+                                ),
+                                if (error.canRetry) ...[
+                                  const SizedBox(width: AppTheme.space12),
+                                  SquishButton(
+                                    onPressed: _handleRetry,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24, vertical: AppTheme.space12),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryColor,
+                                        borderRadius: AppTheme.borderRadiusMedium,
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.refresh_rounded, size: 18, color: Colors.white),
+                                          SizedBox(width: 6),
+                                          Text('Try Again', style: TextStyle(color: Colors.white)),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
                               ],
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: 32),
-                        TextButton.icon(
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            pipeline.cancelProcessing();
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.surfaceActive,
-                            backgroundColor:
-                                AppTheme.surfaceActive.withOpacity(0.2),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppTheme.space24,
-                                vertical: AppTheme.space12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: AppTheme.borderRadiusPill,
-                            ),
-                          ),
-                          icon: const Icon(Icons.close_rounded, size: 20),
-                          label: Text('Cancel',
-                              style: AppTheme.titleStyle.copyWith(
-                                  color: AppTheme.surfaceActive, fontSize: 14)),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 );
               },
             ),
-        ],
+
+            // Processing Overlay
+            if (isProcessing)
+              Consumer<HomePipelineProvider>(
+                builder: (context, pipeline, _) {
+                  return Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          RepaintBoundary(
+                            child: Lottie.asset(
+                              LottieRegistry.get('loading'),
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const CircularProgressIndicator(),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.space24),
+                          PetMoodGlass(
+                            opacity: 0.92,
+                            borderRadius: AppTheme.borderRadiusLarge,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24, vertical: AppTheme.space16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _PipelineStageIndicator(
+                                    state: pipeline.state,
+                                    uploadProgress: pipeline.uploadProgress,
+                                    compressionProgress: pipeline.compressionProgress,
+                                    processingProgress: pipeline.processingProgress,
+                                  ),
+                                  const SizedBox(height: AppTheme.space12),
+                                  ProcessingMessageRotator(
+                                    isActive: true,
+                                    textStyle: AppTheme.titleStyle.copyWith(fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          TextButton.icon(
+                            onPressed: () => pipeline.cancelProcessing(),
+                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                            label: const Text('Cancel', style: TextStyle(color: Colors.white)),
+                            style: TextButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.2)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _PipelineStageIndicator extends StatelessWidget {
@@ -897,20 +874,12 @@ class _PipelineStageIndicator extends StatelessWidget {
     int activeIndex = stages.indexWhere((s) => s.$2 == state);
     if (activeIndex < 0) activeIndex = 0;
 
-    final currentStep = activeIndex + 1;
-    final totalSteps = stages.length;
-
-    // Calculate granular progress within the current stage
     double stageInternalProgress = 0.0;
-    if (state == HomeState.compressing) {
-      stageInternalProgress = compressionProgress;
-    } else if (state == HomeState.uploading) {
-      stageInternalProgress = uploadProgress;
-    } else if (state == HomeState.processing) {
-      stageInternalProgress = processingProgress;
-    }
+    if (state == HomeState.compressing) stageInternalProgress = compressionProgress;
+    else if (state == HomeState.uploading) stageInternalProgress = uploadProgress;
+    else if (state == HomeState.processing) stageInternalProgress = processingProgress;
 
-    final totalProgress = (activeIndex + stageInternalProgress) / totalSteps;
+    final totalProgress = (activeIndex + stageInternalProgress) / stages.length;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -918,41 +887,21 @@ class _PipelineStageIndicator extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              stages[activeIndex].$1,
-              style: AppTheme.titleStyle.copyWith(
-                fontSize: 13,
-                color: AppTheme.primaryColor,
-              ),
-            ),
-            Text(
-              'Step $currentStep of $totalSteps',
-              style: AppTheme.captionStyle.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text(stages[activeIndex].$1, style: AppTheme.titleStyle.copyWith(fontSize: 13, color: AppTheme.primaryColor)),
+            Text('Step ${activeIndex + 1} of ${stages.length}', style: AppTheme.captionStyle.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
           ],
         ),
         const SizedBox(height: AppTheme.space8),
         ClipRRect(
           borderRadius: AppTheme.borderRadiusPill,
-          child: AnimatedContainer(
-            duration: AppTheme.animMedium,
+          child: Container(
             height: 6,
             width: double.infinity,
-            alignment: Alignment.centerLeft,
-            decoration: const BoxDecoration(
-              color: AppTheme.surfaceElevated,
-            ),
+            color: AppTheme.surfaceElevated,
             child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
               widthFactor: totalProgress.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: AppTheme.borderRadiusPill,
-                ),
-              ),
+              child: Container(color: AppTheme.primaryColor),
             ),
           ),
         ),

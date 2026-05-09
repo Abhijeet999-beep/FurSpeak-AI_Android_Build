@@ -35,6 +35,8 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _verificationId;
   AuthErrorType? _errorType;
+  int _guestScanCount = 0;
+  bool _guestConversionDismissed = false;
 
   User? get user => _user;
   String? get userId => _user?.uid;
@@ -51,6 +53,8 @@ class AuthProvider extends ChangeNotifier {
   bool get hasSeenPermissions => _hasSeenPermissions;
   String? get errorMessage => _errorMessage;
   AuthErrorType? get errorType => _errorType;
+  int get guestScanCount => _guestScanCount;
+  bool get guestConversionDismissed => _guestConversionDismissed;
 
   bool get isAuthenticated => _user != null || (!AppRoutes.isProd && _debugBypass);
   bool _debugBypass = false;
@@ -135,6 +139,8 @@ class AuthProvider extends ChangeNotifier {
       _hasSeenPermissions = prefs.getBool('hasSeenPermissions') ?? false;
       _hasCompletedOnboarding = prefs.getBool('hasCompletedOnboarding') ?? false;
       _hasCameraPermission = await Permission.camera.isGranted;
+      _guestScanCount = prefs.getInt('guestScanCount') ?? 0;
+      _guestConversionDismissed = prefs.getBool('guestConversionDismissed') ?? false;
 
       if (user != null) {
         // Fetch Firestore user model (non-blocking if it fails)
@@ -350,6 +356,21 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _setUiLoading(false);
     }
+  }
+
+  Future<void> incrementGuestScanCount() async {
+    if (!isGuest) return;
+    _guestScanCount++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('guestScanCount', _guestScanCount);
+    notifyListeners();
+  }
+
+  Future<void> dismissGuestConversion() async {
+    _guestConversionDismissed = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('guestConversionDismissed', true);
+    notifyListeners();
   }
 
   Future<void> logout() async {

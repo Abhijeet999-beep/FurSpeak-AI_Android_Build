@@ -32,64 +32,90 @@ class ApiPipelineResponse {
   });
 
   factory ApiPipelineResponse.fromJson(Map<String, dynamic> json) {
-    // 1. Normalize timelineSummary
+    // 0. Robust Unwrapping Logic
+    // Handles: BaseResponse (production), JobStatusResponse (polling), and results (mock)
+    Map<String, dynamic> data = json;
+
+    // Check for BaseResponse wrapper (FastAPI production style: {success: bool, data: Map, message: string})
+    if (json.containsKey('success') && json['data'] is Map<String, dynamic>) {
+      data = json['data'] as Map<String, dynamic>;
+    }
+
+    // Check for JobStatusResponse wrapper (FastAPI polling style: {job_id: string, status: string, result: Map})
+    // OR Mock server results wrapper: {status: string, request_id: string, results: Map}
+    final nestedResult = data['result'] ?? data['results'];
+    if (nestedResult != null && nestedResult is Map<String, dynamic>) {
+      final outerStatus = data['status']?.toString();
+      data = Map<String, dynamic>.from(nestedResult);
+      // If nested data doesn't have status, inherit from outer wrapper
+      if (!data.containsKey('status') && outerStatus != null) {
+        data['status'] = outerStatus;
+      }
+    }
+
+    // 1. Normalize timelineSummary / suggestions / recommendations
     List<String> safeTimelineSummary = [];
-    final rawSummary = json['timeline_summary'];
+    final rawSummary = data['timeline_summary'] ?? 
+                      data['suggestion'] ?? 
+                      data['suggestions'] ?? 
+                      data['recommendations'];
     if (rawSummary != null) {
       if (rawSummary is String) {
-        // If the backend returns a string but NO string splitting logic is allowed:
-        // "If timeline is string -> wrap as SINGLE item list"
         safeTimelineSummary = [rawSummary];
       } else if (rawSummary is List) {
-        // If it's a list, safely cast elements to strings
         safeTimelineSummary = rawSummary.map((e) => e.toString()).toList();
       }
     }
 
     // 2. Normalize standard list
     List<dynamic> safeTimeline = [];
-    if (json['timeline'] is List) {
-      safeTimeline = json['timeline'] as List;
+    if (data['timeline'] is List) {
+      safeTimeline = data['timeline'] as List;
     }
 
-    // 3. Normalize confidence strictly to double
+    // 3. Normalize confidence strictly to double and handle 0-1 vs 0-100 scaling
     double safeConfidence = 0.0;
-    if (json['confidence'] != null) {
-      if (json['confidence'] is int) {
-        safeConfidence = (json['confidence'] as int).toDouble();
-      } else if (json['confidence'] is double) {
-        safeConfidence = json['confidence'] as double;
+    final rawConfidence = data['confidence'];
+    if (rawConfidence != null) {
+      if (rawConfidence is num) {
+        safeConfidence = rawConfidence.toDouble();
       } else {
-        safeConfidence = double.tryParse(json['confidence'].toString()) ?? 0.0;
+        safeConfidence = double.tryParse(rawConfidence.toString()) ?? 0.0;
+      }
+      
+      // Auto-normalization: If the value is in 0-1 range (and not exactly 0 or 1), 
+      // assume it's a float probability and convert to percentage.
+      if (safeConfidence > 0 && safeConfidence <= 1.0) {
+        safeConfidence *= 100.0;
       }
     }
 
     // 4. Normalize processingTime
     double safeTime = 0.0;
-    if (json['processing_time'] != null) {
-      if (json['processing_time'] is int) {
-        safeTime = (json['processing_time'] as int).toDouble();
-      } else if (json['processing_time'] is double) {
-        safeTime = json['processing_time'] as double;
+    final rawTime = data['processing_time'];
+    if (rawTime != null) {
+      if (rawTime is num) {
+        safeTime = rawTime.toDouble();
       } else {
-        safeTime = double.tryParse(json['processing_time'].toString()) ?? 0.0;
+        safeTime = double.tryParse(rawTime.toString()) ?? 0.0;
       }
     }
 
+    // 5. Final Assembly with field name fallbacks (summary -> caption, thumbnail_url -> frame_image_url)
     return ApiPipelineResponse(
-      status: json['status']?.toString() ?? 'success',
-      emotion: json['emotion']?.toString(),
+      status: data['status']?.toString() ?? (json['success'] == true ? 'success' : 'error'),
+      emotion: data['emotion']?.toString() ?? 'unknown',
       confidence: safeConfidence,
-      caption: json['caption']?.toString(),
+      caption: (data['caption'] ?? data['summary'] ?? data['description'])?.toString() ?? '',
       processingTime: safeTime,
-      timestamp: json['timestamp']?.toString(),
-      videoInfo: json['video_info'] is Map<String, dynamic> ? json['video_info'] : null,
-      frameImagePath: json['frame_image_path']?.toString(),
-      frameImageUrl: json['frame_image_url']?.toString(),
+      timestamp: data['timestamp']?.toString(),
+      videoInfo: data['video_info'] is Map<String, dynamic> ? data['video_info'] : null,
+      frameImagePath: data['frame_image_path']?.toString(),
+      frameImageUrl: (data['frame_image_url'] ?? data['thumbnail_url'])?.toString(),
       timeline: safeTimeline,
       timelineSummary: safeTimelineSummary,
-      localMediaPath: json['local_media_path']?.toString(),
-      isVideo: json['is_video'] == true,
+      localMediaPath: data['local_media_path']?.toString(),
+      isVideo: data['is_video'] == true,
     );
   }
 

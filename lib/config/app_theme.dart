@@ -1,174 +1,124 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
+import 'app_spacing.dart';
+import 'app_typography.dart';
 
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 /// FurSpeak AI — "Velvet Paw" Design System (V2)
 ///
-/// Design Tokens are STRICTLY enforced:
-///   Spacing: 8 / 12 / 16 / 24 (ONLY these values)
-///   Border Radius: 16 / 24 (ONLY these values)
-///   Animation Durations: 200ms / 400ms / 800ms (ONLY these values)
-///
-/// Rules:
-///   - NO 1px solid borders for sectioning. Use background color shifts.
-///   - Shadows use tinted periwinkle, NOT grey.
-///   - Glassmorphism ONLY for Result cards & Emotion highlight panels.
+/// This class now acts as a central registry for the design system,
+/// delegating to specialized files for Colors, Spacing, and Typography.
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class AppTheme {
-  AppTheme._(); // Non-instantiable
+  AppTheme._();
 
-  // ─── 1. COLOR PALETTE ─────────────────────────────────────────────────
-  static const Color bgColor = Color(0xFFFFFAF2); // Vanilla Cream
-  static const Color primaryColor = Color(0xFF7E8CE0); // Soft Periwinkle
-  static const Color accentColor = Color(0xFFFFB347); // Gentle Orange
-  static const Color tertiaryColor = Color(0xFFFFE084); // Pastel Yellow
-  static const Color successColor = Color(0xFF43E97B); // Mint Green
-  static const Color errorColor = Color(0xFFF95F62); // Coral Red
-  static const Color textColor = Color(0xFF2C2C2C); // Dark Gray (NOT pure black)
-  static const Color textLightColor = Color(0xFF777777); // Stone Gray
+  // Re-export core tokens for backward compatibility
+  static const Color bgColor = AppColors.bg;
+  static const Color primaryColor = AppColors.primary;
+  static const Color accentColor = AppColors.accent;
+  static const Color tertiaryColor = AppColors.tertiary;
+  static const Color successColor = AppColors.success;
+  static const Color errorColor = AppColors.error;
+  static const Color textColor = AppColors.text;
+  static const Color textLightColor = AppColors.textLight;
 
-  // Surface Hierarchy (Tonal Layering — "No-Line" Rule)
-  static const Color surfaceBase = Color(0xFFF8F9FF);
-  static const Color surfaceLow = Color(0xFFF0F3FD);
-  static const Color surfaceActive = Color(0xFFFFFFFF);
-  static const Color surfaceElevated = Color(0xFFE5E8F1);
+  static const Color surfaceBase = AppColors.surfaceBase;
+  static const Color surfaceLow = AppColors.surfaceLow;
+  static const Color surfaceActive = AppColors.surfaceActive;
+  static const Color surfaceElevated = AppColors.surfaceElevated;
 
-  // ─── 2. SPACING SCALE (STRICT — only these values allowed) ────────────
-  static const double space8 = 8.0;
-  static const double space12 = 12.0;
-  static const double space16 = 16.0;
-  static const double space24 = 24.0;
+  static const Color surfaceContainerLow = AppColors.surfaceContainerLow;
+  static const Color surfaceContainerLowest = AppColors.surfaceContainerLowest;
+  static const Color surfaceContainerHigh = AppColors.surfaceContainerHigh;
 
-  // ─── 3. BORDER RADII (STRICT — only these values allowed) ─────────────
-  static const double radiusMedium = 16.0;
-  static const double radiusLarge = 24.0;
+  static const double space8 = AppSpacing.s8;
+  static const double space12 = AppSpacing.s12;
+  static const double space16 = AppSpacing.s16;
+  static const double space20 = AppSpacing.s20;
+  static const double space24 = AppSpacing.s24;
+  static const double space32 = AppSpacing.s32;
 
-  static final BorderRadius borderRadiusMedium =
-      BorderRadius.circular(radiusMedium);
-  static final BorderRadius borderRadiusLarge =
-      BorderRadius.circular(radiusLarge);
-  static final BorderRadius borderRadiusPill =
-      BorderRadius.circular(999);
+  static const double radiusMedium = AppSpacing.r16;
+  static const double radiusLarge = AppSpacing.r24;
+  static const double radiusExtraLarge = AppSpacing.r32;
 
-  // ─── 4. ANIMATION DURATIONS (STRICT — only these values allowed) ──────
-  static const Duration animFast = Duration(milliseconds: 200);
-  static const Duration animMedium = Duration(milliseconds: 400);
-  static const Duration animSlow = Duration(milliseconds: 800);
+  static final BorderRadius borderRadiusMedium = AppSpacing.radius16;
+  static final BorderRadius borderRadiusLarge = AppSpacing.radius24;
+  static final BorderRadius borderRadiusExtraLarge = AppSpacing.radius32;
+  static final BorderRadius borderRadiusPill = AppSpacing.radiusPill;
 
-  // ─── 5. SHADOWS (Periwinkle-tinted, NOT grey) ─────────────────────────
-  /// Standard soft shadow for cards sitting on a surface.
+  static const Duration animFast = AppSpacing.animFast;
+  static const Duration animMedium = AppSpacing.animMedium;
+  static const Duration animSlow = AppSpacing.animSlow;
+
+  // Shadows (Tinted Periwinkle as per Design System)
   static List<BoxShadow> get softShadow => [
         BoxShadow(
-          color: primaryColor.withOpacity(0.06),
+          color: const Color(0xFF4A58A8).withOpacity(0.06),
           blurRadius: 20,
           offset: const Offset(0, 8),
         ),
       ];
 
-  /// Elevated floating shadow for modals and pet profile cards.
   static List<BoxShadow> get floatShadow => [
         BoxShadow(
-          color: primaryColor.withOpacity(0.08),
+          color: const Color(0xFF4A58A8).withOpacity(0.08),
           blurRadius: 40,
           offset: const Offset(0, 20),
         ),
       ];
 
-  // ─── 6. GRADIENTS ─────────────────────────────────────────────────────
-  /// Primary periwinkle gradient for CTAs (135° angle).
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF4A58A8), Color(0xFF7E8CE0)],
-  );
+  // Gradients
+  static const LinearGradient primaryGradient = AppColors.primaryGradient;
+  static const LinearGradient warmGradient = AppColors.warmGradient;
 
-  /// Warm vanilla background gradient for hero sections.
-  static const LinearGradient warmGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [bgColor, Color(0xFFFFF5E6)],
-  );
+  // Typography (aliases)
+  static final TextStyle headingStyle = AppTypography.h1;
+  static final TextStyle subheadingStyle = AppTypography.h2;
+  static final TextStyle titleStyle = AppTypography.h3;
+  static final TextStyle bodyStyle = AppTypography.body;
+  static final TextStyle captionStyle = AppTypography.caption;
 
-  // ─── 7. TYPOGRAPHY (Poppins = Headings, Inter = Body) ─────────────────
-  static final TextStyle headingStyle = GoogleFonts.poppins(
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: textColor,
-  );
-
-  static final TextStyle subheadingStyle = GoogleFonts.poppins(
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-    color: textColor,
-  );
-
-  static final TextStyle titleStyle = GoogleFonts.poppins(
-    fontSize: 18,
-    fontWeight: FontWeight.bold,
-    color: textColor,
-  );
-
-  static final TextStyle bodyStyle = GoogleFonts.inter(
-    fontSize: 16,
-    color: textColor,
-    height: 1.5,
-  );
-
-  static final TextStyle captionStyle = GoogleFonts.inter(
-    fontSize: 14,
-    color: textLightColor,
-  );
-
-  // ─── 8. BUTTON STYLES ─────────────────────────────────────────────────
+  // Button Styles
   static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: primaryColor,
+    backgroundColor: AppColors.primary,
     foregroundColor: Colors.white,
     elevation: 0,
-    shadowColor: primaryColor.withOpacity(0.3),
+    shadowColor: AppColors.primary.withOpacity(0.3),
     shape: RoundedRectangleBorder(borderRadius: borderRadiusPill),
-    textStyle: GoogleFonts.poppins(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
+    textStyle: AppTypography.buttonLabel,
     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
   );
 
   static final ButtonStyle accentButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: accentColor,
+    backgroundColor: AppColors.accent,
     foregroundColor: Colors.white,
     elevation: 0,
-    shadowColor: accentColor.withOpacity(0.3),
+    shadowColor: AppColors.accent.withOpacity(0.3),
     shape: RoundedRectangleBorder(borderRadius: borderRadiusPill),
-    textStyle: GoogleFonts.poppins(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
+    textStyle: AppTypography.buttonLabel,
     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
   );
 
   static final ButtonStyle successButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: successColor,
+    backgroundColor: AppColors.success,
     foregroundColor: Colors.white,
     elevation: 0,
-    shadowColor: successColor.withOpacity(0.3),
+    shadowColor: AppColors.success.withOpacity(0.3),
     shape: RoundedRectangleBorder(borderRadius: borderRadiusPill),
-    textStyle: GoogleFonts.poppins(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
+    textStyle: AppTypography.buttonLabel,
     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
   );
 
-  // ─── 9. CARD DECORATION ───────────────────────────────────────────────
+  // Decorations
   static final BoxDecoration cardDecoration = BoxDecoration(
-    color: surfaceActive,
+    color: AppColors.surfaceContainerLowest,
     borderRadius: borderRadiusLarge,
     boxShadow: softShadow,
   );
 
-  // ─── 10. INPUT DECORATION ─────────────────────────────────────────────
   static InputDecoration inputDecoration({
     String? label,
     String? hint,
@@ -191,57 +141,51 @@ class AppTheme {
         borderSide: BorderSide.none,
       ),
       filled: true,
-      fillColor: surfaceLow,
+      fillColor: AppColors.surfaceContainerLow,
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: space24,
-        vertical: space16,
+        horizontal: AppSpacing.s24,
+        vertical: AppSpacing.s16,
       ),
-      labelStyle: GoogleFonts.inter(color: textLightColor, fontSize: 16),
-      hintStyle: GoogleFonts.inter(
-        color: textLightColor.withOpacity(0.5),
-        fontSize: 16,
+      labelStyle: AppTypography.body.copyWith(color: AppColors.textLight),
+      hintStyle: AppTypography.body.copyWith(
+        color: AppColors.textLight.withOpacity(0.5),
       ),
     );
   }
 
-  // ─── 11. APPBAR THEME ─────────────────────────────────────────────────
   static AppBarTheme appBarTheme = AppBarTheme(
-    backgroundColor: surfaceActive,
+    backgroundColor: AppColors.surfaceActive,
     elevation: 0,
     centerTitle: true,
-    iconTheme: const IconThemeData(color: primaryColor),
-    titleTextStyle: GoogleFonts.poppins(
-      fontSize: 20,
-      fontWeight: FontWeight.bold,
-      color: textColor,
-    ),
+    iconTheme: const IconThemeData(color: AppColors.primary),
+    titleTextStyle: AppTypography.h3.copyWith(fontSize: 20),
   );
 
-  // ─── 12. FULL THEME DATA ──────────────────────────────────────────────
   static ThemeData get theme => ThemeData(
-        primaryColor: primaryColor,
-        scaffoldBackgroundColor: bgColor,
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.bg,
         appBarTheme: appBarTheme,
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: primaryButtonStyle,
         ),
         textTheme: TextTheme(
-          displayLarge: headingStyle,
-          displayMedium: subheadingStyle,
-          titleLarge: titleStyle,
-          bodyLarge: bodyStyle,
-          bodyMedium: captionStyle,
+          displayLarge: AppTypography.h1,
+          displayMedium: AppTypography.h2,
+          titleLarge: AppTypography.h3,
+          bodyLarge: AppTypography.body,
+          bodyMedium: AppTypography.caption,
         ),
         colorScheme: const ColorScheme.light(
-          primary: primaryColor,
-          secondary: accentColor,
-          tertiary: tertiaryColor,
-          error: errorColor,
-          surface: surfaceBase,
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          tertiary: AppColors.tertiary,
+          error: AppColors.error,
+          surface: AppColors.surfaceBase,
         ),
         useMaterial3: true,
       );
 }
+
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // EMOTION → UI MAPPING (Psychological)
@@ -362,6 +306,17 @@ class EmotionStyle {
           label: 'Disgusted',
           actionCardColor: const Color(0xFFE8F5E9),
         );
+      case 'frown':
+        return EmotionStyle(
+          color: const Color(0xFF607D8B),
+          glowColor: const Color(0xFF607D8B).withValues(alpha: 0.15),
+          entranceDuration: AppTheme.animSlow,
+          entranceCurve: Curves.easeInOut,
+          icon: Icons.sentiment_very_dissatisfied_rounded,
+          emoji: '☹️',
+          label: 'Frowning',
+          actionCardColor: const Color(0xFFECEFF1),
+        );
       case 'neutral':
         return EmotionStyle(
           color: const Color(0xFF90A4AE),
@@ -418,12 +373,14 @@ class PetMoodGlass extends StatelessWidget {
   final Widget child;
   final double opacity;
   final BorderRadius? borderRadius;
+  final Color? color;
 
   const PetMoodGlass({
     super.key,
     required this.child,
     this.opacity = 0.6,
     this.borderRadius,
+    this.color,
   });
 
   @override
@@ -435,11 +392,8 @@ class PetMoodGlass extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.surfaceActive.withOpacity(opacity),
+            color: (color ?? AppTheme.surfaceActive).withOpacity(opacity),
             borderRadius: radius,
-            border: Border.all(
-              color: AppTheme.primaryColor.withOpacity(0.08),
-            ),
           ),
           child: child,
         ),

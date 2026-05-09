@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,12 +7,23 @@ import 'package:get_it/get_it.dart';
 import 'package:isar/isar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
+import 'package:intl/intl.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:furspeak_ai/utils/media_utils.dart';
+import 'package:furspeak_ai/config/app_colors.dart';
+
 import 'package:furspeak_ai/data/models/dog_profile.dart';
 import 'package:furspeak_ai/services/auth_service.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/models/dog_model.dart';
 import 'package:furspeak_ai/services/firestore_service.dart';
+import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
+import 'package:furspeak_ai/theme/app_animations.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -20,25 +32,26 @@ class ProfileSetupScreen extends StatefulWidget {
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen>
-    with SingleTickerProviderStateMixin {
+class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  final PageController _pageController = PageController();
   final _formKey = GlobalKey<FormState>();
+  
+  // Controllers
   final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
+  final _customBreedController = TextEditingController();
   final _notesController = TextEditingController();
+  final _nameFocusNode = FocusNode();
 
+  // Form State
+  int _currentStep = 0;
   String? _profileImagePath;
   String? _selectedBreed;
   String? _selectedGender;
-  String? _customBreed;
-  bool _checkingProfile = true;
+  DateTime? _selectedBirthday;
+  double _weight = 10.0;
+  String? _activityLevel;
   bool _isSaving = false;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-
-  static const _primaryColor = Color(0xFF6C63FF);
-  static const _accentColor = Color(0xFFFF6584);
-  static const _bgColor = Color(0xFFF8F7FF);
+  bool _checkingProfile = true;
 
   final List<String> _breeds = [
     'Labrador Retriever', 'German Shepherd', 'Golden Retriever',
@@ -47,96 +60,139 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     'Chihuahua', 'Border Collie', 'Other',
   ];
 
-  final List<String> _genders = ['Male', 'Female'];
+  final List<Map<String, dynamic>> _activityLevels = [
+    {'label': 'Low', 'icon': Icons.hotel_rounded, 'desc': 'Likes naps & short walks'},
+    {'label': 'Moderate', 'icon': Icons.directions_walk_rounded, 'desc': 'Daily walks & play sessions'},
+    {'label': 'High', 'icon': Icons.bolt_rounded, 'desc': 'Needs constant running & work'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 600),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _checkIfProfileExists();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _nameController.dispose();
+    _customBreedController.dispose();
+    _notesController.dispose();
+    _nameFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _checkIfProfileExists() async {
     final isar = GetIt.instance<Isar>();
     final authProvider = context.read<AuthProvider>();
     final uid = authProvider.userId;
+    
     if (uid == null || uid.isEmpty) {
-      // GoRouter guard should prevent this, but handle gracefully
-      if (mounted) setState(() => _checkingProfile = false);
+      if (mounted) {
+        setState(() => _checkingProfile = false);
+        _requestNameFocusAfterBuild();
+      }
       return;
     }
+    
     final profile = await isar.dogProfiles.getByUserId(uid);
     if (profile != null && mounted) {
       authProvider.markProfileAsComplete();
     } else if (mounted) {
       setState(() => _checkingProfile = false);
-      _animController.forward();
+      _requestNameFocusAfterBuild();
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _ageController.dispose();
-    _notesController.dispose();
-    _animController.dispose();
-    super.dispose();
+  /// Requests focus on the name field after the form is built and animations settle.
+  void _requestNameFocusAfterBuild() {
+    if (!mounted) return;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Delay to let StaggeredEntrance animations complete (index 2 = ~560ms)
+      // 800ms is a safe buffer for real devices
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted && _currentStep == 0 && !_checkingProfile) {
+          FocusScope.of(context).requestFocus(_nameFocusNode);
+          // Force keyboard visibility on some Android devices
+          SystemChannels.textInput.invokeMethod('TextInput.show');
+          
+          // Second attempt if first one was too early
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted && _currentStep == 0 && !_nameFocusNode.hasFocus) {
+               FocusScope.of(context).requestFocus(_nameFocusNode);
+               SystemChannels.textInput.invokeMethod('TextInput.show');
+            }
+          });
+        }
+      });
+    });
+  }
+
+  void _nextPage() {
+    if (_currentStep < 2) {
+      if (_currentStep == 0 && _nameController.text.isEmpty) {
+        HapticFeedback.vibrate();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your pup\'s name first! 🐾')),
+        );
+        return;
+      }
+      HapticFeedback.mediumImpact();
+      _pageController.nextPage(duration: AppTheme.animMedium, curve: Curves.easeInOutCubic);
+      setState(() => _currentStep++);
+    } else {
+      _onSave();
+    }
+  }
+
+  void _previousPage() {
+    if (_currentStep > 0) {
+      HapticFeedback.lightImpact();
+      _pageController.previousPage(duration: AppTheme.animMedium, curve: Curves.easeInOutCubic);
+      setState(() => _currentStep--);
+    }
   }
 
   Future<void> _pickImage() async {
-    HapticFeedback.selectionClick();
+    HapticFeedback.mediumImpact();
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 90,
     );
-    if (pickedFile != null && mounted) {
-      setState(() => _profileImagePath = pickedFile.path);
-    }
-  }
-
-  void _onSkip() {
-    HapticFeedback.lightImpact();
-    context.read<AuthProvider>().markProfileAsComplete();
-  }
-
-  /// Fire-and-forget Firestore sync — does not block navigation.
-  Future<void> _syncToFirestore(String uid, DogProfile profile) async {
-    try {
-      final firestoreService = GetIt.instance.isRegistered<FirestoreService>()
-          ? GetIt.instance<FirestoreService>()
-          : FirestoreService();
-      final dogModel = DogModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: profile.name,
-        breed: profile.breed,
-        createdAt: profile.createdAt,
+    
+    if (pickedFile != null) {
+      final croppedFile = await MediaUtils.cropImage(
+        File(pickedFile.path),
       );
-      await firestoreService.addDog(uid, dogModel);
-    } catch (e) {
-      debugPrint('Firestore sync failed (non-blocking): $e');
+
+      if (croppedFile != null && mounted) {
+        setState(() => _profileImagePath = croppedFile.path);
+      }
     }
   }
 
   Future<void> _onSave() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    HapticFeedback.mediumImpact();
+    if (_nameController.text.isEmpty || _selectedBreed == null) {
+      HapticFeedback.vibrate();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete the basic details!')),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
+    HapticFeedback.heavyImpact();
 
-    final breedToSave = _selectedBreed == 'Other' ? _customBreed : _selectedBreed;
+    final breedToSave = _selectedBreed == 'Other' ? _customBreedController.text : _selectedBreed;
     final authProvider = context.read<AuthProvider>();
     final uid = authProvider.userId;
 
-    // Defensive: GoRouter guard should ensure we never reach here unauthenticated
-    if (uid == null || uid.isEmpty) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+    if (uid == null) {
+      setState(() => _isSaving = false);
       return;
     }
 
@@ -146,7 +202,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         userId: uid,
         name: _nameController.text.trim(),
         breed: breedToSave ?? '',
-        age: (double.tryParse(_ageController.text) ?? 0).toInt(),
+        age: _selectedBirthday != null ? (DateTime.now().year - _selectedBirthday!.year) : 0,
+        gender: _selectedGender,
+        weight: _weight,
+        birthday: _selectedBirthday,
+        activityLevel: _activityLevel,
+        notes: _notesController.text.trim(),
+        imageUrl: _profileImagePath, // This would normally be a URL after upload
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -155,23 +217,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         await isar.dogProfiles.put(profile);
       });
 
-      // Background Firestore sync — fire-and-forget (non-blocking)
-      _syncToFirestore(uid, profile);
+      // Sync to Firestore
+      final firestoreService = GetIt.instance.isRegistered<FirestoreService>()
+          ? GetIt.instance<FirestoreService>()
+          : FirestoreService();
+          
+      final dogModel = DogModel(
+        id: uid,
+        name: profile.name,
+        breed: profile.breed,
+        gender: profile.gender,
+        weight: profile.weight,
+        birthday: profile.birthday,
+        activityLevel: profile.activityLevel,
+        notes: profile.notes,
+        profileImageUrl: profile.imageUrl,
+        createdAt: profile.createdAt,
+      );
+      await firestoreService.addDog(uid, dogModel);
 
       if (mounted) {
         context.read<AuthProvider>().markProfileAsComplete();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Text('${profile.name}\'s profile saved! 🐾'),
-            ]),
-            backgroundColor: _primaryColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        _showSuccessAnimation();
       }
     } catch (e) {
       if (mounted) {
@@ -183,163 +250,288 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     }
   }
 
+  void _showSuccessAnimation() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RepaintBoundary(
+              child: Lottie.asset(
+                LottieRegistry.get('dog_happy'),
+                width: 200,
+                height: 200,
+                repeat: false,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.pets, size: 80, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'All Set! 🐾',
+              style: AppTheme.headingStyle.copyWith(color: Colors.white, fontSize: 28),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${_nameController.text} is ready to talk!',
+              style: AppTheme.bodyStyle.copyWith(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_checkingProfile) {
-      return const Scaffold(
-        backgroundColor: _bgColor,
+      return Scaffold(
+        backgroundColor: AppTheme.bgColor,
         body: Center(
-          child: CircularProgressIndicator(color: _primaryColor),
+          child: RepaintBoundary(
+            child: Lottie.asset(
+              LottieRegistry.get('loading'),
+              width: 150,
+              errorBuilder: (context, error, stackTrace) =>
+                  const CircularProgressIndicator(color: AppTheme.primaryColor),
+            ),
+          ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: _bgColor,
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: CustomScrollView(
-          slivers: [
-            _buildSliverHeader(),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildAvatarPicker(),
-                      const SizedBox(height: 32),
-                      _buildSectionLabel('Basic Info'),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _nameController,
-                        label: "Dog's Name",
-                        icon: Icons.pets,
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Please enter your dog\'s name' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildGenderSelector(),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _ageController,
-                        label: 'Age (years)',
-                        icon: Icons.cake_outlined,
-                        keyboardType: TextInputType.number,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Enter age';
-                          final a = double.tryParse(v);
-                          if (a == null || a <= 0 || a > 30) return 'Enter a valid age (1–30)';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSectionLabel('Breed'),
-                      const SizedBox(height: 12),
-                      _buildBreedDropdown(),
-                      if (_selectedBreed == 'Other') ...[
-                        const SizedBox(height: 12),
-                        _buildTextField(
-                          label: 'Enter Breed Name',
-                          icon: Icons.edit_outlined,
-                          onChanged: (v) => _customBreed = v,
-                          validator: (v) => (_selectedBreed == 'Other' &&
-                              (v == null || v.isEmpty))
-                              ? 'Enter breed name' : null,
-                        ),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: AppTheme.bgColor,
+        body: Stack(
+          children: [
+            // Background Decor
+            _buildBackground(),
+  
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  _buildStepper(),
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _buildStep1Identity(),
+                        _buildStep2Details(),
+                        _buildStep3Physical(),
                       ],
-                      const SizedBox(height: 24),
-                      _buildSectionLabel('Notes (Optional)'),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _notesController,
-                        label: 'Any special notes about your dog...',
-                        icon: Icons.note_alt_outlined,
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 36),
-                      _buildSaveButton(),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: _isSaving ? null : _onSkip,
-                        child: Text(
-                          'Set up later',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontFamily: 'Inter',
-                            fontSize: 14,
+                    ),
+                  ),
+                  _buildFooterNavigation(),
+                ],
+              ),
+            ),
+            
+            if (_isSaving)
+              Container(
+                color: Colors.black26,
+                child: Center(
+                  child: PetMoodGlass(
+                    borderRadius: AppTheme.borderRadiusExtraLarge,
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RepaintBoundary(
+                            child: Lottie.asset(
+                              LottieRegistry.get('loading'),
+                              width: 100,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const CircularProgressIndicator(color: AppTheme.primaryColor),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          Text('Creating Profile...', style: AppTheme.titleStyle),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSliverHeader() {
-    return SliverAppBar(
-      expandedHeight: 180,
-      floating: false,
-      pinned: true,
-      backgroundColor: _primaryColor,
-      foregroundColor: Colors.white,
-      flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'Meet Your Pup 🐾',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        background: Container(
+  Widget _buildBackground() {
+    return Stack(
+      children: [
+        Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_primaryColor, Color(0xFF9C89FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppTheme.warmGradient,
           ),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 24, top: 24),
-              child: Icon(Icons.pets, size: 80, color: Colors.white.withOpacity(0.15)),
+        ),
+        Positioned(
+          top: -50,
+          right: -50,
+          child: Opacity(
+            opacity: 0.05,
+            child: Icon(Icons.pets_rounded, size: 300, color: AppTheme.primaryColor),
+          ),
+        ),
+        Positioned(
+          bottom: 100,
+          left: -80,
+          child: Opacity(
+            opacity: 0.03,
+            child: RepaintBoundary(
+              child: Lottie.asset(
+                LottieRegistry.get('paw_prints_bg'),
+                width: 400,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      child: Column(
+        children: [
+          Text(
+            'Create Profile',
+            style: AppTheme.headingStyle.copyWith(fontSize: 28),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tell us about your furry friend',
+            style: AppTheme.captionStyle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepper() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+      child: Row(
+        children: List.generate(3, (index) {
+          final isActive = index <= _currentStep;
+          return Expanded(
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: AppTheme.animMedium,
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive ? AppTheme.primaryColor : AppTheme.surfaceContainerHigh,
+                    boxShadow: isActive ? AppTheme.softShadow : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: GoogleFonts.poppins(
+                        color: isActive ? Colors.white : AppTheme.textLightColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                if (index < 2)
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: AppTheme.animMedium,
+                      height: 4,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: index < _currentStep ? AppTheme.primaryColor : AppTheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ─── STEP 1: IDENTITY ──────────────────────────────────────────────────
+  Widget _buildStep1Identity() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          StaggeredEntrance(
+            children: [
+              _buildAvatarPicker(),
+              const SizedBox(height: 40),
+              PetMoodGlass(
+                borderRadius: AppTheme.borderRadiusExtraLarge,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Basic Identity', style: AppTheme.titleStyle),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _nameController,
+                        focusNode: _nameFocusNode,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.words,
+                        keyboardType: TextInputType.name,
+                        textInputAction: TextInputAction.next,
+                        decoration: AppTheme.inputDecoration(
+                          label: 'Dog\'s Name',
+                          hint: 'e.g. Buddy',
+                          prefixIcon: Icons.pets_rounded,
+                        ),
+                        style: AppTheme.bodyStyle,
+                        onChanged: (_) => setState(() {}),
+                        onFieldSubmitted: (_) => _nextPage(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAvatarPicker() {
     return Center(
-      child: GestureDetector(
-        onTap: _pickImage,
+      child: SquishButton(
+        onPressed: _pickImage,
         child: Stack(
           children: [
             Container(
-              width: 120,
-              height: 120,
+              width: 160,
+              height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: _primaryColor.withOpacity(0.25),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                boxShadow: AppTheme.floatShadow,
                 image: _profileImagePath != null
                     ? DecorationImage(
                         image: FileImage(File(_profileImagePath!)),
@@ -348,19 +540,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                     : null,
               ),
               child: _profileImagePath == null
-                  ? const Icon(Icons.pets, size: 52, color: _primaryColor)
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_a_photo_rounded, size: 40, color: AppTheme.primaryColor.withOpacity(0.4)),
+                        const SizedBox(height: 8),
+                        Text('Add Photo', style: AppTheme.captionStyle.copyWith(fontWeight: FontWeight.bold)),
+                      ],
+                    )
                   : null,
-            ),
+            ).animate(target: _profileImagePath != null ? 1 : 0).shimmer(duration: 1.seconds),
             Positioned(
-              bottom: 0,
-              right: 0,
+              bottom: 5,
+              right: 5,
               child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
                   shape: BoxShape.circle,
-                  color: _accentColor,
+                  border: Border.all(color: Colors.white, width: 4),
                 ),
-                child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                child: const Icon(Icons.edit_rounded, size: 20, color: Colors.white),
               ),
             ),
           ],
@@ -369,96 +569,100 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
-  Widget _buildSectionLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontFamily: 'Poppins',
-        fontWeight: FontWeight.w600,
-        fontSize: 14,
-        color: Color(0xFF444444),
-        letterSpacing: 0.5,
+  // ─── STEP 2: DETAILS ───────────────────────────────────────────────────
+  Widget _buildStep2Details() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      child: Column(
+        children: [
+          StaggeredEntrance(
+            children: [
+              PetMoodGlass(
+                borderRadius: AppTheme.borderRadiusExtraLarge,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Tell us more', style: AppTheme.titleStyle),
+                      const SizedBox(height: 24),
+                      _buildBreedSelector(),
+                      const SizedBox(height: 24),
+                      _buildGenderSelector(),
+                      const SizedBox(height: 24),
+                      _buildBirthdayPicker(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTextField({
-    TextEditingController? controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-    void Function(String)? onChanged,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      onChanged: onChanged,
-      validator: validator,
-      style: const TextStyle(fontFamily: 'Inter', fontSize: 15),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: _primaryColor, size: 20),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+  Widget _buildBreedSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          value: _selectedBreed,
+          decoration: AppTheme.inputDecoration(
+            label: 'Breed',
+            prefixIcon: Icons.explore_rounded,
+          ),
+          items: _breeds.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+          onChanged: (v) => setState(() => _selectedBreed = v),
+          style: AppTheme.bodyStyle,
+          dropdownColor: Colors.white,
+          borderRadius: AppTheme.borderRadiusMedium,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _primaryColor, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-      ),
+        if (_selectedBreed == 'Other') ...[
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customBreedController,
+            decoration: AppTheme.inputDecoration(
+              label: 'Specify Breed',
+              prefixIcon: Icons.edit_note_rounded,
+            ),
+            style: AppTheme.bodyStyle,
+          ),
+        ],
+      ],
     );
   }
 
   Widget _buildGenderSelector() {
     return Row(
-      children: _genders.map((g) {
-        final selected = _selectedGender == g;
+      children: ['Male', 'Female'].map((g) {
+        final isSelected = _selectedGender == g;
         return Expanded(
-          child: GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _selectedGender = g);
-            },
+          child: SquishButton(
+            onPressed: () => setState(() => _selectedGender = g),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.only(right: g == 'Male' ? 8 : 0),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              duration: AppTheme.animFast,
+              margin: EdgeInsets.only(right: g == 'Male' ? 12 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: selected ? _primaryColor : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: selected
-                    ? [BoxShadow(color: _primaryColor.withOpacity(0.3), blurRadius: 8)]
-                    : [],
+                color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceContainerLow,
+                borderRadius: AppTheme.borderRadiusMedium,
+                boxShadow: isSelected ? AppTheme.softShadow : null,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    g == 'Male' ? Icons.male : Icons.female,
-                    color: selected ? Colors.white : Colors.grey,
+                    g == 'Male' ? Icons.male_rounded : Icons.female_rounded,
+                    color: isSelected ? Colors.white : AppTheme.textLightColor,
                     size: 20,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(
                     g,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      color: selected ? Colors.white : Colors.grey.shade600,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : AppTheme.textLightColor,
                     ),
                   ),
                 ],
@@ -470,91 +674,198 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
-  Widget _buildBreedDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedBreed,
-      items: _breeds.map((breed) => DropdownMenuItem(
-        value: breed,
-        child: Text(breed, style: const TextStyle(fontFamily: 'Inter', fontSize: 14)),
-      )).toList(),
-      onChanged: (val) {
-        HapticFeedback.selectionClick();
-        setState(() {
-          _selectedBreed = val;
-          if (val != 'Other') _customBreed = null;
-        });
+  Widget _buildBirthdayPicker() {
+    return SquishButton(
+      onPressed: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now().subtract(const Duration(days: 365 * 2)),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: AppTheme.primaryColor,
+                  onPrimary: Colors.white,
+                  surface: Colors.white,
+                  onSurface: AppTheme.textColor,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (date != null) setState(() => _selectedBirthday = date);
       },
-      validator: (v) => (v == null || v.isEmpty) ? 'Select your dog\'s breed' : null,
-      decoration: InputDecoration(
-        labelText: 'Select Breed',
-        prefixIcon: const Icon(Icons.search, color: _primaryColor, size: 20),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerLow,
+          borderRadius: AppTheme.borderRadiusMedium,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+        child: Row(
+          children: [
+            const Icon(Icons.cake_rounded, color: AppTheme.textLightColor, size: 20),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Birthday', style: AppTheme.captionStyle.copyWith(fontSize: 12)),
+                Text(
+                  _selectedBirthday != null 
+                      ? DateFormat('MMM dd, yyyy').format(_selectedBirthday!) 
+                      : 'Select Birthday',
+                  style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Spacer(),
+            const Icon(Icons.calendar_today_rounded, color: AppTheme.primaryColor, size: 18),
+          ],
         ),
       ),
-      dropdownColor: Colors.white,
-      borderRadius: BorderRadius.circular(14),
     );
   }
 
-  Widget _buildSaveButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [_primaryColor, Color(0xFF9C89FF)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _primaryColor.withOpacity(0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+  // ─── STEP 3: PHYSICAL ──────────────────────────────────────────────────
+  Widget _buildStep3Physical() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      child: Column(
+        children: [
+          StaggeredEntrance(
+            children: [
+              PetMoodGlass(
+                borderRadius: AppTheme.borderRadiusExtraLarge,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Physical Stats', style: AppTheme.titleStyle),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Weight', style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.bold)),
+                          Text('${_weight.toStringAsFixed(1)} kg', 
+                            style: AppTheme.titleStyle.copyWith(color: AppTheme.primaryColor)),
+                        ],
+                      ),
+                      Slider(
+                        value: _weight,
+                        min: 0.5,
+                        max: 80.0,
+                        divisions: 159,
+                        activeColor: AppTheme.primaryColor,
+                        inactiveColor: AppTheme.surfaceContainerHigh,
+                        onChanged: (v) => setState(() => _weight = v),
+                      ),
+                      const SizedBox(height: 32),
+                      Text('Activity Level', style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      ..._activityLevels.map((level) {
+                        final isSelected = _activityLevel == level['label'];
+                        return SquishButton(
+                          onPressed: () => setState(() => _activityLevel = level['label']),
+                          child: AnimatedContainer(
+                            duration: AppTheme.animFast,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : AppTheme.surfaceContainerLow,
+                              borderRadius: AppTheme.borderRadiusMedium,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(level['icon'], color: isSelected ? AppTheme.primaryColor : AppTheme.textLightColor),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        level['label'],
+                                        style: AppTheme.bodyStyle.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected ? AppTheme.primaryColor : AppTheme.textColor,
+                                        ),
+                                      ),
+                                      Text(level['desc'], style: AppTheme.captionStyle.copyWith(fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(Icons.check_circle_rounded, color: AppTheme.primaryColor),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _notesController,
+                        maxLines: 3,
+                        decoration: AppTheme.inputDecoration(
+                          label: 'Additional Notes',
+                          hint: 'Favorite treats, quirks, etc.',
+                        ),
+                        style: AppTheme.bodyStyle,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: _isSaving ? null : _onSave,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        child: _isSaving
-            ? const SizedBox(
-                width: 22, height: 22,
-                child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 2.5,
-                ),
-              )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.favorite, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Save Profile',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
+    );
+  }
+
+  Widget _buildFooterNavigation() {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      child: Row(
+        children: [
+          if (_currentStep > 0)
+            Expanded(
+              flex: 1,
+              child: SquishButton(
+                onPressed: _previousPage,
+                child: TextButton(
+                  onPressed: null, // Handled by SquishButton
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusPill),
                   ),
-                ],
+                  child: Text('Back', style: AppTheme.captionStyle.copyWith(fontWeight: FontWeight.bold)),
+                ),
               ),
+            ),
+          if (_currentStep > 0) const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: SquishButton(
+              onPressed: _nextPage,
+              child: ElevatedButton(
+                onPressed: null, // Handled by SquishButton
+                style: AppTheme.primaryButtonStyle.copyWith(
+                  minimumSize: WidgetStateProperty.all(const Size(double.infinity, 56)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_currentStep == 2 ? 'Complete' : 'Continue'),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward_rounded, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

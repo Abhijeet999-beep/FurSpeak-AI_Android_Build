@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/utils/media_utils.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 class DogProfileScreen extends StatefulWidget {
   const DogProfileScreen({super.key});
@@ -54,9 +56,15 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _profileImagePath = pickedFile.path;
-      });
+      final croppedFile = await MediaUtils.cropImage(
+        File(pickedFile.path),
+      );
+
+      if (croppedFile != null) {
+        setState(() {
+          _profileImagePath = croppedFile.path;
+        });
+      }
     }
   }
 
@@ -76,25 +84,22 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFAF2), // Vanilla cream background
+      backgroundColor: AppTheme.bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF7E8CE0)),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Dog Profile',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF7E8CE0),
-          ),
+          style: AppTheme.headingStyle.copyWith(fontSize: 20, color: AppTheme.primaryColor),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit, color: Color(0xFF7E8CE0)),
+            icon: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryColor),
             onPressed: () {
               // TODO: Toggle edit mode
             },
@@ -110,282 +115,234 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Profile Card
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Profile Image
-                      Stack(
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF7E8CE0).withOpacity(0.1),
-                              image: _profileImagePath != null
-                                  ? DecorationImage(
-                                      image:
-                                          FileImage(File(_profileImagePath!)),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      const Color(0xFF7E8CE0).withOpacity(0.2),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: _profileImagePath == null
-                                ? const Icon(Icons.pets,
-                                    size: 48, color: Color(0xFF7E8CE0))
-                                : null,
-                          ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF7E8CE0),
+                PetMoodGlass(
+                  color: AppTheme.surfaceActive,
+                  opacity: 0.7,
+                  borderRadius: AppTheme.borderRadiusExtraLarge,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.05), width: 1.5),
+                      borderRadius: AppTheme.borderRadiusExtraLarge,
+                    ),
+                    child: Column(
+                      children: [
+                        // Profile Image
+                        Stack(
+                          children: [
+                            Container(
+                              width: 140,
+                              height: 140,
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
+                                color: AppTheme.primaryColor.withOpacity(0.05),
+                                image: _profileImagePath != null
+                                    ? DecorationImage(
+                                        image: FileImage(File(_profileImagePath!)),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                                border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1), width: 4),
+                                boxShadow: AppTheme.softShadow,
                               ),
+                              child: _profileImagePath == null
+                                  ? const Icon(Icons.pets_rounded, size: 56, color: AppTheme.primaryColor)
+                                  : null,
+                            ),
+                            Positioned(
+                              right: 4,
+                              bottom: 4,
                               child: GestureDetector(
                                 onTap: _pickImage,
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 20,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor,
+                                    shape: BoxShape.circle,
+                                    boxShadow: AppTheme.softShadow,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Dog's Name
-                      Text(
-                        _nameController.text.isEmpty
-                            ? 'Your Dog\'s Name'
-                            : _nameController.text,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF333333),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Breed and Age
-                      Text(
-                        '${_selectedBreed ?? 'Breed'} • ${_ageController.text.isEmpty ? 'Age' : '${_ageController.text} yrs'}',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16,
-                          color: Colors.grey[600],
+                        const SizedBox(height: 20),
+                        // Dog's Name
+                        Text(
+                          _nameController.text.isEmpty ? 'Your Dog\'s Name' : _nameController.text,
+                          style: AppTheme.headingStyle.copyWith(fontSize: 26),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        // Breed and Age
+                        Text(
+                          '${_selectedBreed ?? 'Breed'} • ${_ageController.text.isEmpty ? 'Age' : '${_ageController.text} yrs'}',
+                          style: AppTheme.bodyStyle.copyWith(color: AppTheme.textLightColor),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 // Editable Fields
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Edit Profile',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF333333),
+                PetMoodGlass(
+                  color: AppTheme.surfaceActive,
+                  opacity: 0.6,
+                  borderRadius: AppTheme.borderRadiusExtraLarge,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.05), width: 1.5),
+                      borderRadius: AppTheme.borderRadiusExtraLarge,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Edit Profile',
+                          style: AppTheme.titleStyle.copyWith(color: AppTheme.primaryColor),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Name Field
-                      TextFormField(
-                        controller: _nameController,
-                        style: const TextStyle(fontFamily: 'Inter'),
-                        decoration: AppTheme.inputDecoration(label: '🐶 Name'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your dog\'s name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      // Breed Dropdown
-                      DropdownButtonFormField<String>(
-                        value: _selectedBreed,
-                        items: _breeds
-                            .map((breed) => DropdownMenuItem(
-                                  value: breed,
-                                  child: Text(breed,
-                                      style:
-                                          const TextStyle(fontFamily: 'Inter')),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          HapticFeedback.selectionClick();
-                          setState(() => _selectedBreed = val);
-                        },
-                        decoration: AppTheme.inputDecoration(label: '🐕 Breed'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select your dog\'s breed';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      // Age Field
-                      TextFormField(
-                        controller: _ageController,
-                        style: const TextStyle(fontFamily: 'Inter'),
-                        decoration: AppTheme.inputDecoration(label: '🎂 Age (in years)'),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your dog\'s age';
-                          }
-                          final age = double.tryParse(value);
-                          if (age == null || age <= 0) {
-                            return 'Please enter a valid age';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        // Name Field
+                        TextFormField(
+                          controller: _nameController,
+                          style: AppTheme.bodyStyle,
+                          decoration: AppTheme.inputDecoration(label: '🐶 Name', hint: 'Enter name'),
+                          onChanged: (_) => setState(() {}),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your dog\'s name';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Breed Dropdown
+                        DropdownButtonFormField<String>(
+                          value: _selectedBreed,
+                          dropdownColor: AppTheme.surfaceActive,
+                          style: AppTheme.bodyStyle,
+                          items: _breeds
+                              .map((breed) => DropdownMenuItem(
+                                    value: breed,
+                                    child: Text(breed),
+                                  ))
+                              .toList(),
+                          onChanged: (val) {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedBreed = val);
+                          },
+                          decoration: AppTheme.inputDecoration(label: '🐕 Breed'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select your dog\'s breed';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Age Field
+                        TextFormField(
+                          controller: _ageController,
+                          style: AppTheme.bodyStyle,
+                          decoration: AppTheme.inputDecoration(label: '🎂 Age (in years)'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setState(() {}),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your dog\'s age';
+                            }
+                            final age = double.tryParse(value);
+                            if (age == null || age <= 0) {
+                              return 'Please enter a valid age';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 // Behavior Tags
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Behavior Tags',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF333333),
+                PetMoodGlass(
+                  color: AppTheme.surfaceActive,
+                  opacity: 0.6,
+                  borderRadius: AppTheme.borderRadiusExtraLarge,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.05), width: 1.5),
+                      borderRadius: AppTheme.borderRadiusExtraLarge,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Behavior Tags',
+                          style: AppTheme.titleStyle.copyWith(color: AppTheme.primaryColor),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _behaviorTags.map((tag) {
-                          final isSelected =
-                              _selectedTags.contains(tag['value']);
-                          return FilterChip(
-                            label: Text(tag['label']!),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  if (_selectedTags.length < 3) {
-                                    _selectedTags.add(tag['value']!);
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 12,
+                          children: _behaviorTags.map((tag) {
+                            final isSelected = _selectedTags.contains(tag['value']);
+                            return FilterChip(
+                              label: Text(tag['label']!),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  if (selected) {
+                                    if (_selectedTags.length < 3) {
+                                      _selectedTags.add(tag['value']!);
+                                    }
+                                  } else {
+                                    _selectedTags.remove(tag['value']);
                                   }
-                                } else {
-                                  _selectedTags.remove(tag['value']);
-                                }
-                              });
-                            },
-                            backgroundColor: isSelected ? const Color(0xFF7E8CE0).withOpacity(0.2) : Colors.grey.shade100,
-                            selectedColor: const Color(0xFF7E8CE0).withOpacity(0.2),
-                            checkmarkColor: const Color(0xFF7E8CE0),
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? const Color(0xFF7E8CE0)
-                                  : Colors.grey[600],
-                              fontFamily: 'Inter',
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide.none,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                                });
+                              },
+                              backgroundColor: AppTheme.surfaceLow,
+                              selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                              checkmarkColor: AppTheme.primaryColor,
+                              labelStyle: AppTheme.bodyStyle.copyWith(
+                                color: isSelected ? AppTheme.primaryColor : AppTheme.textLightColor,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                side: BorderSide(
+                                  color: isSelected ? AppTheme.primaryColor.withOpacity(0.3) : Colors.transparent,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
                 // Save Button
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: _onSave,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: const Color(0xFF43E97B),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    elevation: 4,
-                    shadowColor: const Color(0xFF43E97B).withOpacity(0.2),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.save_rounded),
-                      SizedBox(width: 8),
-                      Text('Save Profile'),
-                    ],
+                  icon: const Icon(Icons.check_circle_rounded),
+                  label: const Text('Save Profile'),
+                  style: AppTheme.successButtonStyle.copyWith(
+                    padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 18)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 // Reset Button
                 TextButton(
                   onPressed: () {
+                    HapticFeedback.lightImpact();
                     setState(() {
                       _nameController.clear();
                       _ageController.clear();
@@ -395,11 +352,8 @@ class _DogProfileScreenState extends State<DogProfileScreen> {
                     });
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                    textStyle: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                    ),
+                    foregroundColor: AppTheme.textLightColor,
+                    textStyle: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.w600),
                   ),
                   child: const Text('Reset Profile'),
                 ),

@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -82,11 +83,15 @@ class _SplashScreenState extends State<SplashScreen>
               // Dog animation — delayed entrance for stagger effect
               Semantics(
                 label: 'Corgi waving animation',
-                child: Lottie.asset(
-                  'assets/animations/splash_dog.json',
-                  width: 220,
-                  height: 220,
-                  fit: BoxFit.contain,
+                child: RepaintBoundary(
+                  child: Lottie.asset(
+                    LottieRegistry.get('splash'),
+                    width: 220,
+                    height: 220,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => 
+                      const Icon(Icons.pets, size: 80, color: AppTheme.primaryColor),
+                  ),
                 ),
               )
                   .animate()

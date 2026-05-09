@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -162,9 +163,13 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(20),
-                          child: Lottie.asset(
-                            'assets/animations/splash_dog.json',
-                            fit: BoxFit.contain,
+                          child: RepaintBoundary(
+                            child: Lottie.asset(
+                              LottieRegistry.get('splash'),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.pets, size: 100, color: AppTheme.primaryColor),
+                            ),
                           ),
                         ),
                       ),
@@ -288,15 +293,15 @@ class _LoginScreenState extends State<LoginScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Builder(builder: (context) {
-                            try {
-                              return Lottie.asset(
-                                'assets/animations/loading.json',
+                            return RepaintBoundary(
+                              child: Lottie.asset(
+                                LottieRegistry.get('loading'),
                                 width: 90,
                                 height: 90,
-                              );
-                            } catch (_) {
-                              return const CircularProgressIndicator();
-                            }
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const CircularProgressIndicator(),
+                              ),
+                            );
                           }),
                           const SizedBox(height: 16),
                           Text(
@@ -617,9 +622,17 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.primaryColor),
+                        RepaintBoundary(
+                          child: Lottie.asset(
+                            LottieRegistry.get('loading'),
+                            width: 80,
+                            height: 80,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryColor),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text('Signing in...', style: AppTheme.titleStyle),

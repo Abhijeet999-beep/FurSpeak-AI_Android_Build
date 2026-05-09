@@ -1,7 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConfig {
-  static const String localBaseUrl = 'http://10.0.2.2:8000';
+  static const String localBaseUrl = 'http://192.168.31.77:8000';
 
   // Load base URL from .env file (supports local and production toggles)
   static String get baseUrl {

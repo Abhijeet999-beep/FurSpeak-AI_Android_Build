@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
 import '../../theme/app_theme.dart';
 
 class GuestModeWarningScreen extends StatelessWidget {
@@ -25,11 +26,15 @@ class GuestModeWarningScreen extends StatelessWidget {
               // Warning Icon Animation
               Semantics(
                 label: 'Friendly reminder animation',
-                child: Lottie.asset(
-                  'assets/animations/floating_bone.json',
-                  width: 200,
-                  height: 200,
-                  fit: BoxFit.contain,
+                child: RepaintBoundary(
+                  child: Lottie.asset(
+                    LottieRegistry.get('floating_bone'),
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.warning_amber_rounded, size: 80, color: context.colors.primary),
+                  ),
                 ),
               ),
               const SizedBox(height: AppTheme.space32),

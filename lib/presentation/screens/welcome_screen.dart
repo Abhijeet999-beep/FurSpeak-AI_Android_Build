@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/utils/auth_error_mapper.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/config/app_typography.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
+import 'package:furspeak_ai/config/app_spacing.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -93,18 +95,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }) {
     final bool anyLoading = _loadingProvider != null;
 
-    final Color bgColor = isPrimary
-        ? AppTheme.primaryColor
-        : AppTheme.surfaceActive;
-    final Color fgColor = isPrimary
-        ? Colors.white
-        : (isGoogle ? AppTheme.textColor : AppTheme.primaryColor);
-    final Color borderColor = isPrimary
-        ? Colors.transparent
-        : (isGoogle ? Colors.grey.shade300 : AppTheme.primaryColor.withOpacity(0.15));
+    // Use AppTheme styles as base
+    final ButtonStyle baseStyle = isPrimary 
+        ? AppTheme.primaryButtonStyle 
+        : AppTheme.accentButtonStyle.copyWith(
+            backgroundColor: WidgetStateProperty.all(AppTheme.surfaceActive),
+            foregroundColor: WidgetStateProperty.all(isGoogle ? AppTheme.textColor : AppTheme.primaryColor),
+            side: WidgetStateProperty.all(BorderSide(
+              color: isGoogle ? Colors.grey.shade300 : AppTheme.primaryColor.withOpacity(0.15),
+            )),
+          );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.space8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       child: SquishButton(
         onPressed: anyLoading ? null : onPressed,
         child: SizedBox(
@@ -112,16 +115,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           height: 56,
           child: ElevatedButton.icon(
             onPressed: anyLoading ? null : onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: bgColor,
-              foregroundColor: fgColor,
-              side: BorderSide(color: borderColor),
-              shape: RoundedRectangleBorder(
-                borderRadius: AppTheme.borderRadiusPill,
-              ),
-              elevation: 0,
-              shadowColor: AppTheme.primaryColor.withOpacity(0.08),
-            ),
+            style: baseStyle,
             icon: isLoading
                 ? const SizedBox.shrink()
                 : Icon(icon, size: 24),
@@ -131,14 +125,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(fgColor),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isPrimary ? Colors.white : AppTheme.primaryColor,
+                      ),
                     ),
                   )
                 : Text(
                     label,
-                    style: AppTheme.titleStyle.copyWith(
-                      color: fgColor,
-                      fontWeight: FontWeight.w600,
+                    style: AppTypography.buttonLabel.copyWith(
+                      color: isPrimary ? Colors.white : (isGoogle ? AppTheme.textColor : AppTheme.primaryColor),
                       fontSize: 16,
                     ),
                   ),

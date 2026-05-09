@@ -146,8 +146,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: AppTheme.primaryColor,
             ),
           ),
-          backgroundColor: AppTheme.bgColor,
+          backgroundColor: Colors.transparent,
           elevation: 0,
+          centerTitle: true,
           iconTheme: const IconThemeData(color: AppTheme.primaryColor),
         ),
         body: SafeArea(
@@ -297,32 +298,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required List<Widget> children,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceActive,
-        borderRadius: AppTheme.borderRadiusLarge,
-        boxShadow: AppTheme.floatShadow,
-      ),
-      padding: const EdgeInsets.all(AppTheme.space16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: AppTheme.primaryColor),
-              const SizedBox(width: AppTheme.space8),
-              Text(
-                title,
-                style: AppTheme.titleStyle.copyWith(
-                  color: AppTheme.primaryColor,
-                  fontSize: 18,
+    return PetMoodGlass(
+      color: AppTheme.surfaceActive,
+      opacity: 0.6,
+      borderRadius: AppTheme.borderRadiusExtraLarge,
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.space24),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.05), width: 1.5),
+          borderRadius: AppTheme.borderRadiusExtraLarge,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: AppTheme.borderRadiusMedium,
+                  ),
+                  child: Icon(icon, size: 20, color: AppTheme.primaryColor),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space16),
-          ...children,
-        ],
+                const SizedBox(width: AppTheme.space12),
+                Text(
+                  title,
+                  style: AppTheme.titleStyle.copyWith(
+                    color: AppTheme.primaryColor,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space24),
+            ...children,
+          ],
+        ),
       ),
     );
   }

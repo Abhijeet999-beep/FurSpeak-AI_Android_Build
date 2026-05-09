@@ -55,7 +55,12 @@ class HistoryScreen extends StatelessWidget {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final insight = controller.cachedAnalytics!.intelligence[index];
-                          return InsightCard(insight: insight);
+                          return PetMoodGlass(
+                            color: AppTheme.surfaceActive,
+                            opacity: 0.4,
+                            borderRadius: AppTheme.borderRadiusLarge,
+                            child: InsightCard(insight: insight),
+                          );
                         },
                         childCount: controller.cachedAnalytics!.intelligence.length,
                       ),
@@ -154,15 +159,14 @@ class HistoryScreen extends StatelessWidget {
   Widget _buildInsightsHeader(HistoryController controller) {
     final insights = controller.insights;
     if (insights == null || insights.totalScans == 0) {
-      return Padding(
-        padding: const EdgeInsets.all(AppTheme.space16),
-        child: Container(
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.space16),
+      child: PetMoodGlass(
+        color: AppTheme.surfaceActive,
+        opacity: 0.7,
+        borderRadius: AppTheme.borderRadiusExtraLarge,
+        child: Padding(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceActive,
-            borderRadius: AppTheme.borderRadiusLarge,
-            boxShadow: AppTheme.softShadow,
-          ),
           child: Column(
             children: [
               Row(
@@ -187,8 +191,8 @@ class HistoryScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppTheme.space16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceLow,
-                  borderRadius: AppTheme.borderRadiusMedium,
+                  color: AppTheme.surfaceLow.withOpacity(0.5),
+                  borderRadius: AppTheme.borderRadiusLarge,
                 ),
                 child: Text(
                   'Scan more videos to unlock behavioral insights.\nWe need a bit more data to analyze your dog\'s mood patterns.',
@@ -199,85 +203,90 @@ class HistoryScreen extends StatelessWidget {
             ],
           ),
         ),
-      );
+      ),
+    );
     }
 
     final topEmotion = EmotionStyle.fromEmotion(insights.mostFrequentEmotion);
 
     return Padding(
       padding: const EdgeInsets.all(AppTheme.space16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceActive,
-          borderRadius: AppTheme.borderRadiusLarge,
-          boxShadow: AppTheme.softShadow,
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
-                    borderRadius: AppTheme.borderRadiusMedium,
+      child: PetMoodGlass(
+        color: topEmotion.color,
+        opacity: 0.05,
+        borderRadius: AppTheme.borderRadiusExtraLarge,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            border: Border.all(color: topEmotion.color.withOpacity(0.1), width: 1.5),
+            borderRadius: AppTheme.borderRadiusExtraLarge,
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: topEmotion.color.withOpacity(0.1),
+                      borderRadius: AppTheme.borderRadiusMedium,
+                    ),
+                    child: Icon(Icons.insights_rounded, color: topEmotion.color, size: 24),
                   ),
-                  child: const Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 24),
-                ),
-                const SizedBox(width: AppTheme.space12),
-                Text(
-                  'Behavior Insights',
-                  style: AppTheme.titleStyle.copyWith(fontSize: 18),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTheme.space12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                color: topEmotion.color.withOpacity(0.08),
-                borderRadius: AppTheme.borderRadiusMedium,
-              ),
-              child: Text(
-                controller.cachedInsights?.summary ?? 'Your dog has been mostly ${topEmotion.label} recently🐾',
-                style: AppTheme.bodyStyle.copyWith(
-                  fontSize: 14,
-                  color: topEmotion.color,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: AppTheme.space16),
-            Row(
-              children: [
-                Expanded(
-                  child: _InsightStatCard(
-                    icon: Icons.analytics_outlined,
-                    value: insights.totalScans.toString(),
-                    label: 'Total Scans',
-                    color: AppTheme.primaryColor,
+                  const SizedBox(width: AppTheme.space12),
+                  Text(
+                    'Behavior Insights',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 18),
                   ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: topEmotion.color.withOpacity(0.08),
+                  borderRadius: AppTheme.borderRadiusLarge,
                 ),
-                const SizedBox(width: AppTheme.space12),
-                Expanded(
-                  child: _InsightStatCard(
-                    icon: topEmotion.icon,
-                    value: topEmotion.label,
-                    label: 'Most Frequent',
+                child: Text(
+                  controller.cachedInsights?.summary ?? 'Your dog has been mostly ${topEmotion.label} recently🐾',
+                  style: AppTheme.bodyStyle.copyWith(
+                    fontSize: 14,
                     color: topEmotion.color,
+                    fontWeight: FontWeight.w600,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-              ],
-            ),
-            // Emotion distribution preview
-            if (insights.emotionDistribution.isNotEmpty) ...[
+              ),
               const SizedBox(height: AppTheme.space16),
-              _EmotionDistributionBar(distribution: insights.emotionDistribution),
+              Row(
+                children: [
+                  Expanded(
+                    child: _InsightStatCard(
+                      icon: Icons.analytics_outlined,
+                      value: insights.totalScans.toString(),
+                      label: 'Total Scans',
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.space12),
+                  Expanded(
+                    child: _InsightStatCard(
+                      icon: topEmotion.icon,
+                      value: topEmotion.label,
+                      label: 'Most Frequent',
+                      color: topEmotion.color,
+                    ),
+                  ),
+                ],
+              ),
+              // Emotion distribution preview
+              if (insights.emotionDistribution.isNotEmpty) ...[
+                const SizedBox(height: AppTheme.space16),
+                _EmotionDistributionBar(distribution: insights.emotionDistribution),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -376,119 +385,133 @@ class _HistoryItemCard extends StatelessWidget {
     final emotionStyle = EmotionStyle.fromEmotion(result.emotion);
     final relativeTime = _formatRelativeTime(result.timestamp);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceActive,
-        borderRadius: AppTheme.borderRadiusMedium,
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: InkWell(
-        borderRadius: AppTheme.borderRadiusMedium,
-        onTap: () => context.pushResult(result.uuid),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.space12),
-          child: Row(
-            children: [
-              // Thumbnail with emotion color border
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: AppTheme.borderRadiusMedium,
-                  border: Border.all(color: emotionStyle.color.withOpacity(0.3), width: 2),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
-                  child: SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: _buildThumbnail(result),
+    return PetMoodGlass(
+      color: AppTheme.surfaceActive,
+      opacity: 0.5,
+      borderRadius: AppTheme.borderRadiusLarge,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppTheme.space12),
+        decoration: BoxDecoration(
+          border: Border.all(color: emotionStyle.color.withOpacity(0.1), width: 1),
+          borderRadius: AppTheme.borderRadiusLarge,
+        ),
+        child: InkWell(
+          borderRadius: AppTheme.borderRadiusLarge,
+          onTap: () => context.pushResult(result.uuid),
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space12),
+            child: Row(
+              children: [
+                // Thumbnail with emotion color border
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: AppTheme.borderRadiusMedium,
+                    border: Border.all(color: emotionStyle.color.withOpacity(0.3), width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: emotionStyle.color.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: _buildThumbnail(result),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppTheme.space12),
-
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Emotion badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: emotionStyle.color.withOpacity(0.12),
-                        borderRadius: AppTheme.borderRadiusPill,
+                const SizedBox(width: AppTheme.space12),
+  
+                // Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Emotion badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: emotionStyle.color.withOpacity(0.12),
+                          borderRadius: AppTheme.borderRadiusPill,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(emotionStyle.emoji, style: const TextStyle(fontSize: 14)),
+                            const SizedBox(width: 4),
+                            Text(
+                              emotionStyle.label,
+                              style: AppTheme.captionStyle.copyWith(
+                                fontSize: 12,
+                                color: emotionStyle.color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      const SizedBox(height: 6),
+                      // Relative timestamp
+                      Text(
+                        relativeTime,
+                        style: AppTheme.captionStyle.copyWith(
+                          fontSize: 12,
+                          color: AppTheme.textLightColor.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+  
+                // Confidence indicator
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Circular confidence
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Text(emotionStyle.emoji, style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 4),
+                          CircularProgressIndicator(
+                            value: result.confidence / 100,
+                            strokeWidth: 3,
+                            backgroundColor: emotionStyle.color.withOpacity(0.12),
+                            valueColor: AlwaysStoppedAnimation<Color>(emotionStyle.color),
+                          ),
                           Text(
-                            emotionStyle.label,
+                            '${result.confidence.toStringAsFixed(0)}',
                             style: AppTheme.captionStyle.copyWith(
-                              fontSize: 12,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
                               color: emotionStyle.color,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    // Relative timestamp
+                    const SizedBox(height: 4),
                     Text(
-                      relativeTime,
-                      style: AppTheme.captionStyle.copyWith(fontSize: 12),
+                      '%',
+                      style: AppTheme.captionStyle.copyWith(
+                        fontSize: 9,
+                        color: AppTheme.textLightColor,
+                      ),
                     ),
                   ],
                 ),
-              ),
-
-              // Confidence indicator
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Circular confidence
-                  SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: result.confidence / 100,
-                          strokeWidth: 3,
-                          backgroundColor: emotionStyle.color.withOpacity(0.12),
-                          valueColor: AlwaysStoppedAnimation<Color>(emotionStyle.color),
-                        ),
-                        Text(
-                          '${result.confidence.toStringAsFixed(0)}',
-                          style: AppTheme.captionStyle.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: emotionStyle.color,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '%',
-                    style: AppTheme.captionStyle.copyWith(
-                      fontSize: 9,
-                      color: AppTheme.textLightColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: AppTheme.space8),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: AppTheme.textLightColor.withOpacity(0.4),
-              ),
-            ],
+                const SizedBox(width: AppTheme.space8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppTheme.textLightColor.withOpacity(0.4),
+                ),
+              ],
+            ),
           ),
         ),
       ),

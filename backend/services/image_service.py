@@ -11,6 +11,7 @@ logger = logging.getLogger("FurSpeak-ImageService")
 class ImageService:
     @staticmethod
     def process_image(image_path: str, request_id: str = "unknown") -> DetectionResult:
+        logger.info(f"[PIPELINE][{request_id}] Processing Image: {image_path}")
         img = cv2.imread(image_path)
         if img is None:
             raise FurSpeakException("INVALID_FILE", "Invalid image path or cannot read image.", 400)
@@ -20,6 +21,8 @@ class ImageService:
         # Will raise NO_DOG_DETECTED or INVALID_ROI if failed
         roi, (x1, y1, x2, y2), dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.6)
         
+        logger.info(f"[PIPELINE][{request_id}] Dog ROI Found: {x1, y1, x2, y2} (conf: {dog_conf})")
+
         if dog_conf < 0.65:
             logger.info(f"[{request_id}] ❌ IMAGE DOG CONFIDENCE {dog_conf} < 0.65 — REJECT")
             raise FurSpeakException("NOT_A_DOG", "Object did not pass validation.", 400)
@@ -28,11 +31,13 @@ class ImageService:
         emotion, confidence, _ = InferenceService.predict_emotion(roi)
         confidence = round(confidence, 4)
         
+        logger.info(f"[PIPELINE][{request_id}] Final Emotion: {emotion} (conf: {confidence})")
+        
         caption = CaptionService.get_caption_for_emotion(emotion)
         # Adding a basic generic suggestion based on emotion
         suggestion = "Maybe it's a good time to play!" if emotion.lower() == "happy" else "Give them some space."
         
-        return DetectionResult(
+        res = DetectionResult(
             emotion=emotion,
             confidence=confidence,
             caption=caption,
@@ -40,3 +45,5 @@ class ImageService:
             thumbnail_url="", # Filled by DetectionService
             timeline=[]
         )
+        logger.info(f"[PIPELINE][{request_id}] Final Response Payload: {res.model_dump()}")
+        return res

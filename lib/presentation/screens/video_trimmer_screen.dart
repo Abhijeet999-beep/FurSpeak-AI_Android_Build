@@ -1,13 +1,17 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/config/app_colors.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
 import 'package:furspeak_ai/media/services/media_orchestrator.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
 /// WhatsApp Status-inspired video trimmer with a bold rectangular selection
 /// box overlaying a video thumbnail strip, thick draggable side handles,
-/// and dimmed out-of-range regions.
+/// and dimmed out-of-range regions. Refined for FurSpeak AI "Velvet Paw" DS.
 class VideoTrimmerScreen extends StatefulWidget {
   final String videoPath;
   final int maxDurationSeconds;
@@ -36,17 +40,20 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
 
   Duration _totalDuration = Duration.zero;
 
-  // Handle accent color
-  static const Color _handleColor = Color(0xFF00D679); // WhatsApp green
-  static const Color _bgDark = Color(0xFF1A1A2E);
-
+  // Design System Integration
+  static const Color _bgDark = Color(0xFF121418); // Sleeker dark
+  static const Color _surfaceDark = Color(0xFF1E2228);
+  
   final String _requestId = UniqueKey().toString();
-
   bool _isManualMode = false;
 
   @override
   void initState() {
     super.initState();
+    // Force dark status bar for media editing
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
+      statusBarColor: Colors.transparent,
+    ));
     _loadVideo();
   }
 
@@ -100,6 +107,7 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
       startValue: _startValue,
       endValue: _endValue,
       onSave: (outputPath) {
+        if (!mounted) return;
         setState(() => _isTrimming = false);
         if (outputPath != null) {
           FurHaptics.heavy();
@@ -144,9 +152,11 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgDark,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _bgDark,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: Colors.white70),
           onPressed: () {
@@ -154,54 +164,48 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
             Navigator.pop(context);
           },
         ),
-        title: Column(
-          children: [
-            Text(
-              'Review Video',
-              style: AppTheme.titleStyle.copyWith(
-                color: Colors.white,
-                fontSize: 16,
-              ),
-            ),
-            if (!_isLoading && _isManualMode)
-              Text(
-                '${_formatDuration(_selectedDuration)} selected  •  ${widget.maxDurationSeconds}s max',
-                style: AppTheme.captionStyle.copyWith(
-                  color: Colors.white54,
-                  fontSize: 12,
-                ),
-              ),
-          ],
+        title: Text(
+          'Review Video',
+          style: AppTheme.titleStyle.copyWith(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
         ),
         centerTitle: true,
       ),
-      // IMPORTANT: Always build the editor so TrimViewer is mounted
-      // and listening for TrimmerEvent.initialized BEFORE loadVideo completes.
-      // Otherwise the broadcast event is missed and TrimViewer renders empty.
       body: Stack(
         children: [
           _buildEditor(),
           if (_isLoading)
-            Container(
-              color: _bgDark,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      color: _handleColor,
-                      strokeWidth: 3,
-                    ),
-                    const SizedBox(height: AppTheme.space16),
-                    Text(
-                      'Loading video...',
-                      style: AppTheme.captionStyle.copyWith(color: Colors.white54),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildLoadingOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: _bgDark,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: AppTheme.successColor,
+              strokeWidth: 3,
+            ).animate(onPlay: (c) => c.repeat())
+             .shimmer(duration: 1500.ms, color: Colors.white24),
+            const SizedBox(height: AppTheme.space24),
+            Text(
+              'Preparing your pet\'s video...',
+              style: AppTheme.bodyStyle.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+          ],
+        ),
       ),
     );
   }
@@ -214,284 +218,295 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
       children: [
         // ── Video Preview ──────────────────────────────────────────────
         Expanded(
-          child: GestureDetector(
-            onTap: _togglePlayPause,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Video Player
-                RepaintBoundary(
-                  child: ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusMedium),
-                    child: VideoViewer(trimmer: _trimmer),
-                  ),
-                ),
-
-                // Play/Pause overlay
-                AnimatedOpacity(
-                  duration: AppTheme.animFast,
-                  opacity: _isPlaying ? 0.0 : 1.0,
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 100, 12, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
                 ),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+              child: GestureDetector(
+                onTap: _togglePlayPause,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    VideoViewer(trimmer: _trimmer),
+                    
+                    // Play/Pause Overlay
+                    AnimatedOpacity(
+                      duration: AppTheme.animFast,
+                      opacity: _isPlaying ? 0.0 : 1.0,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24, width: 1.5),
+                        ),
+                        child: Icon(
+                          _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 42,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
 
         const SizedBox(height: AppTheme.space16),
 
-        if (needsTrim && !_isManualMode) ...[
-          // Magic Trim mode
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-            child: Container(
-              padding: const EdgeInsets.all(AppTheme.space16),
-              decoration: BoxDecoration(
-                color: _handleColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border: Border.all(color: _handleColor.withOpacity(0.3)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.auto_awesome_rounded, color: _handleColor),
-                      const SizedBox(width: AppTheme.space12),
-                      Expanded(
-                        child: Text(
-                          'Video is a bit long! We\'ll analyze the first ${widget.maxDurationSeconds} seconds automatically.',
-                          style: AppTheme.bodyStyle.copyWith(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.space12),
-                  TextButton.icon(
-                    onPressed: () => setState(() => _isManualMode = true),
-                    icon: const Icon(Icons.edit_rounded, size: 16),
-                    label: const Text('Adjust Manually'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: _handleColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.space16),
-        ] else if (needsTrim && _isManualMode) ...[
-          // ── WhatsApp-Style Trim Timeline ──────────────────────────────
-          _buildTrimTimeline(maxDur),
-          const SizedBox(height: AppTheme.space12),
-          // ── Duration Info Row ─────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Start time
-                _TimeLabel(
-                  label: _formatDuration(
-                      Duration(milliseconds: _startValue.toInt())),
-                  icon: Icons.flag_outlined,
-                ),
-                // Selected duration chip
-                _SelectedDurationChip(
-                  duration: _formatDuration(_selectedDuration),
-                  isOverLimit: _isOverLimit,
-                ),
-                // End time
-                _TimeLabel(
-                  label:
-                      _formatDuration(Duration(milliseconds: _endValue.toInt())),
-                  icon: Icons.flag_rounded,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppTheme.space8),
-          // ── Helper text ───────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-            child: Text(
-              'Drag the handles to select up to ${widget.maxDurationSeconds} seconds',
-              textAlign: TextAlign.center,
-              style: AppTheme.captionStyle.copyWith(
-                color: Colors.white38,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.space16),
-        ],
+        // ── Controls Section ───────────────────────────────────────────
+        AnimatedSwitcher(
+          duration: AppTheme.animMedium,
+          child: (needsTrim && !_isManualMode)
+              ? _buildMagicTrimCard()
+              : _buildManualTrimSection(maxDur),
+        ),
 
         // ── Action Buttons ────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppTheme.space24, 0, AppTheme.space24, AppTheme.space24),
-          child: Row(
-            children: [
-              // Cancel
-              Expanded(
-                child: SquishButton(
-                  onPressed: () {
-                    FurHaptics.tap();
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius:
-                          BorderRadius.circular(AppTheme.radiusMedium),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: AppTheme.titleStyle.copyWith(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: AppTheme.space12),
-
-              // Trim & Use
-              Expanded(
-                flex: 2,
-                child: SquishButton(
-                  onPressed: _isTrimming ? null : _onTrimPressed,
-                  child: Container(
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF00B865), Color(0xFF00D679)],
-                      ),
-                      borderRadius:
-                          BorderRadius.circular(AppTheme.radiusMedium),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _handleColor.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: _isTrimming
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.content_cut_rounded,
-                                  size: 20, color: Colors.white),
-                              const SizedBox(width: 8),
-                              Text(
-                                needsTrim ? 'Trim & Analyze' : 'Use Video',
-                                style: AppTheme.titleStyle.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildActionButtons(needsTrim),
       ],
     );
   }
 
-  /// Builds the WhatsApp Status-style trim timeline with a rectangular
-  /// selection box overlaying thumbnail frames.
+  Widget _buildMagicTrimCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
+      child: Container(
+        key: const ValueKey('magic_trim'),
+        padding: const EdgeInsets.all(AppTheme.space20),
+        decoration: BoxDecoration(
+          color: AppTheme.successColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          border: Border.all(color: AppTheme.successColor.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.successColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.successColor, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Magic Trim Active',
+                        style: AppTheme.titleStyle.copyWith(color: Colors.white, fontSize: 15),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Analyzing the first ${widget.maxDurationSeconds}s for the best results.',
+                        style: AppTheme.bodyStyle.copyWith(color: Colors.white60, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space16),
+            SquishButton(
+              onPressed: () => setState(() => _isManualMode = true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.tune_rounded, size: 14, color: AppTheme.successColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Customize Trim Range',
+                      style: AppTheme.captionStyle.copyWith(
+                        color: AppTheme.successColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95));
+  }
+
+  Widget _buildManualTrimSection(Duration maxDur) {
+    return Column(
+      key: const ValueKey('manual_trim'),
+      children: [
+        _buildTrimTimeline(maxDur),
+        const SizedBox(height: AppTheme.space16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _TimeLabel(
+                label: _formatDuration(Duration(milliseconds: _startValue.toInt())),
+                icon: Icons.start_rounded,
+              ),
+              _SelectedDurationChip(
+                duration: _formatDuration(_selectedDuration),
+                isOverLimit: _isOverLimit,
+              ),
+              _TimeLabel(
+                label: _formatDuration(Duration(milliseconds: _endValue.toInt())),
+                icon: Icons.stop_rounded,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppTheme.space20),
+      ],
+    );
+  }
+
   Widget _buildTrimTimeline(Duration maxDur) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          return TrimViewer(
-            trimmer: _trimmer,
-            viewerHeight: 72,
-            viewerWidth: constraints.maxWidth,
-            maxVideoLength: maxDur,
-            type: ViewerType.auto,
-            showDuration: false,
-            paddingFraction: 0.1,
-            onChangeStart: (value) {
-              setState(() => _startValue = value);
-            },
-            onChangeEnd: (value) {
-              setState(() => _endValue = value);
-            },
-            onChangePlaybackState: (isPlaying) {
-              setState(() => _isPlaying = isPlaying);
-            },
-            editorProperties: TrimEditorProperties(
-              // Bold rectangular border — WhatsApp-style selection box
-              borderWidth: 4.0,
-              borderRadius: 6,
-              // Side handle circles — prominent & draggable
-              circleSize: 10,
-              circleSizeOnDrag: 14,
-              // Scrubber: thin white playhead line
-              scrubberWidth: 2.5,
-              // Colors — vivid green for high contrast
-              borderPaintColor: _handleColor,
-              circlePaintColor: _handleColor,
-              scrubberPaintColor: Colors.white,
-              // Wide touch area for comfortable dragging
-              sideTapSize: 32,
+          return Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.black26,
+              borderRadius: BorderRadius.circular(12),
             ),
-            areaProperties: TrimAreaProperties(
-              borderRadius: 6,
-              thumbnailQuality: 50,
-              thumbnailFit: BoxFit.cover,
+            clipBehavior: Clip.antiAlias,
+            child: TrimViewer(
+              trimmer: _trimmer,
+              viewerHeight: 80,
+              viewerWidth: constraints.maxWidth,
+              maxVideoLength: maxDur,
+              type: ViewerType.auto,
+              showDuration: false,
+              paddingFraction: 0, // Fill the container
+              onChangeStart: (value) => setState(() => _startValue = value),
+              onChangeEnd: (value) => setState(() => _endValue = value),
+              onChangePlaybackState: (isPlaying) => setState(() => _isPlaying = isPlaying),
+              editorProperties: TrimEditorProperties(
+                borderWidth: 4.0,
+                borderRadius: 8,
+                circleSize: 12,
+                circleSizeOnDrag: 16,
+                scrubberWidth: 3,
+                borderPaintColor: AppTheme.successColor,
+                circlePaintColor: AppTheme.successColor,
+                scrubberPaintColor: Colors.white,
+                sideTapSize: 32,
+              ),
+              areaProperties: TrimAreaProperties(
+                borderRadius: 8,
+                thumbnailQuality: 40,
+                thumbnailFit: BoxFit.cover,
+              ),
             ),
           );
         },
       ),
     );
   }
+
+  Widget _buildActionButtons(bool needsTrim) {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.space24),
+      child: Row(
+        children: [
+          Expanded(
+            child: SquishButton(
+              onPressed: () => Navigator.pop(context),
+              child: Container(
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: AppTheme.titleStyle.copyWith(color: Colors.white70, fontSize: 16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppTheme.space12),
+          Expanded(
+            flex: 2,
+            child: SquishButton(
+              onPressed: _isTrimming ? null : _onTrimPressed,
+              child: Container(
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF43E97B), Color(0xFF38F9D7)], // Fresh Mint Gradient
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.successColor.withOpacity(0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: _isTrimming
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
+                          const SizedBox(width: 8),
+                          Text(
+                            needsTrim ? 'Trim & Analyze' : 'Start Analysis',
+                            style: AppTheme.titleStyle.copyWith(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-/// Small label showing a time value with an icon.
 class _TimeLabel extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -500,64 +515,62 @@ class _TimeLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: Colors.white30),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: AppTheme.captionStyle.copyWith(
-            color: Colors.white54,
-            fontSize: 12,
-            fontFeatures: [const FontFeature.tabularFigures()],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white38),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.captionStyle.copyWith(
+              color: Colors.white70,
+              fontSize: 13,
+              fontFeatures: [const FontFeature.tabularFigures()],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-/// Chip showing the selected duration with color-coded status.
 class _SelectedDurationChip extends StatelessWidget {
   final String duration;
   final bool isOverLimit;
 
-  const _SelectedDurationChip({
-    required this.duration,
-    required this.isOverLimit,
-  });
+  const _SelectedDurationChip({required this.duration, required this.isOverLimit});
 
   @override
   Widget build(BuildContext context) {
-    final color = isOverLimit ? AppTheme.errorColor : const Color(0xFF00D679);
+    final color = isOverLimit ? AppTheme.errorColor : AppTheme.successColor;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isOverLimit
-                ? Icons.warning_amber_rounded
-                : Icons.content_cut_rounded,
-            size: 14,
+            isOverLimit ? Icons.warning_amber_rounded : Icons.timer_outlined,
+            size: 16,
             color: color,
           ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 8),
           Text(
             duration,
             style: AppTheme.captionStyle.copyWith(
               color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
               fontFeatures: [const FontFeature.tabularFigures()],
             ),
           ),

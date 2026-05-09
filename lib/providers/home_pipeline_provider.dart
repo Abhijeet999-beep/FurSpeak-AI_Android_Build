@@ -589,6 +589,11 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       pipelineSuccess = true;
       debugPrint("📦 Pipeline completed successfully");
 
+      // Increment guest scan count if applicable
+      if (authProvider.isGuest) {
+        await authProvider.incrementGuestScanCount();
+      }
+
       if (pipelineSuccess == true) {
         deleteCompressedFile();
       }

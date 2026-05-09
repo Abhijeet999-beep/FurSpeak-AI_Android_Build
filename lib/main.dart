@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_driver/driver_extension.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
+import 'package:furspeak_ai/media/services/media_orchestrator.dart';
+import 'package:furspeak_ai/config/api_config.dart';
 import 'package:provider/provider.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/providers/dog_provider.dart';
-
 import 'package:furspeak_ai/providers/home_pipeline_provider.dart';
 import 'package:furspeak_ai/core/di/service_locator.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter/foundation.dart';
-
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:furspeak_ai/media/services/media_orchestrator.dart';
 
 void _cleanupTempDirectoryAsynchronously() {
   getTemporaryDirectory().then((tempDir) {
@@ -53,10 +53,9 @@ void _cleanupTempDirectoryAsynchronously() {
 }
 
 void main() async {
-  if (kDebugMode) {
-    enableFlutterDriverExtension();
-  }
+  enableFlutterDriverExtension();
   WidgetsFlutterBinding.ensureInitialized();
+
 
   // Load .env first to get Sentry DSN
   await dotenv.load(fileName: '.env');
@@ -77,12 +76,17 @@ void main() async {
 }
 
 Future<void> _runAppWithProviders() async {
-  debugPrint('✅ [INIT] ENVIRONMENT=${dotenv.env['ENVIRONMENT']}');
+  debugPrint('✅ [INIT] App Startup: ENVIRONMENT=${dotenv.env['ENVIRONMENT']}');
+  debugPrint('✅ [API] Base URL: ${ApiConfig.baseUrl}');
 
-  await Firebase.initializeApp(); // 🔥 Firebase init
-  debugPrint('✅ [INIT] Firebase initialized');
+  try {
+    await Firebase.initializeApp(); // 🔥 Firebase init
+    debugPrint('✅ [FIREBASE] Firebase initialized');
+  } catch (e) {
+    debugPrint('❌ [FIREBASE] Firebase initialization failed: $e');
+  }
 
-  // Initialize Firebase App Check for production security (Priority 4)
+  // Initialize Firebase App Check for production security
   final bool disableAppCheck = dotenv.env['DISABLE_APP_CHECK'] == 'true';
   if (disableAppCheck) {
     debugPrint('⏩ [INIT] Firebase App Check skipped (disabled in .env)');
@@ -115,6 +119,7 @@ Future<void> _runAppWithProviders() async {
   );
 }
 
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -146,7 +151,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      mediaOrchestrator.reset();
+      MediaOrchestrator.instance.reset();
     }
   }
 

@@ -25,23 +25,21 @@ class InferenceService:
                 bbox = boxes.xyxy[i].tolist()
                 detections.append({
                     "label": label,
-                    "confidence": round(conf, 2),
+                    "confidence": round(conf, 4),
                     "bbox": [round(c, 2) for c in bbox],
                 })
+            
+        logger.info(f"[INFERENCE][{request_id}] Raw Detections: {detections}")
 
         # H4 fix: replaced print() with logger
         logger.debug(f"[{request_id}] DETECTIONS → {detections}")
         logger.debug(f"[{request_id}] RAW LABELS → {[d['label'] for d in detections]}")
 
-        # 1. Detection Filter
-        dogs = [
-            d for d in detections
-            if d["label"] == "dog" and d["confidence"] >= min_confidence
-        ]
-
-        logger.debug(f"[{request_id}] DOG FILTER RESULT → {len(dogs)} dogs (conf >= {min_confidence})")
-        logger.debug(f"[{request_id}] DOG CONFIDENCES → {[d['confidence'] for d in dogs]}")
-
+        # Filter for dogs with confidence threshold
+        dogs = [d for d in detections if d["label"] == "dog" and d["confidence"] >= min_confidence]
+        
+        logger.info(f"[INFERENCE][{request_id}] Dog Filtered: {dogs}")
+        
         if len(dogs) == 0:
             logger.info(f"[{request_id}] ❌ NO DOG DETECTED — BLOCKED")
             raise FurSpeakException("NO_DOG_DETECTED", "No dog detected in the frame.")
@@ -83,6 +81,9 @@ class InferenceService:
         top_indices = np.argsort(confidences)[::-1]
         best_label_idx = labels[top_indices[0]]
         best_conf = float(confidences[top_indices[0]])
+
+        logger.info(f"[INFERENCE] Raw Emotion Confidences: {confidences.tolist()}")
+        logger.info(f"[INFERENCE] Top Emotion: {classes[best_label_idx] if best_label_idx < len(classes) else 'UNKNOWN'} (conf: {best_conf})")
 
         if best_label_idx < len(classes):
             return classes[best_label_idx], best_conf, int(best_label_idx)

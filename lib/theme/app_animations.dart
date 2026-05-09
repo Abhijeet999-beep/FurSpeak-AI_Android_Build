@@ -58,6 +58,7 @@ class SquishButton extends StatefulWidget {
   final FutureOr<void> Function()? onPressed;
   final double pressScale;
   final bool enableHaptic;
+  final bool useGlobalLock;
 
   const SquishButton({
     super.key,
@@ -65,6 +66,7 @@ class SquishButton extends StatefulWidget {
     this.onPressed,
     this.pressScale = 0.95,
     this.enableHaptic = true,
+    this.useGlobalLock = true,
   });
 
   @override
@@ -75,6 +77,7 @@ class _SquishButtonState extends State<SquishButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnim;
+  bool _isLocalLocked = false;
 
   @override
   void initState() {
@@ -99,10 +102,11 @@ class _SquishButtonState extends State<SquishButton>
     super.dispose();
   }
 
+  bool get _isLocked => widget.useGlobalLock ? globalActionLock.isLocked : _isLocalLocked;
+
   void _onTapDown(TapDownDetails _) {
-    debugPrint('SquishButton: _onTapDown. Locked: ${globalActionLock.isLocked}');
-    if (widget.onPressed == null || globalActionLock.isLocked) {
-      debugPrint('SquishButton: Tap ignored. onPressed null? ${widget.onPressed == null}');
+    debugPrint('SquishButton: _onTapDown - onPressed=${widget.onPressed != null}, _isLocked=$_isLocked');
+    if (widget.onPressed == null || _isLocked) {
       return;
     }
     _controller.forward();
@@ -113,15 +117,23 @@ class _SquishButtonState extends State<SquishButton>
     debugPrint('SquishButton: _onTapUp');
     _controller.reverse();
     if (widget.onPressed != null) {
-      if (globalActionLock.isLocked) {
-        debugPrint('SquishButton: Action skipped. Locked: true');
+      if (_isLocked) {
+        debugPrint('SquishButton: TAP BLOCKED BY LOCK');
         return;
       }
-      debugPrint('SquishButton: Executing action...');
-      await globalActionLock.execute(() async {
-        await widget.onPressed!();
-      });
-      debugPrint('SquishButton: Action completed.');
+
+      if (widget.useGlobalLock) {
+        await globalActionLock.execute(() async {
+          await widget.onPressed!();
+        });
+      } else {
+        setState(() => _isLocalLocked = true);
+        try {
+          await widget.onPressed!();
+        } finally {
+          if (mounted) setState(() => _isLocalLocked = false);
+        }
+      }
     }
   }
 

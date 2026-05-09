@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:furspeak_ai/config/app_config.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:go_router/go_router.dart';
@@ -25,19 +26,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<_OnboardingPageData> _pages = const [
     _OnboardingPageData(
-      animation: 'assets/animations/onboarding_1.json',
+      animation: 'onboarding_1',
       title: 'Welcome to FurSpeak AI',
       description:
           'Understand your furry friend\'s emotions with advanced AI technology.',
     ),
     _OnboardingPageData(
-      animation: 'assets/animations/onboarding_2.json',
+      animation: 'onboarding_2',
       title: 'Real-time Emotion Detection',
       description:
           'Capture your dog\'s emotions through photos or videos for instant analysis.',
     ),
     _OnboardingPageData(
-      animation: 'assets/animations/onboarding_3.json',
+      animation: 'onboarding_3',
       title: 'Track Emotional History',
       description:
           'Keep a record of your dog\'s emotional patterns and track their well-being over time.',
@@ -198,11 +199,15 @@ class _OnboardingPage extends StatelessWidget {
         children: [
           Semantics(
             label: page.title,
-            child: Lottie.asset(
-              page.animation,
-              width: 220,
-              height: 220,
-              fit: BoxFit.contain,
+            child: RepaintBoundary(
+              child: Lottie.asset(
+                LottieRegistry.get(page.animation),
+                width: 220,
+                height: 220,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.pets, size: 80, color: AppTheme.primaryColor),
+              ),
             ),
           ),
           const SizedBox(height: 32),

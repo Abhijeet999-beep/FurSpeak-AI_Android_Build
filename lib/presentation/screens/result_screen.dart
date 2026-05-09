@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 
 import 'package:video_player/video_player.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:furspeak_ai/data/models/detection_result.dart';
 import 'package:furspeak_ai/services/result_storage_service.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
@@ -15,9 +16,10 @@ import 'package:furspeak_ai/config/lottie_registry.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
-import 'package:provider/provider.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/media/services/media_orchestrator.dart';
+import 'package:furspeak_ai/theme/app_animations.dart';
+import 'package:provider/provider.dart';
 
 class ResultScreen extends StatefulWidget {
   final String resultId;
@@ -41,7 +43,6 @@ class _ResultScreenState extends State<ResultScreen> {
   /// The persisted detection result, loaded from Isar by ID.
   DetectionResult? _detectionResult;
   bool _isLoading = true;
-  bool _showGuestCard = true;
 
   @override
   void initState() {
@@ -66,8 +67,16 @@ class _ResultScreenState extends State<ResultScreen> {
     _detectionResult = result;
     _isLoading = false;
 
+    debugPrint('[RESULT_SCREEN] Loading result for ID: ${widget.resultId}');
+    debugPrint('[RESULT_SCREEN] Full Result: ${result.toJson()}');
+    debugPrint('[RESULT_SCREEN] Emotion: ${result.emotion}');
+    debugPrint('[RESULT_SCREEN] Confidence: ${result.confidence}');
+    debugPrint('[RESULT_SCREEN] Caption: ${result.caption}');
+    debugPrint('[RESULT_SCREEN] MediaPath: ${result.mediaPath}');
+
     _speakResult();
     _initVideoIfNeeded();
+    _checkGuestConversion();
   }
 
   Future<void> _initVideoIfNeeded() async {
@@ -144,24 +153,56 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
+  void _checkGuestConversion() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    // Show after 2nd successful scan (count is incremented before reaching this screen)
+    if (auth.isGuest && !auth.guestConversionDismissed && auth.guestScanCount >= 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+            _showGuestConversionBottomSheet();
+          }
+        });
+      });
+    }
+  }
+
+  void _showGuestConversionBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _GuestConversionBottomSheet(),
+    );
+  }
+
   void _handleAnalyzeAnother() {
     HapticFeedback.mediumImpact();
     context.goHome();
   }
 
   void _handleShare() {
-    HapticFeedback.mediumImpact();
-    // TODO: Implement share_plus functionality here.
-    // final text = 'I just analyzed my dog with FurSpeak AI! Looks like they are ${_detectionResult?.emotion}.';
-    // Share.share(text);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Sharing result... (Coming soon)'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppTheme.primaryColor,
-      ),
-    );
+    HapticFeedback.heavyImpact();
+    
+    final r = _detectionResult;
+    if (r == null) return;
+
+    final emoji = EmotionStyle.fromEmotion(r.emotion).emoji;
+    final caption = r.caption.isNotEmpty 
+        ? r.caption 
+        : 'My dog feels ${r.emotion}!';
+
+    String shareText = '🐾 FurSpeak AI — Dog Emotion Insight\n\n';
+    shareText += 'My dog feels ${r.emotion} $emoji\n';
+    shareText += 'Analysis: $caption\n\n';
+    shareText += 'Understand your pet better with FurSpeak AI! ✨';
+
+    final mediaPath = r.mediaPath;
+    if (mediaPath.isNotEmpty && File(mediaPath).existsSync()) {
+      Share.shareXFiles([XFile(mediaPath)], text: shareText, subject: 'My Dog\'s Emotion Analysis');
+    } else {
+      Share.share(shareText, subject: 'My Dog\'s Emotion Analysis');
+    }
   }
 
   // ─── MEDIA PREVIEW ──────────────────────────────────────────────────
@@ -178,7 +219,7 @@ class _ResultScreenState extends State<ResultScreen> {
           return Container(
             height: 280,
             width: double.infinity,
-            color: AppTheme.surfaceElevated,
+            color: AppTheme.surfaceContainerLow,
             child: const Center(
               child: CircularProgressIndicator(color: AppTheme.primaryColor),
             ),
@@ -250,11 +291,15 @@ class _ResultScreenState extends State<ResultScreen> {
       return SizedBox(
         height: 280,
         child: Center(
-          child: Lottie.asset(
-            LottieRegistry.get('failed'),
-            width: 200,
-            height: 200,
-            fit: BoxFit.contain,
+          child: RepaintBoundary(
+            child: Lottie.asset(
+              LottieRegistry.get('failed'),
+              width: 200,
+              height: 200,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.error_outline_rounded, size: 80, color: AppTheme.primaryColor),
+            ),
           ),
         ),
       );
@@ -267,7 +312,7 @@ class _ResultScreenState extends State<ResultScreen> {
     return Container(
       height: 280,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLow,
+        color: AppTheme.surfaceContainerLow,
         borderRadius: AppTheme.borderRadiusLarge,
       ),
       child: Center(
@@ -320,8 +365,25 @@ class _ResultScreenState extends State<ResultScreen> {
       },
       child: Scaffold(
         backgroundColor: AppTheme.bgColor,
-        body: SafeArea(
-          child: SingleChildScrollView(
+        body: Stack(
+          children: [
+            // Background Pattern for immersion
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: Opacity(
+                  opacity: 0.04,
+                  child: Lottie.asset(
+                    LottieRegistry.get('paw_prints_bg'),
+                    fit: BoxFit.cover,
+                    repeat: true,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -330,22 +392,24 @@ class _ResultScreenState extends State<ResultScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(AppTheme.radiusLarge),
+                        bottom: Radius.circular(AppTheme.radiusExtraLarge),
                       ),
                       child: _mediaPreview(),
                     ),
                     // Back button
                     Positioned(
-                      top: AppTheme.space8,
-                      left: AppTheme.space8,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black26,
-                          borderRadius: AppTheme.borderRadiusMedium,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                          onPressed: () => context.goHome(),
+                      top: AppTheme.space16,
+                      left: AppTheme.space16,
+                      child: SquishButton(
+                        onPressed: () => context.goHome(),
+                        child: PetMoodGlass(
+                          borderRadius: const BorderRadius.all(Radius.circular(50)),
+                          opacity: 0.25,
+                          color: Colors.black,
+                          child: Container(
+                            padding: const EdgeInsets.all(AppTheme.space12),
+                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+                          ),
                         ),
                       ),
                     ),
@@ -353,35 +417,31 @@ class _ResultScreenState extends State<ResultScreen> {
                     Positioned(
                       bottom: AppTheme.space16,
                       right: AppTheme.space16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppTheme.space12,
-                          vertical: AppTheme.space8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: emotionStyle.color,
-                          borderRadius: AppTheme.borderRadiusPill,
-                          boxShadow: [
-                            BoxShadow(
-                              color: emotionStyle.color.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(emotionStyle.emoji, style: const TextStyle(fontSize: 18)),
-                            const SizedBox(width: 6),
-                            Text(
-                              emotionStyle.label,
-                              style: AppTheme.titleStyle.copyWith(
-                                color: Colors.white,
-                                fontSize: 14,
+                      child: PetMoodGlass(
+                        opacity: 0.9,
+                        color: emotionStyle.color.withValues(alpha: 0.1),
+                        borderRadius: AppTheme.borderRadiusPill,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.space16,
+                            vertical: AppTheme.space8,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(emotionStyle.emoji, style: const TextStyle(fontSize: 18)),
+                              const SizedBox(width: AppTheme.space8),
+                              Text(
+                                emotionStyle.label,
+                                style: AppTheme.titleStyle.copyWith(
+                                  color: AppTheme.textColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -390,8 +450,7 @@ class _ResultScreenState extends State<ResultScreen> {
 
                 Padding(
                   padding: const EdgeInsets.all(AppTheme.space24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: StaggeredEntrance(
                     children: [
                       // ═══ 2. EMOTION HEADLINE ═══
                       Row(
@@ -430,91 +489,158 @@ class _ResultScreenState extends State<ResultScreen> {
                       const SizedBox(height: AppTheme.space24),
 
                       // ═══ 3. CONFIDENCE BAR ═══
-                      Container(
-                        padding: const EdgeInsets.all(AppTheme.space16),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceActive,
-                          borderRadius: AppTheme.borderRadiusMedium,
-                          boxShadow: AppTheme.softShadow,
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Confidence',
-                                  style: AppTheme.titleStyle.copyWith(fontSize: 14),
-                                ),
-                                Text(
-                                  confidenceLabel,
-                                  style: AppTheme.titleStyle.copyWith(
-                                    color: emotionStyle.color,
-                                    fontSize: 16,
+                      PetMoodGlass(
+                        borderRadius: AppTheme.borderRadiusExtraLarge,
+                        opacity: 0.4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.space24),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Confidence Score',
+                                    style: AppTheme.titleStyle.copyWith(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textColor.withValues(alpha: 0.8),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppTheme.space8),
-                            ClipRRect(
-                              borderRadius: AppTheme.borderRadiusPill,
-                              child: TweenAnimationBuilder<double>(
-                                tween: Tween<double>(begin: 0, end: confidence / 100),
-                                duration: const Duration(milliseconds: 1200),
-                                curve: Curves.easeOutCubic,
-                                builder: (context, value, child) {
-                                  return LinearProgressIndicator(
-                                    value: value,
-                                    backgroundColor: emotionStyle.color.withOpacity(0.12),
-                                    valueColor: AlwaysStoppedAnimation<Color>(emotionStyle.color),
-                                    minHeight: 10,
-                                  );
-                                },
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: emotionStyle.color.withValues(alpha: 0.12),
+                                      borderRadius: AppTheme.borderRadiusPill,
+                                    ),
+                                    child: Text(
+                                      '${confidence.toInt()}% $confidenceLabel',
+                                      style: AppTheme.titleStyle.copyWith(
+                                        color: emotionStyle.color,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: AppTheme.space16),
+                              Stack(
+                                children: [
+                                  Container(
+                                    height: 10,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: emotionStyle.color.withValues(alpha: 0.08),
+                                      borderRadius: AppTheme.borderRadiusPill,
+                                    ),
+                                  ),
+                                  TweenAnimationBuilder<double>(
+                                    tween: Tween<double>(begin: 0, end: confidence / 100),
+                                    duration: const Duration(milliseconds: 1500),
+                                    curve: Curves.easeOutQuart,
+                                    builder: (context, value, child) {
+                                      return FractionallySizedBox(
+                                        widthFactor: value,
+                                        child: Container(
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                emotionStyle.color,
+                                                emotionStyle.color.withOpacity(0.7),
+                                              ],
+                                            ),
+                                            borderRadius: AppTheme.borderRadiusPill,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: emotionStyle.color.withValues(alpha: 0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
                       const SizedBox(height: AppTheme.space16),
 
                       // ═══ 4. CAPTION CARD ═══
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppTheme.space16),
-                        decoration: BoxDecoration(
-                          color: emotionStyle.actionCardColor,
-                          borderRadius: AppTheme.borderRadiusMedium,
-                          boxShadow: AppTheme.softShadow,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.chat_bubble_outline_rounded,
-                                    size: 18, color: emotionStyle.color),
-                                const SizedBox(width: AppTheme.space8),
-                                Text(
-                                  'What we detected',
-                                  style: AppTheme.titleStyle.copyWith(
-                                    fontSize: 14,
-                                    color: emotionStyle.color,
+                      PetMoodGlass(
+                        color: emotionStyle.actionCardColor,
+                        opacity: 0.6,
+                        borderRadius: AppTheme.borderRadiusExtraLarge,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.space24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: emotionStyle.color.withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(Icons.auto_awesome_rounded,
+                                            size: 16, color: emotionStyle.color),
+                                      ),
+                                      const SizedBox(width: AppTheme.space12),
+                                      Text(
+                                        'Emotional Insight',
+                                        style: AppTheme.titleStyle.copyWith(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: emotionStyle.color,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppTheme.space12),
-                            Text(
-                              isError
-                                  ? 'No emotion detected. Please ensure your dog\'s face is visible and try again.'
-                                  : caption,
-                              style: AppTheme.bodyStyle.copyWith(
-                                fontSize: 15,
-                                height: 1.5,
+                                  SquishButton(
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: isError ? 'No emotion detected' : caption));
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Caption copied!'),
+                                          behavior: SnackBarBehavior.floating,
+                                          duration: const Duration(seconds: 2),
+                                          backgroundColor: emotionStyle.color,
+                                          shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+                                        ),
+                                      );
+                                      HapticFeedback.lightImpact();
+                                    },
+                                    child: Icon(Icons.copy_rounded, size: 20, color: emotionStyle.color.withValues(alpha: 0.6)),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: AppTheme.space16),
+                              Text(
+                                isError
+                                    ? 'No emotion detected. Please ensure your dog\'s face is visible and try again.'
+                                    : caption,
+                                style: AppTheme.bodyStyle.copyWith(
+                                  fontSize: 16,
+                                  height: 1.6,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.textColor.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -535,135 +661,69 @@ class _ResultScreenState extends State<ResultScreen> {
                           timeline: r.timeline,
                           timelineSummary: r.timelineSummary,
                         ),
-
-                      if (isGuest && _showGuestCard) ...[
-                        const SizedBox(height: AppTheme.space24),
-                        Container(
-                          padding: const EdgeInsets.all(AppTheme.space16),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentColor.withOpacity(0.05),
-                            borderRadius: AppTheme.borderRadiusLarge,
-                            border: Border.all(color: AppTheme.accentColor.withOpacity(0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.pets, color: AppTheme.accentColor, size: 20),
-                                  const SizedBox(width: AppTheme.space8),
-                                  Expanded(
-                                    child: Text(
-                                      "This is your dog's first insight 🐾",
-                                      style: AppTheme.titleStyle.copyWith(
-                                        color: AppTheme.accentColor,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close, size: 20, color: AppTheme.textLightColor),
-                                    onPressed: () {
-                                      setState(() {
-                                        _showGuestCard = false;
-                                      });
-                                    },
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppTheme.space12),
-                              Text(
-                                "Sign in now to save this result and track your dog's emotional journey over time.",
-                                style: AppTheme.bodyStyle.copyWith(fontSize: 14),
-                              ),
-                              const SizedBox(height: AppTheme.space16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        context.goWelcome();
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.accentColor,
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
-                                      ),
-                                      child: const Text('Sign in to Save', style: TextStyle(fontWeight: FontWeight.w600)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppTheme.space8),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _showGuestCard = false;
-                                        });
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppTheme.textColor,
-                                        side: BorderSide(color: AppTheme.textLightColor.withOpacity(0.3)),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
-                                      ),
-                                      child: const Text('Keep Exploring'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
                       const SizedBox(height: AppTheme.space24),
 
                       // ═══ 7. BOTTOM ACTION BAR ═══
                       Row(
                         children: [
                           Expanded(
-                            child: SizedBox(
-                              height: 56,
-                              child: ElevatedButton.icon(
-                                onPressed: _handleAnalyzeAnother,
-                                icon: const Icon(Icons.refresh_rounded, color: AppTheme.surfaceActive),
-                                label: Text(
-                                  'Scan Again',
-                                  style: AppTheme.titleStyle.copyWith(color: AppTheme.surfaceActive, fontSize: 16),
+                            child: SquishButton(
+                              onPressed: _handleAnalyzeAnother,
+                              child: Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceContainerHigh,
+                                  borderRadius: AppTheme.borderRadiusPill,
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.surfaceElevated,
-                                  foregroundColor: AppTheme.textColor,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: AppTheme.borderRadiusMedium,
-                                  ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.refresh_rounded, color: AppTheme.primaryColor, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Scan Again',
+                                      style: AppTheme.titleStyle.copyWith(
+                                        color: AppTheme.primaryColor,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(width: AppTheme.space12),
                           Expanded(
-                            child: SizedBox(
-                              height: 56,
-                              child: ElevatedButton.icon(
-                                onPressed: _handleShare,
-                                icon: const Icon(Icons.share_rounded, color: AppTheme.surfaceActive),
-                                label: Text(
-                                  'Share Result',
-                                  style: AppTheme.titleStyle.copyWith(color: AppTheme.surfaceActive, fontSize: 16),
+                            child: SquishButton(
+                              onPressed: _handleShare,
+                              child: Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  gradient: AppTheme.primaryGradient,
+                                  borderRadius: AppTheme.borderRadiusPill,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryColor.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryColor,
-                                  foregroundColor: AppTheme.surfaceActive,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: AppTheme.borderRadiusMedium,
-                                  ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Share Result',
+                                      style: AppTheme.titleStyle.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -675,19 +735,14 @@ class _ResultScreenState extends State<ResultScreen> {
                     ],
                   ),
                 ),
-              ].animate(interval: 60.ms).fadeIn(
-                    duration: 500.ms,
-                    curve: Curves.easeOutCubic,
-                  ).slideY(
-                    begin: 0.08,
-                    duration: 500.ms,
-                    curve: Curves.easeOutCubic,
-                  ),
+              ],
             ),
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 }
 
@@ -730,27 +785,30 @@ class _TimelineSection extends StatelessWidget {
         const SizedBox(height: AppTheme.space12),
 
         // Timeline bar
-        Container(
-          padding: const EdgeInsets.all(AppTheme.space16),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceActive,
-            borderRadius: AppTheme.borderRadiusMedium,
-            boxShadow: AppTheme.softShadow,
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (int i = 0; i < emotions.length; i++) ...[
-                  if (i > 0)
-                    Container(
-                      width: 16,
-                      height: 2,
-                      color: AppTheme.surfaceElevated,
-                    ),
-                  _TimelineDot(emotion: emotions[i]),
+        PetMoodGlass(
+          opacity: 0.3,
+          borderRadius: AppTheme.borderRadiusMedium,
+          child: Container(
+            padding: const EdgeInsets.all(AppTheme.space16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (int i = 0; i < emotions.length; i++) ...[
+                    if (i > 0)
+                      Container(
+                        width: 12,
+                        height: 2,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceElevated.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    _TimelineDot(emotion: emotions[i]),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -844,65 +902,223 @@ class _ExpandableInsightsState extends State<_ExpandableInsights> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceActive,
-        borderRadius: AppTheme.borderRadiusMedium,
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          shape: const RoundedRectangleBorder(),
-          collapsedShape: const RoundedRectangleBorder(),
-          onExpansionChanged: (expanded) {
-            setState(() {
-              _isExpanded = expanded;
-            });
-            if (expanded) {
+    return PetMoodGlass(
+      opacity: 0.5,
+      borderRadius: AppTheme.borderRadiusExtraLarge,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
               HapticFeedback.lightImpact();
-            }
-          },
-          tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: widget.emotionStyle.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-                child: Icon(Icons.lightbulb_outline_rounded, size: 20, color: widget.emotionStyle.color),
-              ),
-              const SizedBox(width: AppTheme.space12),
-              Text(
-                'Helpful Insights',
-                style: AppTheme.titleStyle.copyWith(fontSize: 16),
-              ),
-            ],
-          ),
-          childrenPadding: const EdgeInsets.only(left: AppTheme.space16, right: AppTheme.space16, bottom: AppTheme.space16),
-          children: widget.suggestions.map((suggestion) => Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.space12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Icon(Icons.check_circle_outline, size: 16, color: widget.emotionStyle.color),
-                ),
-                const SizedBox(width: AppTheme.space12),
-                Expanded(
-                  child: Text(
-                    suggestion,
-                    style: AppTheme.bodyStyle.copyWith(fontSize: 14, height: 1.4),
+            },
+            borderRadius: AppTheme.borderRadiusExtraLarge,
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.space24),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: widget.emotionStyle.color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.lightbulb_outline_rounded, size: 24, color: widget.emotionStyle.color),
                   ),
-                ),
-              ],
+                  const SizedBox(width: AppTheme.space16),
+                  Expanded(
+                    child: Text(
+                      'How to respond',
+                      style: AppTheme.titleStyle.copyWith(
+                        fontSize: 17, 
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOutBack,
+                    child: Icon(Icons.expand_more_rounded, color: widget.emotionStyle.color.withOpacity(0.5)),
+                  ),
+                ],
+              ),
             ),
-          )).toList(),
-        ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(AppTheme.space24, 0, AppTheme.space24, AppTheme.space24),
+              child: Column(
+                children: widget.suggestions.map((suggestion) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: widget.emotionStyle.color.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.space16),
+                      Expanded(
+                        child: Text(
+                          suggestion,
+                          style: AppTheme.bodyStyle.copyWith(
+                            fontSize: 15, 
+                            height: 1.6,
+                            color: AppTheme.textColor.withOpacity(0.85),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+              ),
+            ),
+            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 400),
+            sizeCurve: Curves.easeInOutCubic,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuestConversionBottomSheet extends StatelessWidget {
+  const _GuestConversionBottomSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.bgColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+      ),
+      padding: EdgeInsets.only(
+        top: AppTheme.space32,
+        left: AppTheme.space24,
+        right: AppTheme.space24,
+        bottom: MediaQuery.of(context).padding.bottom + AppTheme.space32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppTheme.textLightColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: AppTheme.space32),
+          
+          // Emotional Icon
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space24),
+            decoration: BoxDecoration(
+              color: AppTheme.accentColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 48,
+              color: AppTheme.accentColor,
+            ),
+          ),
+          const SizedBox(height: AppTheme.space24),
+
+          Text(
+            "Save your dog's emotional journey 🐾",
+            textAlign: TextAlign.center,
+            style: AppTheme.headingStyle.copyWith(
+              fontSize: 24,
+              color: AppTheme.textColor,
+            ),
+          ),
+          const SizedBox(height: AppTheme.space16),
+          Text(
+            "Create a free account to keep scan history, emotional insights, and personalized tracking for your companion.",
+            textAlign: TextAlign.center,
+            style: AppTheme.bodyStyle.copyWith(
+              fontSize: 16,
+              height: 1.5,
+              color: AppTheme.textColor.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: AppTheme.space32),
+
+          // Primary CTA: Continue with Google
+          SquishButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await auth.signInWithGoogle();
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: AppTheme.borderRadiusPill,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.login_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: AppTheme.space12),
+                  const Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppTheme.space16),
+
+          // Secondary CTA: Maybe Later
+          TextButton(
+            onPressed: () {
+              auth.dismissGuestConversion();
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              foregroundColor: AppTheme.textLightColor,
+            ),
+            child: Text(
+              'Maybe Later',
+              style: AppTheme.titleStyle.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textLightColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
