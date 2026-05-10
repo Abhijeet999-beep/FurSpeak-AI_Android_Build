@@ -76,6 +76,7 @@ app.*.map.json
 /temp_debug/
 /temp/
 /venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -172,4 +173,4 @@ tmp/
 temp/
 
 # firebase 
-firebase-adminsdk.json.json
+firebase-adminsdk.json
