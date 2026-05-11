@@ -27,12 +27,9 @@ class DailyActivityChart extends StatelessWidget {
     if (maxCount == 0) maxCount = 5; // fallback
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceActive,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.softShadow,
+      padding: const EdgeInsets.all(AppTheme.space16),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

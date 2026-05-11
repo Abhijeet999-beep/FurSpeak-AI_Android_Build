@@ -39,16 +39,10 @@ class InsightCard extends StatelessWidget {
     final icon = getIcon();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceActive,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1,
-        ),
-        boxShadow: AppTheme.softShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

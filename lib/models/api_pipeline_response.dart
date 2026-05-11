@@ -1,5 +1,6 @@
 class ApiPipelineResponse {
   final String status;
+  final String? jobId;
   final String? emotion;
   final double confidence;
   final String? caption;
@@ -17,6 +18,7 @@ class ApiPipelineResponse {
 
   ApiPipelineResponse({
     required this.status,
+    this.jobId,
     this.emotion,
     required this.confidence,
     this.caption,
@@ -55,10 +57,10 @@ class ApiPipelineResponse {
 
     // 1. Normalize timelineSummary / suggestions / recommendations
     List<String> safeTimelineSummary = [];
-    final rawSummary = data['timeline_summary'] ?? 
-                      data['suggestion'] ?? 
-                      data['suggestions'] ?? 
-                      data['recommendations'];
+    final rawSummary = data['timeline_summary'] ??
+        data['suggestion'] ??
+        data['suggestions'] ??
+        data['recommendations'];
     if (rawSummary != null) {
       if (rawSummary is String) {
         safeTimelineSummary = [rawSummary];
@@ -82,8 +84,8 @@ class ApiPipelineResponse {
       } else {
         safeConfidence = double.tryParse(rawConfidence.toString()) ?? 0.0;
       }
-      
-      // Auto-normalization: If the value is in 0-1 range (and not exactly 0 or 1), 
+
+      // Auto-normalization: If the value is in 0-1 range (and not exactly 0 or 1),
       // assume it's a float probability and convert to percentage.
       if (safeConfidence > 0 && safeConfidence <= 1.0) {
         safeConfidence *= 100.0;
@@ -103,15 +105,22 @@ class ApiPipelineResponse {
 
     // 5. Final Assembly with field name fallbacks (summary -> caption, thumbnail_url -> frame_image_url)
     return ApiPipelineResponse(
-      status: data['status']?.toString() ?? (json['success'] == true ? 'success' : 'error'),
+      status: data['status']?.toString() ??
+          (json['success'] == true ? 'success' : 'error'),
+      jobId: data['job_id']?.toString(),
       emotion: data['emotion']?.toString() ?? 'unknown',
       confidence: safeConfidence,
-      caption: (data['caption'] ?? data['summary'] ?? data['description'])?.toString() ?? '',
+      caption: (data['caption'] ?? data['summary'] ?? data['description'])
+              ?.toString() ??
+          '',
       processingTime: safeTime,
       timestamp: data['timestamp']?.toString(),
-      videoInfo: data['video_info'] is Map<String, dynamic> ? data['video_info'] : null,
+      videoInfo: data['video_info'] is Map<String, dynamic>
+          ? data['video_info']
+          : null,
       frameImagePath: data['frame_image_path']?.toString(),
-      frameImageUrl: (data['frame_image_url'] ?? data['thumbnail_url'])?.toString(),
+      frameImageUrl:
+          (data['frame_image_url'] ?? data['thumbnail_url'])?.toString(),
       timeline: safeTimeline,
       timelineSummary: safeTimelineSummary,
       localMediaPath: data['local_media_path']?.toString(),
@@ -120,9 +129,11 @@ class ApiPipelineResponse {
   }
 
   /// Returns a copy with client-side local metadata attached.
-  ApiPipelineResponse withLocalMedia({required String? path, required bool isVideo}) {
+  ApiPipelineResponse withLocalMedia(
+      {required String? path, required bool isVideo}) {
     return ApiPipelineResponse(
       status: status,
+      jobId: jobId,
       emotion: emotion,
       confidence: confidence,
       caption: caption,
@@ -141,6 +152,7 @@ class ApiPipelineResponse {
   Map<String, dynamic> toMap() {
     return {
       'status': status,
+      'job_id': jobId,
       'emotion': emotion,
       'confidence': confidence,
       'caption': caption,

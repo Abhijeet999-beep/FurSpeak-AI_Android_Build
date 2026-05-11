@@ -34,47 +34,41 @@ class StorageService:
         if not cls._ensure_firebase():
             return None
 
-        for attempt in range(2):
-            try:
-                loop = asyncio.get_running_loop()
+        try:
+            loop = asyncio.get_running_loop()
 
-                def _upload():
-                    bucket = storage.bucket(settings.FIREBASE_STORAGE_BUCKET)
-                    ext = os.path.splitext(local_path)[-1]
-                    blob_name = f"thumbnails/{user_id}/{uuid.uuid4().hex}{ext}"
-                    blob = bucket.blob(blob_name)
-                    blob.upload_from_filename(local_path)
-                    # Use signed URLs for production security (valid for 7 days)
-                    return blob.generate_signed_url(expiration=timedelta(days=7))
+            def _upload():
+                bucket = storage.bucket(settings.FIREBASE_STORAGE_BUCKET)
+                ext = os.path.splitext(local_path)[-1]
+                blob_name = f"thumbnails/{user_id}/{uuid.uuid4().hex}{ext}"
+                blob = bucket.blob(blob_name)
+                blob.upload_from_filename(local_path)
+                # Use signed URLs for production security (valid for 7 days)
+                return blob.generate_signed_url(expiration=timedelta(days=7))
 
-                return await loop.run_in_executor(None, _upload)
-            except Exception as e:
-                logger.error(f"Failed to upload thumbnail (attempt {attempt + 1}): {e}")
-                if attempt == 1:
-                    return None
-                await asyncio.sleep(1)
+            return await loop.run_in_executor(None, _upload)
+        except Exception as e:
+            logger.warning(f"[STORAGE] thumbnail upload failed gracefully: {e}")
+            return None
 
     @classmethod
     async def upload_dog_photo(cls, user_id: str, local_path: str) -> str | None:
         if not cls._ensure_firebase():
             return None
 
-        for attempt in range(2):
-            try:
-                loop = asyncio.get_running_loop()
+        try:
+            loop = asyncio.get_running_loop()
 
-                def _upload():
-                    bucket = storage.bucket(settings.FIREBASE_STORAGE_BUCKET)
-                    ext = os.path.splitext(local_path)[-1]
-                    blob_name = f"profiles/{user_id}/{uuid.uuid4().hex}{ext}"
-                    blob = bucket.blob(blob_name)
-                    blob.upload_from_filename(local_path)
-                    blob.make_public()
-                    return blob.public_url
+            def _upload():
+                bucket = storage.bucket(settings.FIREBASE_STORAGE_BUCKET)
+                ext = os.path.splitext(local_path)[-1]
+                blob_name = f"profiles/{user_id}/{uuid.uuid4().hex}{ext}"
+                blob = bucket.blob(blob_name)
+                blob.upload_from_filename(local_path)
+                blob.make_public()
+                return blob.public_url
 
-                return await loop.run_in_executor(None, _upload)
-            except Exception as e:
-                logger.error(f"Failed to upload dog photo (attempt {attempt + 1}): {e}")
-                if attempt == 1:
-                    return None
-                await asyncio.sleep(1)
+            return await loop.run_in_executor(None, _upload)
+        except Exception as e:
+            logger.warning(f"[STORAGE] dog photo upload failed gracefully: {e}")
+            return None

@@ -24,19 +24,16 @@ class WeeklyTrendCard extends StatelessWidget {
       final double diff = (thisWeekTotal - lastWeekTotal) / lastWeekTotal * 100;
       final sign = diff > 0 ? "+" : "";
       pctChange = "$sign${diff.round()}%";
-      pctColor = diff >= 0 ? Colors.green.shade600 : AppTheme.errorColor;
+      pctColor = diff >= 0 ? AppTheme.successColor : AppTheme.errorColor;
     } else if (thisWeekTotal > 0 && lastWeekTotal == 0) {
       pctChange = "+100%";
-      pctColor = Colors.green.shade600;
+      pctColor = AppTheme.successColor;
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceActive,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.softShadow,
+      padding: const EdgeInsets.all(AppTheme.space16),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

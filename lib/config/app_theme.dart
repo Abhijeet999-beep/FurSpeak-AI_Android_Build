@@ -33,17 +33,21 @@ class AppTheme {
   static const Color surfaceContainerLowest = AppColors.surfaceContainerLowest;
   static const Color surfaceContainerHigh = AppColors.surfaceContainerHigh;
 
+  static const double space4 = 4.0;
   static const double space8 = AppSpacing.s8;
+  static const double space10 = 10.0;
   static const double space12 = AppSpacing.s12;
   static const double space16 = AppSpacing.s16;
   static const double space20 = AppSpacing.s20;
   static const double space24 = AppSpacing.s24;
   static const double space32 = AppSpacing.s32;
 
+  static const double radiusSmall = 8.0;
   static const double radiusMedium = AppSpacing.r16;
   static const double radiusLarge = AppSpacing.r24;
   static const double radiusExtraLarge = AppSpacing.r32;
 
+  static final BorderRadius borderRadiusSmall = BorderRadius.circular(radiusSmall);
   static final BorderRadius borderRadiusMedium = AppSpacing.radius16;
   static final BorderRadius borderRadiusLarge = AppSpacing.radius24;
   static final BorderRadius borderRadiusExtraLarge = AppSpacing.radius32;
@@ -53,20 +57,32 @@ class AppTheme {
   static const Duration animMedium = AppSpacing.animMedium;
   static const Duration animSlow = AppSpacing.animSlow;
 
-  // Shadows (Tinted Periwinkle as per Design System)
+  // Shadows (Refined Periwinkle — Softer, Atmospheric, Premium)
   static List<BoxShadow> get softShadow => [
         BoxShadow(
-          color: const Color(0xFF4A58A8).withOpacity(0.06),
-          blurRadius: 20,
+          color: const Color(0xFF7E8CE0).withOpacity(0.04), // Softer
+          blurRadius: 60, // Increased blur
+          offset: const Offset(0, 20),
+          spreadRadius: -8,
+        ),
+        BoxShadow(
+          color: const Color(0xFF7E8CE0).withOpacity(0.015),
+          blurRadius: 25,
           offset: const Offset(0, 8),
         ),
       ];
 
   static List<BoxShadow> get floatShadow => [
         BoxShadow(
-          color: const Color(0xFF4A58A8).withOpacity(0.08),
+          color: const Color(0xFF7E8CE0).withOpacity(0.06), // Softer
+          blurRadius: 80, // Increased blur
+          offset: const Offset(0, 32),
+          spreadRadius: -12,
+        ),
+        BoxShadow(
+          color: const Color(0xFF7E8CE0).withOpacity(0.02),
           blurRadius: 40,
-          offset: const Offset(0, 20),
+          offset: const Offset(0, 12),
         ),
       ];
 
@@ -386,16 +402,107 @@ class PetMoodGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? AppTheme.borderRadiusLarge;
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          decoration: BoxDecoration(
-            color: (color ?? AppTheme.surfaceActive).withOpacity(opacity),
-            borderRadius: radius,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+          child: Container(
+            decoration: BoxDecoration(
+              color: (color ?? AppTheme.surfaceActive).withOpacity(opacity),
+              borderRadius: radius,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.25), // Cleaner, more visible edge
+                width: 1.5,
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.3),
+                  Colors.white.withOpacity(0.05),
+                  Colors.white.withOpacity(0.15),
+                  Colors.white.withOpacity(0.02),
+                ],
+                stops: const [0.0, 0.4, 0.6, 1.0],
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Top Shine Highlight (Inner Depth)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 100, // Slightly taller
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: radius,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft, // Angle the shine
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.4), // Brighter shine
+                          Colors.white.withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 0.7],
+                      ),
+                    ),
+                  ),
+                ),
+                // Inner Glow / Depth Ring (The "Velvet" feel)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: radius,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 2.5, // Slightly thicker for depth
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3), // More pronounced inner glow
+                          blurRadius: 30,
+                          spreadRadius: -15,
+                          offset: const Offset(0, 0),
+                        ),
+                        // Inner inset-like shadow for tactile feel
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Bottom Subtle Emotion Glow
+                Positioned(
+                  bottom: -25,
+                  left: 40,
+                  right: 40,
+                  height: 70,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: (color ?? AppTheme.primaryColor).withOpacity(0.2),
+                          blurRadius: 50,
+                          spreadRadius: 15,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // The actual content
+                child,
+              ],
+            ),
           ),
-          child: child,
         ),
       ),
     );

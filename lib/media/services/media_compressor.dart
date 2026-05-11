@@ -9,6 +9,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 class MediaCompressor {
+  /// Fetches video duration in seconds using FFprobe
+  static Future<double> getVideoDuration(File file) async {
+    try {
+      final infoSession = await FFprobeKit.getMediaInformation(file.path);
+      final info = infoSession.getMediaInformation();
+      if (info != null) {
+        return double.tryParse(info.getDuration() ?? '0') ?? 0;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [COMPRESSOR] Could not get duration via FFprobe: $e');
+    }
+    return 0;
+  }
+
   // ── Tiered video compression thresholds ───────────────────────────────────
   // < 5 MB  → skip entirely (already tiny)
   // 5–15 MB → Tier 1 light:  480p @ 15fps, CRF 32 — approx. 90% fewer pixel-frames vs 1080p@30fps
@@ -41,16 +55,9 @@ class MediaCompressor {
     }
 
     // ── Get Duration for progress tracking ──────────────────────────────
-    double duration = 0;
-    try {
-      final infoSession = await FFprobeKit.getMediaInformation(file.path);
-      final info = infoSession.getMediaInformation();
-      if (info != null) {
-        duration = double.tryParse(info.getDuration() ?? '0') ?? 0;
-        debugPrint('⏱️ [COMPRESSOR] Video duration: ${duration.toStringAsFixed(2)}s');
-      }
-    } catch (e) {
-      debugPrint('⚠️ [COMPRESSOR] Could not get duration via FFprobe: $e');
+    double duration = await getVideoDuration(file);
+    if (duration > 0) {
+      debugPrint('⏱️ [COMPRESSOR] Video duration: ${duration.toStringAsFixed(2)}s');
     }
 
     final dir = await getTemporaryDirectory();

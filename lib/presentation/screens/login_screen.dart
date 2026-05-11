@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
-import 'package:furspeak_ai/config/lottie_registry.dart';
+import 'package:provider/provider.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
-import 'package:provider/provider.dart';
+import 'package:furspeak_ai/config/app_typography.dart';
+import 'package:furspeak_ai/config/app_spacing.dart';
+import 'package:furspeak_ai/config/lottie_registry.dart';
+import 'package:furspeak_ai/theme/app_animations.dart';
+import 'package:furspeak_ai/widgets/auth_button.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/utils/auth_error_mapper.dart';
 
-/// Welcome / Main entry screen for authentication
+/// Welcome / Main entry screen for authentication (V2 Gold Standard)
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -17,31 +21,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  bool _isLoading = false;
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..forward();
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
+class _LoginScreenState extends State<LoginScreen> {
   void _showFriendlySnackBar(String message, {IconData? icon}) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen>
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isLoading) return;
     
-    HapticFeedback.mediumImpact();
+    FurHaptics.impact();
 
     await authProvider.signInWithGoogle();
     
@@ -94,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen>
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isLoading) return;
 
-    HapticFeedback.mediumImpact();
+    FurHaptics.tap();
 
     await authProvider.continueAsGuest();
     
@@ -117,25 +97,26 @@ class _LoginScreenState extends State<LoginScreen>
       canPop: !isLoading,
       child: Scaffold(
         backgroundColor: AppTheme.bgColor,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.warmGradient,
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Column(
                     children: [
                       const SizedBox(height: 48),
-                      // Title
                       Text(
                         'FurSpeak AI 🐾',
-                        style: AppTheme.headingStyle.copyWith(
-                          fontSize: 36,
+                        style: AppTypography.h1.copyWith(
+                          fontSize: 40,
                           color: AppTheme.primaryColor,
-                          letterSpacing: -0.5,
+                          letterSpacing: -1.0,
                         ),
-                      ),
+                      ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
                       const SizedBox(height: 8),
                       Text(
                         'Understand your dog like never before',
@@ -144,88 +125,107 @@ class _LoginScreenState extends State<LoginScreen>
                           fontSize: 16,
                         ),
                         textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 36),
+                      )
+                          .animate()
+                          .fadeIn(duration: 600.ms, delay: 200.ms),
+                      const SizedBox(height: 48),
                       // Dog Illustration
                       Container(
-                        width: 260,
-                        height: 260,
+                        width: 240,
+                        height: 240,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(40),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.12),
-                              blurRadius: 40,
-                              offset: const Offset(0, 16),
-                            ),
-                          ],
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(48),
+                          boxShadow: AppTheme.softShadow,
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(24),
                           child: RepaintBoundary(
                             child: Lottie.asset(
                               LottieRegistry.get('splash'),
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.pets, size: 100, color: AppTheme.primaryColor),
+                                  const Icon(Icons.pets, size: 80, color: AppTheme.primaryColor),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 44),
+                      )
+                          .animate()
+                          .fadeIn(duration: 800.ms, delay: 200.ms)
+                          .scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack),
+                      const SizedBox(height: 48),
+
                       // ==== AUTH BUTTONS ====
-                      // 1. Continue with Google
-                      _AuthButton(
-                        label: 'Continue with Google',
-                        icon: Icons.g_mobiledata_rounded,
-                        color: Colors.white,
-                        textColor: AppTheme.textColor,
-                        onPressed: _isLoading ? null : _signInWithGoogle,
-                        iconWidget: _googleIcon(),
-                      ),
-                      const SizedBox(height: 14),
-                      // 2. Continue with Phone (placeholder)
-                      _AuthButton(
-                        label: 'Continue with Phone',
-                        icon: Icons.phone_rounded,
-                        color: AppTheme.successColor,
-                        textColor: Colors.white,
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                _showFriendlySnackBar(
-                                    '📱 Phone sign-in coming soon!',
-                                    icon: Icons.phone_rounded);
-                              },
-                      ),
-                      const SizedBox(height: 14),
-                      // 3. Continue as Guest
-                      _AuthButton(
-                        label: 'Keep Exploring',
-                        icon: Icons.person_outline_rounded,
-                        color: AppTheme.accentColor,
-                        textColor: Colors.white,
-                        onPressed: _isLoading ? null : _continueAsGuest,
+                      StaggeredEntrance(
+                        initialDelay: 400.ms,
+                        children: [
+                          // 1. Continue with Google
+                          AuthButton(
+                            label: 'Continue with Google',
+                            color: Colors.white,
+                            textColor: AppTheme.textColor,
+                            onPressed: isLoading ? null : _signInWithGoogle,
+                            iconWidget: _googleIcon(),
+                          ),
+                          const SizedBox(height: 12),
+                          // 2. Continue with Phone
+                          AuthButton(
+                            label: 'Continue with Phone',
+                            icon: Icons.phone_rounded,
+                            color: AppTheme.successColor,
+                            textColor: Colors.white,
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    FurHaptics.tap();
+                                    context.push(AppRoutes.phoneLogin);
+                                  },
+                          ),
+                          const SizedBox(height: 12),
+                          // 3. Continue as Guest (Value-driven label)
+                          AuthButton(
+                            label: 'Analyze your pet 📸',
+                            icon: Icons.camera_alt_rounded,
+                            color: AppTheme.accentColor,
+                            textColor: Colors.white,
+                            onPressed: isLoading ? null : _continueAsGuest,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 28),
+                      
+                      // Terms & Privacy Disclaimer (Play Store Requirement)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'By continuing, you agree to our Terms of Service\nand Privacy Policy',
+                          textAlign: TextAlign.center,
+                          style: AppTheme.captionStyle.copyWith(
+                            fontSize: 12,
+                            color: AppTheme.textLightColor.withOpacity(0.6),
+                            height: 1.5,
+                          ),
+                        ).animate().fadeIn(delay: 800.ms),
+                      ),
+                      const SizedBox(height: 32),
                       // Divider
                       Row(
                         children: [
                           Expanded(
                               child: Divider(
-                                  color: Colors.grey.shade300, thickness: 1)),
+                                  color: AppTheme.primaryColor.withOpacity(0.1), thickness: 1.5)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text('or',
+                            child: Text('or explore more',
                                 style: AppTheme.captionStyle
-                                    .copyWith(fontSize: 15)),
+                                    .copyWith(fontSize: 14, fontWeight: FontWeight.w500)),
                           ),
                           Expanded(
                               child: Divider(
-                                  color: Colors.grey.shade300, thickness: 1)),
+                                  color: AppTheme.primaryColor.withOpacity(0.1), thickness: 1.5)),
                         ],
-                      ),
+                      ).animate().fadeIn(delay: 800.ms),
                       const SizedBox(height: 20),
                       // 4. Sign in with Email (text link)
                       Row(
@@ -234,86 +234,90 @@ class _LoginScreenState extends State<LoginScreen>
                           TextButton(
                             onPressed: isLoading
                                 ? null
-                                : () => context.push(AppRoutes.emailLogin),
+                                : () {
+                                    FurHaptics.tap();
+                                    context.push(AppRoutes.emailLogin);
+                                  },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
                             child: Text(
                               'Sign in with Email',
-                              style: AppTheme.bodyStyle.copyWith(
+                              style: AppTypography.body1.copyWith(
                                 color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
                         ],
-                      ),
+                      ).animate().fadeIn(delay: 900.ms),
+                      const SizedBox(height: 4),
                       // Don't have an account?
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text("Don't have an account?",
-                              style: AppTheme.captionStyle),
+                              style: AppTheme.captionStyle.copyWith(fontSize: 14)),
                           TextButton(
-                            onPressed: _isLoading
+                            onPressed: isLoading
                                 ? null
-                                : () => context.goSignUp(),
+                                : () {
+                                    FurHaptics.tap();
+                                    context.goSignUp();
+                                  },
                             child: Text(
                               'Sign Up',
-                              style: AppTheme.bodyStyle.copyWith(
+                              style: AppTypography.body1.copyWith(
                                 color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
                         ],
-                      ),
+                      ).animate().fadeIn(delay: 1000.ms),
                       const SizedBox(height: 20),
                     ],
                   ),
                 ),
-              ),
-              // Loading overlay
-              if (isLoading)
-                Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 24,
+                // Loading overlay
+                if (isLoading)
+                  Positioned.fill(
+                    child: PetMoodGlass(
+                      opacity: 0.8,
+                      borderRadius: BorderRadius.zero,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: AppTheme.borderRadiusExtraLarge,
+                            boxShadow: AppTheme.softShadow,
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Builder(builder: (context) {
-                            return RepaintBoundary(
-                              child: Lottie.asset(
-                                LottieRegistry.get('loading'),
-                                width: 90,
-                                height: 90,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const CircularProgressIndicator(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RepaintBoundary(
+                                child: Lottie.asset(
+                                  LottieRegistry.get('loading'),
+                                  width: 90,
+                                  height: 90,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const CircularProgressIndicator(),
+                                ),
                               ),
-                            );
-                          }),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Signing you in... 🐶',
-                            style: AppTheme.titleStyle.copyWith(fontSize: 16),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Signing you in... 🐶',
+                                style: AppTypography.h3.copyWith(fontSize: 16),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ).animate().fadeIn(duration: 300.ms),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -326,324 +330,5 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (_) {
       return const Icon(Icons.g_mobiledata_rounded, size: 26);
     }
-  }
-}
-
-// =========================================================================
-// Reusable Auth Button
-// =========================================================================
-class _AuthButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final Color textColor;
-  final VoidCallback? onPressed;
-  final Widget? iconWidget;
-
-  const _AuthButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.textColor,
-    this.onPressed,
-    this.iconWidget,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: textColor,
-          elevation: 0,
-          shadowColor: color.withOpacity(0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppTheme.borderRadiusPill,
-            side: BorderSide.none,
-          ),
-          textStyle: AppTheme.titleStyle.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (iconWidget != null)
-              iconWidget!
-            else
-              Icon(icon, size: 24, color: textColor),
-            const SizedBox(width: 12),
-            Text(label),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// =========================================================================
-// Email Login Screen (pushed from Welcome/Login)
-// =========================================================================
-class EmailLoginScreen extends StatefulWidget {
-  const EmailLoginScreen();
-
-  @override
-  State<EmailLoginScreen> createState() => _EmailLoginScreenState();
-}
-
-class _EmailLoginScreenState extends State<EmailLoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-
-
-  void _showFriendlySnackBar(String message, {Color? color}) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message,
-            style: const TextStyle(fontFamily: 'Inter', color: Colors.white)),
-        backgroundColor: color ?? const Color(0xFF2C2C2C),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    final authProvider = context.read<AuthProvider>();
-    if (authProvider.isLoading) return;
-
-    HapticFeedback.mediumImpact();
-
-    await authProvider.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-    
-    if (mounted) {
-      if (authProvider.errorType != null) {
-        final errorMsg = AuthErrorMapper.getErrorMessage(authProvider.errorType!);
-        if (errorMsg.isNotEmpty) {
-          _showFriendlySnackBar(errorMsg);
-        }
-      } else if (authProvider.errorMessage != null) {
-        _showFriendlySnackBar(authProvider.errorMessage!);
-      }
-    }
-  }
-
-  Future<void> _resetPassword() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      _showFriendlySnackBar('📧 Enter your email first, then tap Forgot Password.');
-      return;
-    }
-
-    // reset password might still need authService or provider
-    // the provider doesn't have it yet, we can skip reset password logic for now or implement it
-    _showFriendlySnackBar('📧 Check your info and try again.');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
-    return Scaffold(
-      backgroundColor: AppTheme.bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textColor),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 12),
-                    // Header
-                    Text(
-                      'Welcome Back 👋',
-                      style: AppTheme.headingStyle.copyWith(fontSize: 28),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sign in to your account',
-                      style: AppTheme.bodyStyle
-                          .copyWith(color: AppTheme.textLightColor),
-                    ),
-                    const SizedBox(height: 36),
-                    // Email
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: AppTheme.inputDecoration(
-                        label: 'Email',
-                        prefixIcon: Icons.email_rounded,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!value.contains('@') || !value.contains('.')) {
-                          return 'Hmm, that doesn\'t look like a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    // Password
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: AppTheme.inputDecoration(
-                        label: 'Password',
-                        prefixIcon: Icons.lock_rounded,
-                      ).copyWith(
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_rounded
-                                : Icons.visibility_off_rounded,
-                            color: AppTheme.textLightColor,
-                          ),
-                          onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: isLoading ? null : _resetPassword,
-                        child: Text(
-                          'Forgot Password?',
-                          style: AppTheme.captionStyle.copyWith(
-                            color: AppTheme.primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Sign In Button
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shadowColor: AppTheme.primaryColor.withOpacity(0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: AppTheme.borderRadiusPill,
-                          ),
-                        ),
-                        child: Text(
-                          'Sign In 🐶',
-                          style: AppTheme.titleStyle.copyWith(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Don't have an account?",
-                            style: AppTheme.captionStyle),
-                        TextButton(
-                          onPressed: () {
-                            context.go(AppRoutes.signup);
-                          },
-                          child: Text(
-                            'Sign Up',
-                            style: AppTheme.bodyStyle.copyWith(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-            if (isLoading)
-              Container(
-                color: Colors.black.withOpacity(0.3),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        RepaintBoundary(
-                          child: Lottie.asset(
-                            LottieRegistry.get('loading'),
-                            width: 80,
-                            height: 80,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppTheme.primaryColor),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text('Signing in...', style: AppTheme.titleStyle),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }

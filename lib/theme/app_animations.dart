@@ -39,6 +39,15 @@ class FurHaptics {
 
   /// Soft selection — toggle switches, checkbox taps.
   static void select() => HapticFeedback.selectionClick();
+
+  /// Success — subtle double-tap feel for completions.
+  static void success() {
+    HapticFeedback.lightImpact();
+    Future.delayed(const Duration(milliseconds: 50), () => HapticFeedback.lightImpact());
+  }
+
+  /// Warning — distinct vibration for alerts.
+  static void warning() => HapticFeedback.vibrate();
 }
 
 // ─── SQUASH & STRETCH BUTTON ─────────────────────────────────────────────
@@ -246,6 +255,161 @@ class _BoundedPulseState extends State<BoundedPulse>
   }
 }
 
+// ─── GENTLE FLOAT ANIMATION ──────────────────────────────────────────────
+//
+// A vertical "breathing" effect for hero elements (like Lottie pets).
+//
+// Usage:
+//   FloatingLottie(
+//     child: Lottie.asset(...),
+//   )
+
+class FloatingLottie extends StatefulWidget {
+  final Widget child;
+  final double distance;
+  final Duration duration;
+
+  const FloatingLottie({
+    super.key,
+    required this.child,
+    this.distance = 12.0,
+    this.duration = const Duration(milliseconds: 2500),
+  });
+
+  @override
+  State<FloatingLottie> createState() => _FloatingLottieState();
+}
+
+class _FloatingLottieState extends State<FloatingLottie>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(
+      begin: 0,
+      end: widget.distance,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutQuart, // Smoother "breathing" feel
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _animation.value),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+// ─── GLOW PULSE (Progress Bar) ──────────────────────────────────────────
+//
+// Adds a pulsing glow effect to emphasize specific UI components.
+//
+// Usage:
+//   GlowPulse(
+//     color: Colors.blue,
+//     child: LinearProgressIndicator(...),
+//   )
+
+class GlowPulse extends StatefulWidget {
+  final Widget child;
+  final Color color;
+  final bool isActive;
+  final Duration duration;
+
+  const GlowPulse({
+    super.key,
+    required this.child,
+    required this.color,
+    this.isActive = true,
+    this.duration = const Duration(milliseconds: 1500),
+  });
+
+  @override
+  State<GlowPulse> createState() => _GlowPulseState();
+}
+
+class _GlowPulseState extends State<GlowPulse>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _glowAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+
+    _glowAnim = Tween<double>(begin: 4.0, end: 12.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    if (widget.isActive) _controller.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(GlowPulse oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _controller.repeat(reverse: true);
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glowAnim,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withOpacity(0.3),
+                blurRadius: _glowAnim.value,
+                spreadRadius: _glowAnim.value / 4,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
 // ─── STAGGERED LIST ENTRANCE ─────────────────────────────────────────────
 //
 // Wraps a list of children to animate them in with a cascading
@@ -260,14 +424,16 @@ class StaggeredEntrance extends StatelessWidget {
   final List<Widget> children;
   final Duration staggerDelay;
   final Duration itemDuration;
+  final Duration initialDelay;
   final double slideOffset;
 
   const StaggeredEntrance({
     super.key,
     required this.children,
-    this.staggerDelay = const Duration(milliseconds: 80),
-    this.itemDuration = const Duration(milliseconds: 400),
-    this.slideOffset = 24.0,
+    this.staggerDelay = const Duration(milliseconds: 100),
+    this.itemDuration = const Duration(milliseconds: 500),
+    this.initialDelay = Duration.zero,
+    this.slideOffset = 20.0,
   });
 
   @override
@@ -280,15 +446,15 @@ class StaggeredEntrance extends StatelessWidget {
               .animate()
               .fadeIn(
                 duration: itemDuration,
-                delay: staggerDelay * index,
+                delay: initialDelay + (staggerDelay * index),
                 curve: Curves.easeOut,
               )
               .slideY(
                 begin: slideOffset / 100,
                 end: 0,
-                duration: itemDuration,
-                delay: staggerDelay * index,
-                curve: Curves.easeOutCubic,
+                duration: itemDuration + const Duration(milliseconds: 400), // Slightly longer
+                delay: initialDelay + (staggerDelay * index),
+                curve: const Cubic(0.05, 0.9, 0.1, 1.0), // More expressive quintic curve
               );
         }),
       ),

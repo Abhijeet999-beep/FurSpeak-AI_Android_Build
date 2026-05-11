@@ -37,7 +37,8 @@ class ApiService {
   /// Temporary health check for debugging connectivity.
   Future<void> _testConnection() async {
     try {
-      debugPrint('🔍 [API SERVICE] Testing connection to: ${ApiConfig.baseUrl}/health');
+      debugPrint(
+          '🔍 [API SERVICE] Testing connection to: ${ApiConfig.baseUrl}/health');
       final response = await _dio.get('/health');
       debugPrint('🔍 [API SERVICE] Health check response: ${response.data}');
     } catch (e) {
@@ -77,24 +78,28 @@ class ApiService {
     // ── PRE-FLIGHT CHECKS ──────────────────────────────────────────────
     if (!file.existsSync()) {
       throw PipelineException(
-        message: 'File not found at path: ${file.path}. It may have been deleted after compression.',
+        message:
+            'File not found at path: ${file.path}. It may have been deleted after compression.',
         stage: PipelineStage.uploading,
         canRetry: false,
       );
     }
 
     final int fileSize = file.lengthSync();
-    final String endpointPath = isVideo ? ApiConfig.detectVideo : ApiConfig.detectImage;
+    final String endpointPath =
+        isVideo ? ApiConfig.detectVideo : ApiConfig.detectImage;
     final String fullUrl = ApiConfig.getFullUrl(endpointPath);
-    
+
     // Explicit debug log for validation
-    debugPrint('🚀 [API SERVICE] TARGET ENDPOINT: $endpointPath (Full: $fullUrl)');
-    
+    debugPrint(
+        '🚀 [API SERVICE] TARGET ENDPOINT: $endpointPath (Full: $fullUrl)');
+
     final DateTime startTime = DateTime.now();
 
     debugPrint('[UPLOAD] ════════════════════════════════════════════');
     debugPrint('[UPLOAD] START → $endpointPath');
-    debugPrint('[UPLOAD] FILE SIZE → $fileSize bytes (${(fileSize / 1024).toStringAsFixed(1)} KB)');
+    debugPrint(
+        '[UPLOAD] FILE SIZE → $fileSize bytes (${(fileSize / 1024).toStringAsFixed(1)} KB)');
     debugPrint('[UPLOAD] FILE PATH → ${file.path}');
     debugPrint('[UPLOAD] REQUEST ID → $requestId');
     debugPrint('[UPLOAD] TIME → $startTime');
@@ -132,7 +137,7 @@ class ApiService {
     Function(double)? onProgress,
   }) async {
     int retries = 0;
-    
+
     while (true) {
       try {
         return await _singleUploadAttempt(
@@ -175,7 +180,7 @@ class ApiService {
       // --- Auth tokens ---
       String? authToken;
       String? appCheckToken;
-      
+
       try {
         authToken = await authProvider.getToken();
       } catch (e) {
@@ -198,7 +203,8 @@ class ApiService {
       // Re-check file existence right before building FormData
       if (!file.existsSync()) {
         throw PipelineException(
-          message: 'File disappeared before upload attempt $attemptNumber: ${file.path}',
+          message:
+              'File disappeared before upload attempt $attemptNumber: ${file.path}',
           stage: PipelineStage.uploading,
           canRetry: false,
         );
@@ -209,7 +215,27 @@ class ApiService {
         "request_id": requestId,
       });
 
-      debugPrint('[UPLOAD] ATTEMPT $attemptNumber → Sending ${(fileSize / 1024).toStringAsFixed(1)} KB to $endpointUrl');
+      debugPrint(
+          '[UPLOAD] ATTEMPT $attemptNumber → Sending ${(fileSize / 1024).toStringAsFixed(1)} KB to $endpointUrl');
+
+      // ── BUILD SAFE HEADERS ─────────────────────────────────────────
+      final Map<String, dynamic> requestHeaders = {
+        "x-source": "mobile_app",
+      };
+
+      debugPrint(
+          '[AUTH] token exists: ${authToken != null && authToken!.isNotEmpty}');
+      if (authToken != null && authToken.isNotEmpty) {
+        requestHeaders["Authorization"] = "Bearer $authToken";
+        debugPrint('[AUTH] attached auth header');
+      } else {
+        debugPrint(
+            '[AUTH] skipping Authorization header (guest or token unavailable)');
+      }
+
+      if (appCheckToken != null && appCheckToken.isNotEmpty) {
+        requestHeaders["X-Firebase-AppCheck"] = appCheckToken;
+      }
 
       // ── HARD TIMEOUT WRAPPING ──────────────────────────────────────
       final response = await _dio.post(
@@ -217,11 +243,7 @@ class ApiService {
         data: formData,
         cancelToken: cancelToken,
         options: Options(
-          headers: {
-            "x-source": "mobile_app",
-            "Authorization": "Bearer $authToken",
-            "X-Firebase-AppCheck": appCheckToken,
-          },
+          headers: requestHeaders,
           sendTimeout: const Duration(seconds: 120),
           receiveTimeout: const Duration(seconds: 120),
         ),
@@ -234,9 +256,11 @@ class ApiService {
         _uploadHardTimeout,
         onTimeout: () {
           final elapsed = DateTime.now().difference(startTime);
-          debugPrint('[UPLOAD] ❌ TIMEOUT after ${elapsed.inSeconds}s (hard limit: ${_uploadHardTimeout.inSeconds}s)');
+          debugPrint(
+              '[UPLOAD] ❌ TIMEOUT after ${elapsed.inSeconds}s (hard limit: ${_uploadHardTimeout.inSeconds}s)');
           throw PipelineException(
-            message: 'Upload timed out after ${_uploadHardTimeout.inSeconds}s. Please try again.',
+            message:
+                'Upload timed out after ${_uploadHardTimeout.inSeconds}s. Please try again.',
             stage: PipelineStage.uploading,
             canRetry: true,
           );
@@ -245,13 +269,15 @@ class ApiService {
 
       // ── RESPONSE VALIDATION ────────────────────────────────────────
       final elapsed = DateTime.now().difference(startTime);
-      
+
       if (response.statusCode == 200) {
-        debugPrint('[UPLOAD] ✅ SUCCESS → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
+        debugPrint(
+            '[UPLOAD] ✅ SUCCESS → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
         debugPrint('[UPLOAD] RESPONSE → ${response.data}');
         return ApiPipelineResponse.fromJson(response.data);
       } else {
-        debugPrint('[UPLOAD] ❌ FAILED → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
+        debugPrint(
+            '[UPLOAD] ❌ FAILED → status=${response.statusCode} (${elapsed.inMilliseconds}ms)');
         debugPrint('[UPLOAD] RESPONSE BODY → ${response.data}');
         throw PipelineException(
           message: 'Upload failed with status: ${response.statusCode}.',
@@ -263,27 +289,30 @@ class ApiService {
       rethrow; // Already typed — propagate directly
     } on DioException catch (dioErr) {
       final elapsed = DateTime.now().difference(startTime);
-      
+
       if (CancelToken.isCancel(dioErr)) {
-        debugPrint('[UPLOAD] ❌ CANCELLED by user/system (${elapsed.inMilliseconds}ms)');
+        debugPrint(
+            '[UPLOAD] ❌ CANCELLED by user/system (${elapsed.inMilliseconds}ms)');
         throw const PipelineException(
           message: 'Request was cancelled.',
           stage: PipelineStage.idle,
           canRetry: false,
         );
       }
-      
-      debugPrint('[UPLOAD] ❌ FAILED → DioException: ${dioErr.type} | ${dioErr.message} (${elapsed.inMilliseconds}ms)');
+
+      debugPrint(
+          '[UPLOAD] ❌ FAILED → DioException: ${dioErr.type} | ${dioErr.message} (${elapsed.inMilliseconds}ms)');
       debugPrint('[UPLOAD] ❌ ERROR OBJECT → ${dioErr.error}');
       if (dioErr.response != null) {
         debugPrint('[UPLOAD] RESPONSE STATUS → ${dioErr.response?.statusCode}');
         debugPrint('[UPLOAD] RESPONSE BODY → ${dioErr.response?.data}');
       }
-      
+
       throw _mapDioError(dioErr, fallbackStage: PipelineStage.uploading);
     } catch (e) {
       final elapsed = DateTime.now().difference(startTime);
-      debugPrint('[UPLOAD] ❌ FAILED → Unknown error: $e (${elapsed.inMilliseconds}ms)');
+      debugPrint(
+          '[UPLOAD] ❌ FAILED → Unknown error: $e (${elapsed.inMilliseconds}ms)');
       throw PipelineException(
         message: 'Upload error: $e',
         stage: PipelineStage.uploading,
@@ -295,7 +324,7 @@ class ApiService {
   ///
   /// Throws [PipelineException] on timeout, cancellation, or terminal error.
   Future<ApiPipelineResponse> pollStatus({
-    required String requestId,
+    required String jobId,
     required AuthProvider authProvider,
     required CancelToken cancelToken,
   }) async {
@@ -322,22 +351,39 @@ class ApiService {
       }
 
       try {
-        final endpoint = "${ApiConfig.getFullUrl(ApiConfig.statusEndpoint)}/$requestId";
+        // Use relative path for Dio to construct correctly with baseUrl
+        final endpoint = "${ApiConfig.statusEndpoint}/$jobId";
+
+        debugPrint('[POLL] endpoint → $endpoint');
+        debugPrint('[POLL] job id → $jobId');
+
+        final Map<String, dynamic> pollHeaders = {
+          "x-source": "mobile_app",
+        };
+
+        debugPrint(
+            '[AUTH] poll token exists: ${token != null && token!.isNotEmpty}');
+        if (token != null && token.isNotEmpty) {
+          pollHeaders["Authorization"] = "Bearer $token";
+          debugPrint('[AUTH] poll: attached auth header');
+        } else {
+          debugPrint(
+              '[AUTH] poll: skipping Authorization header (guest or token unavailable)');
+        }
+
         final response = await _dio.get(
           endpoint,
           cancelToken: cancelToken,
           options: Options(
-            headers: {
-              "x-source": "mobile_app",
-              "Authorization": "Bearer $token"
-            },
+            headers: pollHeaders,
             receiveTimeout: const Duration(seconds: 10),
           ),
         );
 
         if (response.statusCode == 200) {
+          debugPrint('[POLL] success response → ${response.data}');
           final result = ApiPipelineResponse.fromJson(response.data);
-          if (result.status == 'success' || result.status == 'error') {
+          if (result.status == 'success' || result.status == 'completed' || result.status == 'error' || result.status == 'failed') {
             return result;
           }
         }
@@ -350,7 +396,8 @@ class ApiService {
           );
         }
         // Transient network errors during polling → continue retrying
-        debugPrint("⚠️ [API SERVICE] Polling heartbeat error, continuing to retry... ${dioErr.message}");
+        debugPrint(
+            "⚠️ [API SERVICE] Polling heartbeat error, continuing to retry... ${dioErr.message}");
       }
 
       if (cancelToken.isCancelled) {
@@ -394,7 +441,8 @@ class ApiService {
 
       case DioExceptionType.connectionError:
         return PipelineException(
-          message: 'Unable to connect to the server. Please check your internet connection and try again.',
+          message:
+              'Unable to connect to the server. Please check your internet connection and try again.',
           stage: fallbackStage,
           canRetry: true,
         );

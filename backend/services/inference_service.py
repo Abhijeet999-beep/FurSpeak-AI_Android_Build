@@ -10,10 +10,14 @@ class InferenceService:
     @staticmethod
     def detect_dog_and_roi(rgb_image, request_id="unknown", start_time=None, min_confidence=0.6):
         import time
+        import torch
 
         dog_detector = model_loader.get_dog_detector()
 
-        results = dog_detector(rgb_image, conf=0.4, verbose=False)
+        t0_inf = time.perf_counter()
+        with torch.inference_mode():
+            results = dog_detector(rgb_image, conf=0.4, verbose=False)
+        logger.info(f"[TIMING][{request_id}] YOLO Dog Inference call: {time.perf_counter() - t0_inf:.4f}s")
 
         detections = []
         if results and results[0].boxes:
@@ -66,10 +70,15 @@ class InferenceService:
 
     @staticmethod
     def predict_emotion(roi):
+        import time
+        import torch
         behavior_model = model_loader.get_behavior_model()
         classes = model_loader.get_classes()
 
-        result = behavior_model(roi, verbose=False)
+        t0_inf = time.perf_counter()
+        with torch.inference_mode():
+            result = behavior_model(roi, verbose=False)
+        logger.info(f"[TIMING] YOLO Emotion Inference call: {time.perf_counter() - t0_inf:.4f}s")
         boxes = result[0].boxes
 
         if not boxes or boxes.cls is None or len(boxes.cls) == 0:

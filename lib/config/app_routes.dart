@@ -11,10 +11,10 @@ import 'package:furspeak_ai/presentation/screens/settings_screen.dart';
 import 'package:furspeak_ai/presentation/screens/login_screen.dart';
 import 'package:furspeak_ai/presentation/screens/signup_screen.dart';
 import 'package:furspeak_ai/presentation/screens/profile_setup_screen.dart';
-import 'package:furspeak_ai/presentation/screens/welcome_screen.dart';
 import 'package:furspeak_ai/presentation/screens/phone_input_screen.dart';
 import 'package:furspeak_ai/presentation/screens/otp_verification_screen.dart';
 import 'package:furspeak_ai/presentation/screens/permission_screen.dart';
+import 'package:furspeak_ai/presentation/screens/email_login_screen.dart';
 import 'package:furspeak_ai/widgets/root_nav_shell.dart';
 import 'package:furspeak_ai/widgets/error_widget.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
@@ -214,7 +214,7 @@ class AppRoutes {
         // ── Auth Routes (Public) ──────────────────────────────────────────
         GoRoute(
           path: welcome,
-          builder: (context, state) => const WelcomeScreen(),
+          builder: (context, state) => const LoginScreen(),
         ),
         GoRoute(
           path: signup,

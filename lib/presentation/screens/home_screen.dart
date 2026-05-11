@@ -19,6 +19,8 @@ import 'package:furspeak_ai/providers/home_pipeline_provider.dart';
 import 'package:furspeak_ai/presentation/screens/video_trimmer_screen.dart';
 import 'package:furspeak_ai/utils/error_mapper.dart';
 import 'package:furspeak_ai/utils/media_utils.dart';
+import 'package:furspeak_ai/presentation/widgets/radial_glow.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +32,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isRetrying = false;
   bool _isPickerOpen = false;
+  late String _randomDogKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _randomDogKey = LottieRegistry.getRandomDog();
+  }
 
   Future<void> _startPipeline(String filePath, bool isVideo) async {
     final authProvider = context.read<AuthProvider>();
@@ -46,106 +55,134 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildMediaPickerSheet() {
-    return PetMoodGlass(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppTheme.space24, AppTheme.space12, AppTheme.space24, AppTheme.space32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle
-              Container(
-                width: 32,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.textColor.withValues(alpha: 0.08),
-                  borderRadius: AppTheme.borderRadiusPill,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+      ),
+      child: PetMoodGlass(
+        opacity: 0.05, // Much subtler for a large sheet
+        color: AppTheme.surfaceLow,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(AppTheme.space24, AppTheme.space12, AppTheme.space24, AppTheme.space32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Premium Handle
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.textColor.withOpacity(0.05),
+                        AppTheme.textColor.withOpacity(0.15),
+                        AppTheme.textColor.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: AppTheme.borderRadiusPill,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppTheme.space24),
-              
-              Text(
-                'Capture a Moment 🐶',
-                style: AppTheme.titleStyle.copyWith(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
+                const SizedBox(height: AppTheme.space24),
+                
+                StaggeredEntrance(
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                      child: Text(
+                        'Capture a Moment 📸',
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.8,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space8),
+                    Text(
+                      'How would you like to scan your pet?',
+                      style: AppTheme.captionStyle.copyWith(
+                        color: AppTheme.textLightColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: AppTheme.space8),
-              Text(
-                'Choose how you want to see their world',
-                style: AppTheme.captionStyle.copyWith(
-                  color: AppTheme.textLightColor,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: AppTheme.space32),
+                
+                StaggeredEntrance(
+                  staggerDelay: const Duration(milliseconds: 100),
+                  children: [
+                    // Camera Options
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SquishButton(
+                            useGlobalLock: false,
+                            onPressed: () => Navigator.pop(context, 'camera_photo'),
+                            child: _buildPickerOption(
+                              title: 'Snap Photo',
+                              subtitle: 'Instant results',
+                              icon: '📸',
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppTheme.space16),
+                        Expanded(
+                          child: SquishButton(
+                            useGlobalLock: false,
+                            onPressed: () => Navigator.pop(context, 'camera_video'),
+                            child: _buildPickerOption(
+                              title: 'Record Video',
+                              subtitle: 'Deep analysis',
+                              icon: '🎥',
+                              color: AppTheme.accentColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTheme.space16),
+                    
+                    // Gallery Options
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SquishButton(
+                            useGlobalLock: false,
+                            onPressed: () => Navigator.pop(context, 'gallery_photo'),
+                            child: _buildPickerOption(
+                              title: 'From Gallery',
+                              subtitle: 'Past memories',
+                              icon: '🖼️',
+                              color: AppTheme.tertiaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppTheme.space16),
+                        Expanded(
+                          child: SquishButton(
+                            useGlobalLock: false,
+                            onPressed: () => Navigator.pop(context, 'gallery_video'),
+                            child: _buildPickerOption(
+                              title: 'Import Video',
+                              subtitle: 'Detailed look',
+                              icon: '🎞️',
+                              color: const Color(0xFF7B61FF),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: AppTheme.space32),
-              
-              // Camera Options
-              Row(
-                children: [
-                  Expanded(
-                    child: SquishButton(
-                      useGlobalLock: false,
-                      onPressed: () => Navigator.pop(context, 'camera_photo'),
-                      child: _buildPickerOption(
-                        title: 'Snap Photo',
-                        subtitle: 'Quick & easy',
-                        icon: '📸',
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.space16),
-                  Expanded(
-                    child: SquishButton(
-                      useGlobalLock: false,
-                      onPressed: () => Navigator.pop(context, 'camera_video'),
-                      child: _buildPickerOption(
-                        title: 'Record Video',
-                        subtitle: 'Best for context',
-                        icon: '🎥',
-                        color: AppTheme.accentColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.space16),
-              
-              // Gallery Options
-              Row(
-                children: [
-                  Expanded(
-                    child: SquishButton(
-                      useGlobalLock: false,
-                      onPressed: () => Navigator.pop(context, 'gallery_photo'),
-                      child: _buildPickerOption(
-                        title: 'From Gallery',
-                        subtitle: 'Use existing photo',
-                        icon: '🖼️',
-                        color: AppTheme.tertiaryColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.space16),
-                  Expanded(
-                    child: SquishButton(
-                      useGlobalLock: false,
-                      onPressed: () => Navigator.pop(context, 'gallery_video'),
-                      child: _buildPickerOption(
-                        title: 'Import Video',
-                        subtitle: 'Longer moments',
-                        icon: '🎞️',
-                        color: const Color(0xFF7B61FF),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -159,11 +196,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.space24),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space24),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: AppTheme.surfaceContainerLowest,
         borderRadius: AppTheme.borderRadiusLarge,
-        boxShadow: AppTheme.softShadow,
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+            spreadRadius: -4,
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -171,29 +215,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(AppTheme.space12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: color.withOpacity(0.08),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.2),
+                  blurRadius: 12,
+                  spreadRadius: -4,
+                ),
+              ],
             ),
-            child: Text(icon, style: const TextStyle(fontSize: 28)),
+            child: Text(icon, style: const TextStyle(fontSize: 32)),
           ),
           const SizedBox(height: AppTheme.space16),
           Text(
             title, 
             textAlign: TextAlign.center,
             style: AppTheme.titleStyle.copyWith(
-              fontSize: 14, 
+              fontSize: 15, 
               fontWeight: FontWeight.w800,
               color: AppTheme.textColor,
+              letterSpacing: -0.4,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             subtitle, 
             textAlign: TextAlign.center,
             style: AppTheme.captionStyle.copyWith(
               fontSize: 11,
-              color: AppTheme.textLightColor,
-              fontWeight: FontWeight.w500,
+              color: AppTheme.textLightColor.withOpacity(0.8),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -485,22 +537,61 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               children: [
                                 const SizedBox(height: AppTheme.space24),
                                 StaggeredEntrance(
+                                  staggerDelay: const Duration(milliseconds: 120), // More deliberate
                                   children: [
                                     Text(
-                                      'How is your dog feeling today? 🐾',
+                                      'How is your',
                                       textAlign: TextAlign.center,
                                       style: AppTheme.headingStyle.copyWith(
-                                        color: AppTheme.primaryColor,
-                                        fontSize: 26,
+                                        color: AppTheme.textColor.withOpacity(0.85),
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.5,
                                       ),
                                     ),
-                                    const SizedBox(height: AppTheme.space8),
+                                    const SizedBox(height: 2),
+                                    ShaderMask(
+                                      shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                                      child: Text(
+                                        'dog',
+                                        textAlign: TextAlign.center,
+                                        style: AppTheme.headingStyle.copyWith(
+                                          color: Colors.white,
+                                          fontSize: 84, // Slightly larger for impact
+                                          fontWeight: FontWeight.w800,
+                                          height: 0.85,
+                                          letterSpacing: -5.0,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
                                     Text(
-                                      'Let\'s find out together',
+                                      'feeling today?',
                                       textAlign: TextAlign.center,
-                                      style: AppTheme.captionStyle.copyWith(
-                                        fontSize: 15,
-                                        color: AppTheme.textLightColor,
+                                      style: AppTheme.headingStyle.copyWith(
+                                        color: AppTheme.textColor,
+                                        fontSize: 34,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppTheme.space20),
+                                    const SizedBox(height: AppTheme.space16),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surfaceLow.withOpacity(0.4),
+                                        borderRadius: AppTheme.borderRadiusPill,
+                                      ),
+                                      child: Text(
+                                        'Explore their emotional world ✨',
+                                        textAlign: TextAlign.center,
+                                        style: AppTheme.captionStyle.copyWith(
+                                          fontSize: 14,
+                                          color: AppTheme.textLightColor,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.2,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -535,157 +626,191 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 const SizedBox(height: AppTheme.space24),
 
                                 // Animated Dog Card
+                                 StaggeredEntrance(
+                                   initialDelay: const Duration(milliseconds: 400),
+                                   children: [
+                                     RadialGlow(
+                                       color: AppTheme.primaryColor.withOpacity(0.35),
+                                       size: 340,
+                                       child: FloatingLottie(
+                                         distance: 14.0, 
+                                         duration: const Duration(milliseconds: 3500),
+                                         child: PetMoodGlass(
+                                           opacity: 0.8,
+                                           borderRadius: AppTheme.borderRadiusExtraLarge,
+                                           child: Container(
+                                             width: double.infinity,
+                                             height: 280,
+                                             padding: const EdgeInsets.all(AppTheme.space24),
+                                             child: RepaintBoundary(
+                                               child: Lottie.asset(
+                                                 LottieRegistry.get(_randomDogKey),
+                                                 fit: BoxFit.contain,
+                                                 errorBuilder: (context, error, stackTrace) {
+                                                   return const Center(
+                                                     child: Icon(Icons.pets_rounded, size: 80, color: AppTheme.primaryColor),
+                                                   );
+                                                 },
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                     ),
+                                   ],
+                                 ),
+
+                                const SizedBox(height: 32),
+
+                                // ═══ PRIMARY CTA: Scan Emotion ═══
                                 StaggeredEntrance(
+                                  initialDelay: const Duration(milliseconds: 600),
                                   children: [
-                                    Container(
-                                      width: double.infinity,
-                                      height: 280,
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.surfaceContainerLowest,
-                                        borderRadius: AppTheme.borderRadiusExtraLarge,
-                                        boxShadow: AppTheme.softShadow,
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(AppTheme.space24),
-                                      child: RepaintBoundary(
-                                        child: Lottie.asset(
-                                          LottieRegistry.get('dog_happy'),
-                                          fit: BoxFit.contain,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Center(
-                                              child: Icon(Icons.pets_rounded, size: 80, color: AppTheme.primaryColor),
-                                            );
-                                          },
+                                    Opacity(
+                                      opacity: _isPickerOpen ? 0.6 : 1.0,
+                                      child: IgnorePointer(
+                                        ignoring: _isPickerOpen,
+                                        child: BoundedPulse(
+                                          child: SquishButton(
+                                            useGlobalLock: false,
+                                            onPressed: isProcessing || _isPickerOpen ? null : _triggerMediaPicker,
+                                            pressScale: 0.95,
+                                            child: Container(
+                                              width: double.infinity,
+                                              height: 72,
+                                              decoration: BoxDecoration(
+                                                gradient: AppTheme.primaryGradient,
+                                                borderRadius: AppTheme.borderRadiusPill,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: AppTheme.primaryColor.withOpacity(0.35),
+                                                    blurRadius: 24,
+                                                    offset: const Offset(0, 10),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Shimmer.fromColors(
+                                                baseColor: Colors.white,
+                                                highlightColor: Colors.white.withOpacity(0.5),
+                                                period: const Duration(milliseconds: 3000),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.all(12),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white.withOpacity(0.2),
+                                                        borderRadius: AppTheme.borderRadiusMedium,
+                                                      ),
+                                                      child: const Icon(Icons.auto_awesome_rounded, size: 28, color: Colors.white),
+                                                    ),
+                                                    const SizedBox(width: AppTheme.space16),
+                                                    Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          'Scan Emotion',
+                                                          style: AppTheme.titleStyle.copyWith(
+                                                            color: Colors.white,
+                                                            fontSize: 22,
+                                                            fontWeight: FontWeight.w800,
+                                                            letterSpacing: -0.5,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          'Photo or Video',
+                                                          style: AppTheme.captionStyle.copyWith(
+                                                            color: Colors.white.withOpacity(0.85),
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
                                       ),
                                     ),
                                   ],
                                 ),
 
-                                const SizedBox(height: 32),
+                                const SizedBox(height: AppTheme.space16),
 
-                                // ═══ PRIMARY CTA: Scan Emotion ═══
-                                Opacity(
-                                  opacity: _isPickerOpen ? 0.6 : 1.0,
-                                  child: IgnorePointer(
-                                    ignoring: _isPickerOpen,
-                                    child: BoundedPulse(
+                                // View Results CTA
+                                StaggeredEntrance(
+                                  initialDelay: const Duration(milliseconds: 800),
+                                  children: [
+                                    Selector<HomePipelineProvider, bool>(
+                                      selector: (_, p) => p.state == HomeState.success,
+                                      builder: (context, isResult, _) {
+                                        if (!isResult) return const SizedBox.shrink();
+
+                                    return BoundedPulse(
+                                      maxPulses: 3,
                                       child: SquishButton(
-                                        useGlobalLock: false,
-                                        onPressed: isProcessing || _isPickerOpen ? null : _triggerMediaPicker,
-                                        pressScale: 0.95,
+                                          onPressed: () {
+                                            FurHaptics.success();
+                                            final pipeline = context.read<HomePipelineProvider>();
+                                            final resultId = pipeline.consumeSuccess();
+                                            if (resultId != null) {
+                                              context.pushResult(resultId);
+                                              pipeline.resetPipeline();
+                                            } else if (pipeline.lastResultId != null) {
+                                              context.pushResult(pipeline.lastResultId!);
+                                              pipeline.resetPipeline();
+                                            }
+                                          },
                                         child: Container(
                                           width: double.infinity,
-                                          height: 64,
+                                          height: 60,
                                           decoration: BoxDecoration(
-                                            gradient: AppTheme.primaryGradient,
+                                            gradient: const LinearGradient(
+                                              colors: [
+                                                AppTheme.successColor,
+                                                Color(0xFF2ECC71),
+                                              ],
+                                            ),
                                             borderRadius: AppTheme.borderRadiusPill,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                                color: AppTheme.successColor.withOpacity(0.35),
                                                 blurRadius: 20,
                                                 offset: const Offset(0, 8),
                                               ),
                                             ],
                                           ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.all(10),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white.withValues(alpha: 0.15),
-                                                  borderRadius: AppTheme.borderRadiusMedium,
-                                                ),
-                                                child: const Icon(Icons.auto_awesome_rounded, size: 24, color: Colors.white),
-                                              ),
-                                              const SizedBox(width: AppTheme.space16),
-                                              Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Scan Emotion',
-                                                    style: AppTheme.titleStyle.copyWith(
-                                                      color: Colors.white,
-                                                      fontSize: 20,
-                                                      fontWeight: FontWeight.w800,
-                                                      letterSpacing: -0.5,
-                                                    ),
+                                          child: Shimmer.fromColors(
+                                            baseColor: Colors.white,
+                                            highlightColor: Colors.white.withOpacity(0.6),
+                                            period: const Duration(seconds: 4),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(Icons.auto_awesome_rounded, size: 24, color: Colors.white),
+                                                const SizedBox(width: AppTheme.space12),
+                                                Text(
+                                                  'View Results ✨',
+                                                  style: AppTheme.titleStyle.copyWith(
+                                                    color: Colors.white,
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w800,
+                                                    letterSpacing: -0.2,
                                                   ),
-                                                  Text(
-                                                    'Photo or Video',
-                                                    style: AppTheme.captionStyle.copyWith(
-                                                      color: Colors.white.withValues(alpha: 0.8),
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: AppTheme.space16),
-
-                                // View Results CTA
-                                Selector<HomePipelineProvider, bool>(
-                                  selector: (_, p) => p.state == HomeState.success,
-                                  builder: (context, isResult, _) {
-                                    if (!isResult) return const SizedBox.shrink();
-
-                                    return BoundedPulse(
-                                      maxPulses: 3,
-                                      child: SquishButton(
-                                        onPressed: () {
-                                          final pipeline = context.read<HomePipelineProvider>();
-                                          final resultId = pipeline.consumeSuccess();
-                                          if (resultId != null) {
-                                            context.pushResult(resultId);
-                                            pipeline.resetPipeline();
-                                          } else if (pipeline.lastResultId != null) {
-                                            context.pushResult(pipeline.lastResultId!);
-                                            pipeline.resetPipeline();
-                                          }
-                                        },
-                                        child: Container(
-                                          width: double.infinity,
-                                          height: 56,
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.successColor,
-                                            borderRadius: AppTheme.borderRadiusPill,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppTheme.successColor.withValues(alpha: 0.3),
-                                                blurRadius: 16,
-                                                offset: const Offset(0, 6),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(Icons.auto_awesome_rounded, size: 22, color: Colors.white),
-                                              const SizedBox(width: AppTheme.space8),
-                                              Text(
-                                                'View Results ✨',
-                                                style: AppTheme.titleStyle.copyWith(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                     );
-                                  },
+                                      },
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 24),
                               ],

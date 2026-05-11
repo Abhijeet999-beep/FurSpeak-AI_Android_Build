@@ -33,6 +33,8 @@ class VideoService:
                 fps = 30.0
 
             duration = total_frames / fps
+            logger.info(f"[TIMING][{request_id}] Video Metadata: duration={duration:.2f}s, total_frames={total_frames}, fps={fps}")
+            
             if duration > settings.MAX_VIDEO_DURATION_SECONDS + 2:
                 raise FurSpeakException(
                     "VIDEO_TOO_LONG",
@@ -40,12 +42,17 @@ class VideoService:
                     400,
                 )
 
-            target_count = settings.MAX_FRAMES_TO_PROCESS
+            # PHASE 1: Aggressive frame sampling
+            target_count_before = settings.MAX_FRAMES_TO_PROCESS
+            target_count = int(duration)
+            if target_count < 1:
+                target_count = 1
+            if target_count > 10:
+                target_count = 10
+            
+            logger.info(f"[FRAME SAMPLING] video duration -> {duration:.2f}s, source fps -> {fps}, frames analyzed -> {target_count}")
 
-            if target_count > 1 and duration > 0:
-                sample_ms = [round(i * (duration * 1000) / (target_count - 1)) for i in range(target_count)]
-            else:
-                sample_ms = [0]
+            frame_step = max(1, total_frames // target_count) if target_count > 0 else total_frames
 
             classes = model_loader.get_classes()
 
@@ -55,40 +62,110 @@ class VideoService:
             best_frame = None
             valid_detections = []
 
-            for ts_ms in sample_ms:
-                cap.set(cv2.CAP_PROP_POS_MSEC, ts_ms)
-                ret, frame = cap.read()
+            # Variables for tracking optimizations
+            last_dog_roi_bbox = None
+            consecutive_roi_reuses = 0
+            dog_inference_time = 0.0
+            emo_inference_time = 0.0
+
+            t0_loop = time.perf_counter()
+            frame_idx = 0
+            frames_processed = 0
+
+            # PHASE 2: Sequential reading to avoid cap.set()
+            while True:
+                ret = cap.grab()
                 if not ret:
-                    continue
+                    break
 
-                gray_mean = cv2.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))[0]
-                if gray_mean < _BRIGHTNESS_SKIP_THRESHOLD:
-                    del frame
-                    continue
+                if frame_idx % frame_step == 0 and frames_processed < target_count:
+                    ret, frame = cap.retrieve()
+                    if not ret:
+                        break
 
-                try:
-                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    roi, bbox, dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.6)
-                    valid_detections.append({"confidence": dog_conf, "bbox": bbox})
+                    gray_mean = cv2.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))[0]
+                    if gray_mean < _BRIGHTNESS_SKIP_THRESHOLD:
+                        frame_idx += 1
+                        del frame
+                        continue
 
-                    emotion, conf, label_idx = InferenceService.predict_emotion(roi)
-                    label_list.append(label_idx)
+                    try:
+                        # PHASE 3: Downscale Before YOLO
+                        h, w = frame.shape[:2]
+                        max_dim = 640
+                        if max(h, w) > max_dim:
+                            scale = max_dim / max(h, w)
+                            new_w, new_h = int(w * scale), int(h * scale)
+                            frame = cv2.resize(frame, (new_w, new_h))
+                            if frames_processed == 0:
+                                logger.info(f"[PREPROCESS] original resolution -> {w}x{h}, resized resolution -> {new_w}x{new_h}")
 
-                    second = int(ts_ms / 1000)
-                    if len(timeline) == 0 or timeline[-1].emotion != emotion:
-                        timeline.append(TimelineEntry(frame=second, emotion=emotion))
+                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        
+                        # PHASE 4: ROI Tracking Shortcut
+                        reused = False
+                        if last_dog_roi_bbox and consecutive_roi_reuses < 2:
+                            x1, y1, x2, y2 = last_dog_roi_bbox
+                            roi_h, roi_w = rgb.shape[:2]
+                            x1, y1 = max(0, x1), max(0, y1)
+                            x2, y2 = min(roi_w, x2), min(roi_h, y2)
+                            
+                            if x2 > x1 and y2 > y1:
+                                roi = rgb[y1:y2, x1:x2]
+                                dog_conf = 0.99
+                                bbox = (x1, y1, x2, y2)
+                                consecutive_roi_reuses += 1
+                                reused = True
+                                logger.info(f"[OPTIMIZATION][{request_id}] Reused ROI from previous frame.")
 
-                    if conf > best_conf:
-                        best_conf = conf
-                        best_frame = frame.copy()
+                        if not reused:
+                            t0_dog = time.perf_counter()
+                            roi, bbox, dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.6)
+                            t_dog = time.perf_counter() - t0_dog
+                            dog_inference_time += t_dog
+                            last_dog_roi_bbox = bbox
+                            consecutive_roi_reuses = 0
 
-                except FurSpeakException:
-                    continue
-                finally:
-                    # Explicit cleanup to prevent memory buildup during frame loop
-                    del frame
-                    if "rgb" in dir():
-                        del rgb
+                        valid_detections.append({"confidence": dog_conf, "bbox": bbox})
+
+                        t0_emo = time.perf_counter()
+                        emotion, conf, label_idx = InferenceService.predict_emotion(roi)
+                        t_emo = time.perf_counter() - t0_emo
+                        emo_inference_time += t_emo
+                        
+                        label_list.append(label_idx)
+
+                        second = int((frame_idx / fps))
+                        if len(timeline) == 0 or timeline[-1].emotion != emotion:
+                            timeline.append(TimelineEntry(frame=second, emotion=emotion))
+
+                        if conf > best_conf:
+                            best_conf = conf
+                            best_frame = frame.copy()
+
+                        # PHASE 7: Early Exit Strategy
+                        if len(timeline) >= 5:
+                            recent_emotions = [entry.emotion for entry in timeline[-5:]]
+                            if len(set(recent_emotions)) == 1:
+                                logger.info(f"[{request_id}] EARLY EXIT: Dominant emotion '{emotion}' consistent.")
+                                break
+
+                    except FurSpeakException:
+                        pass
+                    finally:
+                        del frame
+                        if "rgb" in dir():
+                            del rgb
+                    
+                    frames_processed += 1
+                    if frames_processed >= target_count:
+                        break
+
+                frame_idx += 1
+
+            loop_time = time.perf_counter() - t0_loop
+            # PHASE 9: Benchmark Report
+            logger.info(f"\n| Stage | Before | After |\n| --- | --- | --- |\n| Frame count | {target_count_before} | {target_count} |\n| Dog inference total | ~ | {dog_inference_time:.4f} s |\n| Emotion inference total | ~ | {emo_inference_time:.4f} s |\n| Total loop | ~ | {loop_time:.4f} s |")
 
         finally:
             # H3 fix: ALWAYS release VideoCapture regardless of exception path
@@ -117,7 +194,9 @@ class VideoService:
         else:
             best_frame_path = os.path.join(job_dir, f"best_frame_{uuid.uuid4().hex}.jpg")
 
+        t0_save = time.perf_counter()
         cv2.imwrite(best_frame_path, best_frame)
+        logger.info(f"[TIMING][{request_id}] cv2.imwrite best_frame: {time.perf_counter() - t0_save:.4f}s")
         del best_frame  # Free memory immediately
 
         transitions = []

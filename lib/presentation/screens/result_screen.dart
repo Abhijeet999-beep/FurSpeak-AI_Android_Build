@@ -13,12 +13,14 @@ import 'package:furspeak_ai/data/models/detection_result.dart';
 import 'package:furspeak_ai/services/result_storage_service.dart';
 import 'package:furspeak_ai/config/app_routes.dart';
 import 'package:furspeak_ai/config/lottie_registry.dart';
+import 'package:furspeak_ai/services/guest_guard_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
 import 'package:furspeak_ai/providers/auth_provider.dart';
 import 'package:furspeak_ai/media/services/media_orchestrator.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
+import 'package:furspeak_ai/presentation/widgets/radial_glow.dart';
 import 'package:provider/provider.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -155,8 +157,8 @@ class _ResultScreenState extends State<ResultScreen> {
 
   void _checkGuestConversion() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    // Show after 2nd successful scan (count is incremented before reaching this screen)
-    if (auth.isGuest && !auth.guestConversionDismissed && auth.guestScanCount >= 2) {
+    
+    if (GuestGuardService.shouldShowConversionPrompt(auth)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (mounted && ModalRoute.of(context)?.isCurrent == true) {
@@ -182,7 +184,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   void _handleShare() {
-    HapticFeedback.heavyImpact();
+    FurHaptics.heavy();
     
     final r = _detectionResult;
     if (r == null) return;
@@ -211,8 +213,10 @@ class _ResultScreenState extends State<ResultScreen> {
     if (r == null) return _failedPreviewWidget();
 
     final bool isVideo = r.isVideo;
-    final String localImagePath = r.mediaPath;
+    final String localPath = r.mediaPath;
+    final String? networkUrl = r.frameImageUrl;
 
+    // --- VIDEO PREVIEW ---
     if (isVideo) {
       if (_mediaUIState == MediaUIState.waitingInQueue || _mediaUIState == MediaUIState.executing) {
         if (_videoController == null || !_videoController!.value.isInitialized) {
@@ -257,35 +261,32 @@ class _ResultScreenState extends State<ResultScreen> {
       }
     }
 
-    if (!isVideo && localImagePath.isNotEmpty) {
-      final file = File(localImagePath);
+    // --- LOCAL IMAGE PREVIEW ---
+    if (!isVideo && localPath.isNotEmpty) {
+      final file = File(localPath);
       if (file.existsSync()) {
         return Image.file(
           file,
           height: 280,
           width: double.infinity,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _failedPreviewWidget(),
+          errorBuilder: (context, error, stackTrace) {
+            // If local file fails to load, try network fallback immediately
+            if (networkUrl != null && networkUrl.isNotEmpty) {
+              return _networkPreview(networkUrl);
+            }
+            return _failedPreviewWidget();
+          },
         );
       }
     }
 
-    final frameImageUrl = r.frameImageUrl;
-    if (frameImageUrl != null && frameImageUrl.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: frameImageUrl,
-        height: 280,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Shimmer.fromColors(
-          baseColor: AppTheme.surfaceElevated,
-          highlightColor: AppTheme.surfaceBase,
-          child: Container(height: 280, color: AppTheme.surfaceActive),
-        ),
-        errorWidget: (context, url, error) => _failedPreviewWidget(),
-      );
+    // --- NETWORK IMAGE FALLBACK ---
+    if (networkUrl != null && networkUrl.isNotEmpty) {
+      return _networkPreview(networkUrl);
     }
 
+    // --- STATUS-BASED FALLBACK (No Dog / Unknown) ---
     final emotion = r.emotion.toLowerCase();
     if (emotion == 'unknown' || emotion == 'no dog detected' || emotion.isEmpty) {
       return SizedBox(
@@ -306,6 +307,21 @@ class _ResultScreenState extends State<ResultScreen> {
     }
 
     return _failedPreviewWidget();
+  }
+
+  Widget _networkPreview(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      height: 280,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Shimmer.fromColors(
+        baseColor: AppTheme.surfaceElevated,
+        highlightColor: AppTheme.surfaceBase,
+        child: Container(height: 280, color: AppTheme.surfaceActive),
+      ),
+      errorWidget: (context, url, error) => _failedPreviewWidget(),
+    );
   }
 
   Widget _failedPreviewWidget() {
@@ -371,7 +387,7 @@ class _ResultScreenState extends State<ResultScreen> {
             Positioned.fill(
               child: RepaintBoundary(
                 child: Opacity(
-                  opacity: 0.04,
+                  opacity: 0.05, // Consistent with Home Screen
                   child: Lottie.asset(
                     LottieRegistry.get('paw_prints_bg'),
                     fit: BoxFit.cover,
@@ -390,11 +406,19 @@ class _ResultScreenState extends State<ResultScreen> {
                 // ═══ 1. MEDIA PREVIEW WITH OVERLAY ═══
                 Stack(
                   children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(AppTheme.radiusExtraLarge),
+                    Container(
+                      decoration: BoxDecoration(
+                        boxShadow: AppTheme.softShadow,
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(AppTheme.radiusExtraLarge),
+                        ),
                       ),
-                      child: _mediaPreview(),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(AppTheme.radiusExtraLarge),
+                        ),
+                        child: _mediaPreview(),
+                      ),
                     ),
                     // Back button
                     Positioned(
@@ -404,11 +428,11 @@ class _ResultScreenState extends State<ResultScreen> {
                         onPressed: () => context.goHome(),
                         child: PetMoodGlass(
                           borderRadius: const BorderRadius.all(Radius.circular(50)),
-                          opacity: 0.25,
+                          opacity: 0.35,
                           color: Colors.black,
                           child: Container(
-                            padding: const EdgeInsets.all(AppTheme.space12),
-                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+                            padding: const EdgeInsets.all(AppTheme.space10),
+                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
                           ),
                         ),
                       ),
@@ -418,32 +442,32 @@ class _ResultScreenState extends State<ResultScreen> {
                       bottom: AppTheme.space16,
                       right: AppTheme.space16,
                       child: PetMoodGlass(
-                        opacity: 0.9,
-                        color: emotionStyle.color.withValues(alpha: 0.1),
+                        opacity: 0.95,
+                        color: emotionStyle.color.withValues(alpha: 0.2),
                         borderRadius: AppTheme.borderRadiusPill,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.space16,
-                            vertical: AppTheme.space8,
+                            horizontal: AppTheme.space20,
+                            vertical: AppTheme.space10,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(emotionStyle.emoji, style: const TextStyle(fontSize: 18)),
-                              const SizedBox(width: AppTheme.space8),
+                              Text(emotionStyle.emoji, style: const TextStyle(fontSize: 20)),
+                              const SizedBox(width: AppTheme.space10),
                               Text(
-                                emotionStyle.label,
+                                emotionStyle.label.toUpperCase(),
                                 style: AppTheme.titleStyle.copyWith(
                                   color: AppTheme.textColor,
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
+                                  letterSpacing: 1.2,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
+                      ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack),
                     ),
                   ],
                 ),
@@ -453,37 +477,68 @@ class _ResultScreenState extends State<ResultScreen> {
                   child: StaggeredEntrance(
                     children: [
                       // ═══ 2. EMOTION HEADLINE ═══
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppTheme.space12),
-                            decoration: BoxDecoration(
-                              color: emotionStyle.color.withOpacity(0.12),
-                              borderRadius: AppTheme.borderRadiusMedium,
-                            ),
-                            child: Icon(emotionStyle.icon, color: emotionStyle.color, size: 32),
-                          ),
-                          const SizedBox(width: AppTheme.space16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Your dog feels',
-                                  style: AppTheme.captionStyle.copyWith(fontSize: 13),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${emotionStyle.label} ${emotionStyle.emoji}',
-                                  style: AppTheme.headingStyle.copyWith(
-                                    color: emotionStyle.color,
-                                    fontSize: 28,
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.space4),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppTheme.space16),
+                              decoration: BoxDecoration(
+                                color: emotionStyle.color.withValues(alpha: 0.12),
+                                borderRadius: AppTheme.borderRadiusLarge,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: emotionStyle.color.withValues(alpha: 0.15),
+                                    blurRadius: 20,
+                                    spreadRadius: -2,
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: RadialGlow(
+                                color: emotionStyle.color,
+                                size: 50,
+                                child: Icon(emotionStyle.icon, color: emotionStyle.color, size: 36),
+                              ),
+                            ).animate().shimmer(duration: 2.seconds, color: Colors.white.withValues(alpha: 0.2)),
+                            const SizedBox(width: AppTheme.space20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Your dog feels',
+                                    style: AppTheme.captionStyle.copyWith(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.textLightColor,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  ShaderMask(
+                                    shaderCallback: (bounds) => LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        emotionStyle.color,
+                                        emotionStyle.color.withValues(alpha: 0.6),
+                                      ],
+                                    ).createShader(bounds),
+                                    child: Text(
+                                      '${emotionStyle.label} ${emotionStyle.emoji}',
+                                      style: AppTheme.headingStyle.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -1.0,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: AppTheme.space24),
@@ -491,7 +546,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       // ═══ 3. CONFIDENCE BAR ═══
                       PetMoodGlass(
                         borderRadius: AppTheme.borderRadiusExtraLarge,
-                        opacity: 0.4,
+                        opacity: 0.5,
                         child: Padding(
                           padding: const EdgeInsets.all(AppTheme.space24),
                           child: Column(
@@ -499,36 +554,42 @@ class _ResultScreenState extends State<ResultScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    'Confidence Score',
-                                    style: AppTheme.titleStyle.copyWith(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.textColor.withValues(alpha: 0.8),
-                                    ),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.query_stats_rounded, size: 18, color: AppTheme.textColor.withValues(alpha: 0.6)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Confidence Score',
+                                        style: AppTheme.titleStyle.copyWith(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.textColor.withValues(alpha: 0.8),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: emotionStyle.color.withValues(alpha: 0.12),
+                                      color: (confidence >= 80 ? AppTheme.successColor : emotionStyle.color).withValues(alpha: 0.15),
                                       borderRadius: AppTheme.borderRadiusPill,
                                     ),
                                     child: Text(
                                       '${confidence.toInt()}% $confidenceLabel',
                                       style: AppTheme.titleStyle.copyWith(
-                                        color: emotionStyle.color,
+                                        color: confidence >= 80 ? AppTheme.successColor : emotionStyle.color,
                                         fontSize: 12,
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: AppTheme.space16),
+                              const SizedBox(height: AppTheme.space20),
                               Stack(
                                 children: [
                                   Container(
-                                    height: 10,
+                                    height: 12,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       color: emotionStyle.color.withValues(alpha: 0.08),
@@ -537,28 +598,39 @@ class _ResultScreenState extends State<ResultScreen> {
                                   ),
                                   TweenAnimationBuilder<double>(
                                     tween: Tween<double>(begin: 0, end: confidence / 100),
-                                    duration: const Duration(milliseconds: 1500),
+                                    duration: const Duration(milliseconds: 1800),
                                     curve: Curves.easeOutQuart,
                                     builder: (context, value, child) {
-                                      return FractionallySizedBox(
-                                        widthFactor: value,
-                                        child: Container(
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                emotionStyle.color,
-                                                emotionStyle.color.withOpacity(0.7),
-                                              ],
-                                            ),
-                                            borderRadius: AppTheme.borderRadiusPill,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: emotionStyle.color.withValues(alpha: 0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
+                                      return GlowPulse(
+                                        color: emotionStyle.color.withValues(alpha: 0.3),
+                                        duration: const Duration(seconds: 3),
+                                        child: FractionallySizedBox(
+                                          widthFactor: value,
+                                          child: Shimmer.fromColors(
+                                            baseColor: emotionStyle.color,
+                                            highlightColor: Colors.white.withValues(alpha: 0.6),
+                                            period: const Duration(seconds: 3),
+                                            child: Container(
+                                              height: 12,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                  colors: [
+                                                    emotionStyle.color,
+                                                    emotionStyle.color.withValues(alpha: 0.8),
+                                                  ],
+                                                ),
+                                                borderRadius: AppTheme.borderRadiusPill,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: emotionStyle.color.withValues(alpha: 0.4),
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
                                           ),
                                         ),
                                       );
@@ -576,7 +648,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       // ═══ 4. CAPTION CARD ═══
                       PetMoodGlass(
                         color: emotionStyle.actionCardColor,
-                        opacity: 0.6,
+                        opacity: 0.7,
                         borderRadius: AppTheme.borderRadiusExtraLarge,
                         child: Padding(
                           padding: const EdgeInsets.all(AppTheme.space24),
@@ -589,21 +661,22 @@ class _ResultScreenState extends State<ResultScreen> {
                                   Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.all(6),
+                                        padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: emotionStyle.color.withValues(alpha: 0.1),
+                                          color: emotionStyle.color.withValues(alpha: 0.15),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(Icons.auto_awesome_rounded,
-                                            size: 16, color: emotionStyle.color),
+                                            size: 18, color: emotionStyle.color),
                                       ),
                                       const SizedBox(width: AppTheme.space12),
                                       Text(
                                         'Emotional Insight',
                                         style: AppTheme.titleStyle.copyWith(
-                                          fontSize: 15,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w700,
                                           color: emotionStyle.color,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
                                     ],
@@ -621,21 +694,28 @@ class _ResultScreenState extends State<ResultScreen> {
                                           shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
                                         ),
                                       );
-                                      HapticFeedback.lightImpact();
+                                      FurHaptics.tap();
                                     },
-                                    child: Icon(Icons.copy_rounded, size: 20, color: emotionStyle.color.withValues(alpha: 0.6)),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.1),
+                                        borderRadius: AppTheme.borderRadiusSmall,
+                                      ),
+                                      child: Icon(Icons.copy_rounded, size: 18, color: emotionStyle.color.withValues(alpha: 0.6)),
+                                    ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: AppTheme.space16),
+                              const SizedBox(height: AppTheme.space20),
                               Text(
                                 isError
                                     ? 'No emotion detected. Please ensure your dog\'s face is visible and try again.'
                                     : caption,
                                 style: AppTheme.bodyStyle.copyWith(
-                                  fontSize: 16,
-                                  height: 1.6,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 17,
+                                  height: 1.7,
+                                  fontWeight: FontWeight.w400,
                                   color: AppTheme.textColor.withValues(alpha: 0.9),
                                 ),
                               ),
@@ -663,6 +743,8 @@ class _ResultScreenState extends State<ResultScreen> {
                         ),
                       const SizedBox(height: AppTheme.space24),
 
+                      const SizedBox(height: AppTheme.space24),
+
                       // ═══ 7. BOTTOM ACTION BAR ═══
                       Row(
                         children: [
@@ -670,21 +752,22 @@ class _ResultScreenState extends State<ResultScreen> {
                             child: SquishButton(
                               onPressed: _handleAnalyzeAnother,
                               child: Container(
-                                height: 56,
+                                height: 60,
                                 decoration: BoxDecoration(
                                   color: AppTheme.surfaceContainerHigh,
                                   borderRadius: AppTheme.borderRadiusPill,
+                                  boxShadow: AppTheme.softShadow,
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.refresh_rounded, color: AppTheme.primaryColor, size: 20),
+                                    Icon(Icons.refresh_rounded, color: AppTheme.primaryColor, size: 22),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Scan Again',
                                       style: AppTheme.titleStyle.copyWith(
                                         color: AppTheme.primaryColor,
-                                        fontSize: 15,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
@@ -693,39 +776,34 @@ class _ResultScreenState extends State<ResultScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppTheme.space12),
+                          const SizedBox(width: AppTheme.space16),
                           Expanded(
                             child: SquishButton(
                               onPressed: _handleShare,
                               child: Container(
-                                height: 56,
+                                height: 60,
                                 decoration: BoxDecoration(
                                   gradient: AppTheme.primaryGradient,
                                   borderRadius: AppTheme.borderRadiusPill,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.primaryColor.withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
+                                  boxShadow: AppTheme.floatShadow,
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+                                    const Icon(Icons.share_rounded, color: Colors.white, size: 22),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Share Result',
                                       style: AppTheme.titleStyle.copyWith(
                                         color: Colors.white,
-                                        fontSize: 15,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
+                              ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+                               .shimmer(duration: 3.seconds, color: Colors.white.withValues(alpha: 0.1)),
                             ),
                           ),
                         ],
@@ -776,36 +854,59 @@ class _TimelineSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Mood Timeline',
-          style: AppTheme.titleStyle.copyWith(fontSize: 16),
+        Row(
+          children: [
+            Icon(Icons.history_toggle_off_rounded, size: 20, color: AppTheme.textColor.withValues(alpha: 0.6)),
+            const SizedBox(width: 8),
+            Text(
+              'Mood Timeline',
+              style: AppTheme.titleStyle.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppTheme.space8),
-        Text(summary, style: AppTheme.captionStyle),
-        const SizedBox(height: AppTheme.space12),
+        Text(
+          summary, 
+          style: AppTheme.captionStyle.copyWith(
+            fontSize: 13,
+            color: AppTheme.textColor.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: AppTheme.space16),
 
         // Timeline bar
         PetMoodGlass(
-          opacity: 0.3,
-          borderRadius: AppTheme.borderRadiusMedium,
+          opacity: 0.4,
+          borderRadius: AppTheme.borderRadiusExtraLarge,
           child: Container(
-            padding: const EdgeInsets.all(AppTheme.space16),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space20, vertical: AppTheme.space24),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
                   for (int i = 0; i < emotions.length; i++) ...[
                     if (i > 0)
                       Container(
-                        width: 12,
+                        width: 20,
                         height: 2,
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceElevated.withOpacity(0.5),
+                          gradient: LinearGradient(
+                            colors: [
+                              EmotionStyle.fromEmotion(emotions[i-1]).color.withValues(alpha: 0.3),
+                              EmotionStyle.fromEmotion(emotions[i]).color.withValues(alpha: 0.3),
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(1),
                         ),
                       ),
-                    _TimelineDot(emotion: emotions[i]),
+                    _TimelineDot(emotion: emotions[i]).animate()
+                      .fadeIn(delay: (i * 100).ms)
+                      .scale(begin: const Offset(0.5, 0.5), curve: Curves.easeOutBack, delay: (i * 100).ms),
                   ],
                 ],
               ),
@@ -816,7 +917,9 @@ class _TimelineSection extends StatelessWidget {
         // Timeline summary bullets
         if (timelineSummary.isNotEmpty) ...[
           const SizedBox(height: AppTheme.space12),
-          ...timelineSummary.map((point) {
+          ...timelineSummary.asMap().entries.map((entry) {
+            final int i = entry.key;
+            final String point = entry.value;
             final style = EmotionStyle.fromEmotion(
               point.toLowerCase().contains('happy') ? 'happy'
               : point.toLowerCase().contains('sad') ? 'sad'
@@ -839,7 +942,7 @@ class _TimelineSection extends StatelessWidget {
                   ),
                 ],
               ),
-            );
+            ).animate().fadeIn(delay: (400 + i * 100).ms).slideX(begin: 0.1, end: 0);
           }),
         ],
       ],
@@ -857,24 +960,45 @@ class _TimelineDot extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: style.color.withOpacity(0.15),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(style.emoji, style: const TextStyle(fontSize: 16)),
+        GlowPulse(
+          color: style.color.withValues(alpha: 0.1),
+          duration: const Duration(seconds: 4),
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: style.color.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: style.color.withValues(alpha: 0.2),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: style.color.withValues(alpha: 0.15),
+                  blurRadius: 15,
+                  spreadRadius: 1,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  blurRadius: 1,
+                  offset: const Offset(-1, -1),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(style.emoji, style: const TextStyle(fontSize: 24)),
+            ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           style.label,
           style: AppTheme.captionStyle.copyWith(
             fontSize: 10,
             color: style.color,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -928,30 +1052,39 @@ class _ExpandableInsightsState extends State<_ExpandableInsights> {
                     child: Icon(Icons.lightbulb_outline_rounded, size: 24, color: widget.emotionStyle.color),
                   ),
                   const SizedBox(width: AppTheme.space16),
-                  Expanded(
-                    child: Text(
-                      'How to respond',
-                      style: AppTheme.titleStyle.copyWith(
-                        fontSize: 17, 
-                        fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: Text(
+                        'How to respond',
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: 17, 
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
-                  ),
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOutBack,
-                    child: Icon(Icons.expand_more_rounded, color: widget.emotionStyle.color.withOpacity(0.5)),
-                  ),
-                ],
-              ),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: widget.emotionStyle.color.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: AnimatedRotation(
+                        turns: _isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutBack,
+                        child: Icon(Icons.expand_more_rounded, color: widget.emotionStyle.color, size: 24),
+                      ),
+                    ),
+                  ],
+                ),
             ),
           ),
           AnimatedCrossFade(
             firstChild: const SizedBox(width: double.infinity),
             secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(AppTheme.space24, 0, AppTheme.space24, AppTheme.space24),
-              child: Column(
+              child: StaggeredEntrance(
+                staggerDelay: const Duration(milliseconds: 60),
                 children: widget.suggestions.map((suggestion) => Padding(
                   padding: const EdgeInsets.only(bottom: AppTheme.space16),
                   child: Row(
@@ -962,7 +1095,7 @@ class _ExpandableInsightsState extends State<_ExpandableInsights> {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: widget.emotionStyle.color.withOpacity(0.5),
+                          color: widget.emotionStyle.color.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -973,7 +1106,7 @@ class _ExpandableInsightsState extends State<_ExpandableInsights> {
                           style: AppTheme.bodyStyle.copyWith(
                             fontSize: 15, 
                             height: 1.6,
-                            color: AppTheme.textColor.withOpacity(0.85),
+                            color: AppTheme.textColor.withValues(alpha: 0.85),
                           ),
                         ),
                       ),
@@ -999,126 +1132,135 @@ class _GuestConversionBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.bgColor,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
-      ),
-      padding: EdgeInsets.only(
-        top: AppTheme.space32,
-        left: AppTheme.space24,
-        right: AppTheme.space24,
-        bottom: MediaQuery.of(context).padding.bottom + AppTheme.space32,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppTheme.textLightColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: AppTheme.space32),
-          
-          // Emotional Icon
-          Container(
-            padding: const EdgeInsets.all(AppTheme.space24),
-            decoration: BoxDecoration(
-              color: AppTheme.accentColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              size: 48,
-              color: AppTheme.accentColor,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space24),
-
-          Text(
-            "Save your dog's emotional journey 🐾",
-            textAlign: TextAlign.center,
-            style: AppTheme.headingStyle.copyWith(
-              fontSize: 24,
-              color: AppTheme.textColor,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space16),
-          Text(
-            "Create a free account to keep scan history, emotional insights, and personalized tracking for your companion.",
-            textAlign: TextAlign.center,
-            style: AppTheme.bodyStyle.copyWith(
-              fontSize: 16,
-              height: 1.5,
-              color: AppTheme.textColor.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: AppTheme.space32),
-
-          // Primary CTA: Continue with Google
-          SquishButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await auth.signInWithGoogle();
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: AppTheme.borderRadiusPill,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+    return PetMoodGlass(
+      opacity: 0.98,
+      color: AppTheme.bgColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+      child: Container(
+        padding: EdgeInsets.only(
+          top: AppTheme.space24,
+          left: AppTheme.space24,
+          right: AppTheme.space24,
+          bottom: MediaQuery.of(context).padding.bottom + AppTheme.space32,
+        ),
+        child: StaggeredEntrance(
+          staggerDelay: const Duration(milliseconds: 100),
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppTheme.textLightColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.login_rounded, color: Colors.white, size: 20),
-                  const SizedBox(width: AppTheme.space12),
-                  const Text(
-                    'Continue with Google',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      letterSpacing: 0.5,
+            ),
+            const SizedBox(height: AppTheme.space32),
+            
+            // Emotional Icon
+            Center(
+              child: GlowPulse(
+                color: AppTheme.accentColor.withValues(alpha: 0.2),
+                child: Container(
+                  padding: const EdgeInsets.all(AppTheme.space24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.accentColor.withValues(alpha: 0.2),
+                      width: 2,
                     ),
                   ),
-                ],
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 48,
+                    color: AppTheme.accentColor,
+                  ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppTheme.space16),
+            const SizedBox(height: AppTheme.space24),
 
-          // Secondary CTA: Maybe Later
-          TextButton(
-            onPressed: () {
-              auth.dismissGuestConversion();
-              Navigator.pop(context);
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              foregroundColor: AppTheme.textLightColor,
-            ),
-            child: Text(
-              'Maybe Later',
-              style: AppTheme.titleStyle.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textLightColor,
+            Text(
+              "Save your dog's journey",
+              textAlign: TextAlign.center,
+              style: AppTheme.headingStyle.copyWith(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: AppTheme.textColor,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppTheme.space12),
+            Text(
+              "Create a free account to keep scan history, unlock deeper insights, and track your dog's moods over time.",
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyStyle.copyWith(
+                fontSize: 16,
+                height: 1.5,
+                color: AppTheme.textColor.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space32),
+
+            // Primary CTA: Continue with Google
+            SquishButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await auth.signInWithGoogle();
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: AppTheme.borderRadiusPill,
+                  boxShadow: AppTheme.floatShadow,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.login_rounded, color: Colors.white, size: 22),
+                    const SizedBox(width: AppTheme.space12),
+                    Text(
+                      'Continue with Google',
+                      style: AppTheme.titleStyle.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space16),
+
+            // Secondary CTA: Maybe Later
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  auth.dismissGuestConversion();
+                  Navigator.pop(context);
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  foregroundColor: AppTheme.textLightColor,
+                ),
+                child: Text(
+                  'Maybe Later',
+                  style: AppTheme.titleStyle.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textLightColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

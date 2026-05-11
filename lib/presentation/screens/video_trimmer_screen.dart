@@ -8,6 +8,7 @@ import 'package:furspeak_ai/config/app_colors.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
 import 'package:furspeak_ai/media/services/media_orchestrator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 /// WhatsApp Status-inspired video trimmer with a bold rectangular selection
 /// box overlaying a video thumbnail strip, thick draggable side handles,
@@ -32,29 +33,47 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     with SingleTickerProviderStateMixin {
   final Trimmer _trimmer = Trimmer();
 
-  double _startValue = 0.0;
-  double _endValue = 0.0;
+  final ValueNotifier<double> _startValueNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _endValueNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier<bool>(false);
+
   bool _isLoading = true;
   bool _isTrimming = false;
-  bool _isPlaying = false;
+  bool _isEmulator = false;
 
   Duration _totalDuration = Duration.zero;
+  int _lastHapticTime = 0;
 
   // Design System Integration
   static const Color _bgDark = Color(0xFF121418); // Sleeker dark
   static const Color _surfaceDark = Color(0xFF1E2228);
   
   final String _requestId = UniqueKey().toString();
-  bool _isManualMode = false;
 
   @override
   void initState() {
     super.initState();
-    // Force dark status bar for media editing
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
       statusBarColor: Colors.transparent,
     ));
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _checkEmulator();
     _loadVideo();
+  }
+
+  Future<void> _checkEmulator() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        _isEmulator = !androidInfo.isPhysicalDevice;
+      }
+    } catch (_) {
+      _isEmulator = false;
+    }
   }
 
   Future<void> _loadVideo() async {
@@ -66,12 +85,18 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
       final controller = _trimmer.videoPlayerController;
       if (controller != null) {
         mediaOrchestrator.videoPlayerController = controller;
+        
+        final duration = controller.value.duration;
+        final maxMs = (widget.maxDurationSeconds * 1000).toDouble();
+        final endVal = duration.inMilliseconds.toDouble() > maxMs 
+            ? maxMs 
+            : duration.inMilliseconds.toDouble();
+            
+        _startValueNotifier.value = 0.0;
+        _endValueNotifier.value = endVal;
+        
         setState(() {
-          _totalDuration = controller.value.duration;
-          final maxMs = (widget.maxDurationSeconds * 1000).toDouble();
-          _endValue = _totalDuration.inMilliseconds.toDouble() > maxMs 
-              ? maxMs 
-              : _totalDuration.inMilliseconds.toDouble();
+          _totalDuration = duration;
           _isLoading = false;
         });
       }
@@ -81,6 +106,9 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
   @override
   void dispose() {
     mediaOrchestrator.cancel(_requestId);
+    _startValueNotifier.dispose();
+    _endValueNotifier.dispose();
+    _isPlayingNotifier.dispose();
     _trimmer.dispose();
     super.dispose();
   }
@@ -91,21 +119,29 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     return '$minutes:$seconds';
   }
 
-  Duration get _selectedDuration {
-    final ms = (_endValue - _startValue).clamp(0, double.infinity);
+  Duration _getSelectedDuration(double start, double end) {
+    final ms = (end - start).clamp(0, double.infinity);
     return Duration(milliseconds: ms.toInt());
   }
 
-  bool get _isOverLimit =>
-      _selectedDuration.inSeconds > widget.maxDurationSeconds;
+  bool _getIsOverLimit(double start, double end) =>
+      _getSelectedDuration(start, end).inSeconds > widget.maxDurationSeconds;
+
+  void _debouncedHaptic() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastHapticTime > 100) { // 100ms debounce
+      FurHaptics.select();
+      _lastHapticTime = now;
+    }
+  }
 
   Future<void> _onTrimPressed() async {
     FurHaptics.impact();
     setState(() => _isTrimming = true);
 
     await _trimmer.saveTrimmedVideo(
-      startValue: _startValue,
-      endValue: _endValue,
+      startValue: _startValueNotifier.value,
+      endValue: _endValueNotifier.value,
       onSave: (outputPath) {
         if (!mounted) return;
         setState(() => _isTrimming = false);
@@ -137,15 +173,13 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     FurHaptics.tap();
     final controller = _trimmer.videoPlayerController;
     if (controller == null) return;
-    setState(() {
-      if (controller.value.isPlaying) {
-        controller.pause();
-        _isPlaying = false;
-      } else {
-        controller.play();
-        _isPlaying = true;
-      }
-    });
+    if (controller.value.isPlaying) {
+      controller.pause();
+      _isPlayingNotifier.value = false;
+    } else {
+      controller.play();
+      _isPlayingNotifier.value = true;
+    }
   }
 
   @override
@@ -158,17 +192,18 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.light,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white70),
+          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
           onPressed: () {
             FurHaptics.tap();
             Navigator.pop(context);
           },
         ),
         title: Text(
-          'Review Video',
+          'Clip Highlights',
           style: AppTheme.titleStyle.copyWith(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
           ),
         ),
@@ -240,23 +275,28 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
                     VideoViewer(trimmer: _trimmer),
                     
                     // Play/Pause Overlay
-                    AnimatedOpacity(
-                      duration: AppTheme.animFast,
-                      opacity: _isPlaying ? 0.0 : 1.0,
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.4),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white24, width: 1.5),
-                        ),
-                        child: Icon(
-                          _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 42,
-                        ),
-                      ),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _isPlayingNotifier,
+                      builder: (context, isPlaying, child) {
+                        return AnimatedOpacity(
+                          duration: AppTheme.animFast,
+                          opacity: isPlaying ? 0.0 : 1.0,
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white24, width: 1.5),
+                            ),
+                            child: Icon(
+                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 42,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -268,12 +308,7 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
         const SizedBox(height: AppTheme.space16),
 
         // ── Controls Section ───────────────────────────────────────────
-        AnimatedSwitcher(
-          duration: AppTheme.animMedium,
-          child: (needsTrim && !_isManualMode)
-              ? _buildMagicTrimCard()
-              : _buildManualTrimSection(maxDur),
-        ),
+        _buildManualTrimSection(maxDur),
 
         // ── Action Buttons ────────────────────────────────────────────
         _buildActionButtons(needsTrim),
@@ -281,78 +316,7 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     );
   }
 
-  Widget _buildMagicTrimCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-      child: Container(
-        key: const ValueKey('magic_trim'),
-        padding: const EdgeInsets.all(AppTheme.space20),
-        decoration: BoxDecoration(
-          color: AppTheme.successColor.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-          border: Border.all(color: AppTheme.successColor.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.successColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.successColor, size: 20),
-                ),
-                const SizedBox(width: AppTheme.space16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Magic Trim Active',
-                        style: AppTheme.titleStyle.copyWith(color: Colors.white, fontSize: 15),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Analyzing the first ${widget.maxDurationSeconds}s for the best results.',
-                        style: AppTheme.bodyStyle.copyWith(color: Colors.white60, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTheme.space16),
-            SquishButton(
-              onPressed: () => setState(() => _isManualMode = true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.tune_rounded, size: 14, color: AppTheme.successColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Customize Trim Range',
-                      style: AppTheme.captionStyle.copyWith(
-                        color: AppTheme.successColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95));
-  }
+
 
   Widget _buildManualTrimSection(Duration maxDur) {
     return Column(
@@ -362,22 +326,32 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
         const SizedBox(height: AppTheme.space16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _TimeLabel(
-                label: _formatDuration(Duration(milliseconds: _startValue.toInt())),
-                icon: Icons.start_rounded,
-              ),
-              _SelectedDurationChip(
-                duration: _formatDuration(_selectedDuration),
-                isOverLimit: _isOverLimit,
-              ),
-              _TimeLabel(
-                label: _formatDuration(Duration(milliseconds: _endValue.toInt())),
-                icon: Icons.stop_rounded,
-              ),
-            ],
+          child: ValueListenableBuilder<double>(
+            valueListenable: _startValueNotifier,
+            builder: (context, start, _) {
+              return ValueListenableBuilder<double>(
+                valueListenable: _endValueNotifier,
+                builder: (context, end, _) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _TimeLabel(
+                        label: _formatDuration(Duration(milliseconds: start.toInt())),
+                        icon: Icons.start_rounded,
+                      ),
+                      _SelectedDurationChip(
+                        duration: _formatDuration(_getSelectedDuration(start, end)),
+                        isOverLimit: _getIsOverLimit(start, end),
+                      ),
+                      _TimeLabel(
+                        label: _formatDuration(Duration(milliseconds: end.toInt())),
+                        icon: Icons.stop_rounded,
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         ),
         const SizedBox(height: AppTheme.space20),
@@ -390,39 +364,45 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          return Container(
+          return SizedBox(
             height: 80,
-            decoration: BoxDecoration(
-              color: Colors.black26,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: TrimViewer(
-              trimmer: _trimmer,
-              viewerHeight: 80,
-              viewerWidth: constraints.maxWidth,
-              maxVideoLength: maxDur,
-              type: ViewerType.auto,
-              showDuration: false,
-              paddingFraction: 0, // Fill the container
-              onChangeStart: (value) => setState(() => _startValue = value),
-              onChangeEnd: (value) => setState(() => _endValue = value),
-              onChangePlaybackState: (isPlaying) => setState(() => _isPlaying = isPlaying),
-              editorProperties: TrimEditorProperties(
-                borderWidth: 4.0,
-                borderRadius: 8,
-                circleSize: 12,
-                circleSizeOnDrag: 16,
-                scrubberWidth: 3,
-                borderPaintColor: AppTheme.successColor,
-                circlePaintColor: AppTheme.successColor,
-                scrubberPaintColor: Colors.white,
-                sideTapSize: 32,
-              ),
-              areaProperties: TrimAreaProperties(
-                borderRadius: 8,
-                thumbnailQuality: 40,
-                thumbnailFit: BoxFit.cover,
+            child: PetMoodGlass(
+              opacity: 0.15,
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.black,
+              child: TrimViewer(
+                trimmer: _trimmer,
+                viewerHeight: 80,
+                viewerWidth: constraints.maxWidth,
+                maxVideoLength: maxDur,
+                type: ViewerType.auto,
+                showDuration: false,
+                paddingFraction: 0,
+                onChangeStart: (value) {
+                  _debouncedHaptic();
+                  _startValueNotifier.value = value;
+                },
+                onChangeEnd: (value) {
+                  _debouncedHaptic();
+                  _endValueNotifier.value = value;
+                },
+                onChangePlaybackState: (isPlaying) => _isPlayingNotifier.value = isPlaying,
+                editorProperties: const TrimEditorProperties(
+                  borderWidth: 6.0,
+                  borderRadius: 2,
+                  circleSize: 15,
+                  circleSizeOnDrag: 22,
+                  scrubberWidth: 2,
+                  borderPaintColor: AppColors.tertiary,
+                  circlePaintColor: AppColors.tertiary,
+                  scrubberPaintColor: Colors.white,
+                  sideTapSize: 48,
+                ),
+                areaProperties: TrimAreaProperties(
+                  borderRadius: 12,
+                  thumbnailQuality: _isEmulator ? 10 : 25,
+                  thumbnailFit: BoxFit.cover,
+                ),
               ),
             ),
           );
@@ -471,9 +451,9 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
                   borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.successColor.withOpacity(0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      color: AppTheme.successColor.withOpacity(0.3),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -552,9 +532,9 @@ class _SelectedDurationChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -133,13 +133,16 @@ class DetectionService:
     async def process_video_async(
         file: UploadFile, user: User, db: AsyncSession, base_url: str
     ) -> JobStatusResponse:
+        t0_total = time.perf_counter()
         DetectionService._enforce_temp_size_cap()
         fd, temp_path = tempfile.mkstemp(dir=settings.TEMP_DIR, suffix=".mp4")
         os.close(fd)
 
         try:
+            t0_upload = time.perf_counter()
             with open(temp_path, "wb") as f_out:
                 shutil.copyfileobj(file.file, f_out)
+            logger.info(f"[TIMING] process_video_async -> File Write: {time.perf_counter() - t0_upload:.4f}s")
 
             if os.path.getsize(temp_path) > settings.MAX_FILE_SIZE_BYTES:
                 safe_remove(temp_path)
@@ -151,16 +154,21 @@ class DetectionService:
 
             # ── Video validation & optional compression (M5 integration) ──
             try:
+                t0_norm = time.perf_counter()
                 from backend.utils.media_processor import MediaProcessor
 
                 temp_path = MediaProcessor.validate_and_normalize_video(temp_path)
+                logger.info(f"[TIMING] process_video_async -> Normalization: {time.perf_counter() - t0_norm:.4f}s")
             except FurSpeakException:
                 safe_remove(temp_path)
                 raise
             except Exception as e:
                 logger.warning(f"Video normalization skipped (ffmpeg unavailable?): {e}")
 
+            t0_hash = time.perf_counter()
             request_hash = compute_sha256(temp_path)
+            logger.info(f"[TIMING] process_video_async -> Hash compute: {time.perf_counter() - t0_hash:.4f}s")
+            logger.info(f"[TIMING] process_video_async -> Total Pre-processing: {time.perf_counter() - t0_total:.4f}s")
 
             # Enforce max 2 active video jobs per user
             job_user_id = user.id if not user.is_guest else None

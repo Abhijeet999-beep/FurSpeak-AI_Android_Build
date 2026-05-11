@@ -37,6 +37,8 @@ class AppTypography {
     height: 1.5,
   );
 
+  static final TextStyle body1 = body;
+
   static final TextStyle caption = GoogleFonts.inter(
     fontSize: 14,
     color: AppColors.textLight,

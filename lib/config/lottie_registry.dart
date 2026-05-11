@@ -94,4 +94,11 @@ class LottieRegistry {
 
   /// Returns all registered keys (for debugging/auditing).
   static List<String> get allKeys => _registry.keys.toList();
+
+  /// Returns a random validated dog animation key for the home screen shuffle.
+  static String getRandomDog() {
+    final dogKeys = ['dog_1', 'dog_2', 'dog_3', 'dog_5', 'dog_7'];
+    final random = DateTime.now().millisecond % dogKeys.length;
+    return dogKeys[random];
+  }
 }
