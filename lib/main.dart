@@ -53,7 +53,9 @@ void _cleanupTempDirectoryAsynchronously() {
 }
 
 void main() async {
-  enableFlutterDriverExtension();
+  if (kDebugMode) {
+    enableFlutterDriverExtension();
+  }
   WidgetsFlutterBinding.ensureInitialized();
 
 

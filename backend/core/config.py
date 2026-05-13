@@ -1,6 +1,7 @@
 import os
 import logging
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 logger = logging.getLogger("FurSpeak-Config")
 
@@ -32,18 +33,25 @@ class Settings(BaseSettings):
     VIDEO_JOB_TIMEOUT_SECONDS: int = 180
 
     # DB & Firebase Config
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./furspeak.db")
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif DATABASE_URL.startswith("postgresql://"):
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-    FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase-adminsdk.json")
+    DATABASE_URL: str = "sqlite+aiosqlite:///./furspeak.db"
+    
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def convert_database_url(cls, v: str) -> str:
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://") and "asyncpg" not in v:
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
+    FIREBASE_CREDENTIALS_PATH: str = "firebase-adminsdk.json"
     FIREBASE_STORAGE_BUCKET: str = os.getenv("FIREBASE_STORAGE_BUCKET", "furspeak-4ddd4.firebasestorage.app")
     FIREBASE_CREDENTIALS_JSON: str | None = os.getenv("FIREBASE_CREDENTIALS_JSON")
 
     JWT_SECRET: str = os.getenv("JWT_SECRET", _DEV_JWT_SECRET)
     JWT_ALGORITHM: str = "HS256"
     GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
+    ALLOWED_ORIGINS: list[str] = ["*"]
     SENTRY_DSN: str | None = os.getenv("SENTRY_DSN")
     DISABLE_APP_CHECK: bool = os.getenv("DISABLE_APP_CHECK", "false").lower() == "true"
 
@@ -68,8 +76,8 @@ settings = Settings()
 if settings.is_production:
     if settings.JWT_SECRET == _DEV_JWT_SECRET:
         raise RuntimeError(
-            "FATAL: JWT_SECRET is set to the default development value. "
-            "You MUST set a secure JWT_SECRET environment variable in production."
+            "FATAL: JWT_SECRET is missing or set to default. "
+            "Go to Render Dashboard -> Environment and add a secure JWT_SECRET variable."
         )
     if len(settings.JWT_SECRET) < 32:
         raise RuntimeError(
