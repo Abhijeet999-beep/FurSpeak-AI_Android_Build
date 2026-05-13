@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: furspeak-api
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: .
+    buildCommand: pip install --no-cache-dir -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: JWT_SECRET
+        sync: false  # Must be set manually in Render dashboard
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false  # Must be set manually in Render dashboard
+      - key: FIREBASE_STORAGE_BUCKET
+        value: furspeak-4ddd4.firebasestorage.app
+      - key: DATABASE_URL
+        sync: false  # Set to Render Postgres internal URL
+      - key: SENTRY_DSN
+        sync: false  # Optional

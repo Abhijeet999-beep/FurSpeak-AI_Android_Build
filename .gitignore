@@ -93,7 +93,6 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
-.git
 .mypy_cache/
 .pytest_cache/
 .hypothesis/
@@ -172,5 +171,7 @@ dist
 tmp/
 temp/
 
-# firebase 
-firebase-adminsdk.json
+# firebase credentials (all variants)
+firebase-adminsdk*.json
+firebase-adminsdk*.json.json
+

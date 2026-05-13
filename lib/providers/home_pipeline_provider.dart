@@ -646,7 +646,8 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (pipelineSuccess == true) {
-        deleteCompressedFile();
+        // [STABILIZATION] Do NOT delete the compressed file yet, as it's needed for the ResultScreen/History previews.
+        // deleteCompressedFile();
       }
     } catch (e) {
       if (_state == HomeState.cancelled) {
