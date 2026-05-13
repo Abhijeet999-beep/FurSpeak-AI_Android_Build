@@ -119,12 +119,20 @@ async def startup_event():
         logger.error(f"FurSpeak backend started with {workers} workers.")
         raise RuntimeError("FurSpeak backend currently supports only ONE worker due to GPU serialization architecture. Set workers to 1.")
 
-    from backend.core.database import engine
-    from backend.models.base import Base
-    import backend.models  # Ensures all models are registered
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # ── Database Initialization (with retry for cold starts) ──────────
+    import time
+    for i in range(5):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database initialization successful.")
+            break
+        except Exception as e:
+            if i == 4:
+                logger.error(f"FATAL: Database initialization failed after 5 attempts: {e}")
+                raise
+            logger.warning(f"Database connection attempt {i+1} failed. Retrying in 5s... ({e})")
+            await asyncio.sleep(5)
 
     # ── Model Warmup (blocking, before worker starts) ──────────────────
     import numpy as np
