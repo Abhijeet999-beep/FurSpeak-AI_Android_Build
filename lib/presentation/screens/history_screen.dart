@@ -16,6 +16,8 @@ import '../widgets/daily_activity_chart.dart';
 import '../widgets/insight_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/pipeline_types.dart';
+import '../../theme/app_animations.dart';
+
 
 
 class HistoryScreen extends StatelessWidget {
@@ -527,103 +529,106 @@ class _HistoryItemCard extends StatelessWidget {
         borderRadius: AppTheme.borderRadiusLarge,
         child: InkWell(
           borderRadius: AppTheme.borderRadiusLarge,
-            onTap: () {
-              FurHaptics.tap();
-              context.pushResult(result.uuid);
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space16),
-              child: Row(
-                children: [
-                  // Thumbnail with emotion color border
-                  Hero(
-                    tag: 'history_thumb_${result.uuid}',
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: AppTheme.borderRadiusMedium,
-                        border: Border.all(color: emotionStyle.color.withValues(alpha: 0.2), width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: emotionStyle.color.withValues(alpha: 0.1),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+          onTap: () {
+            FurHaptics.tap();
+            context.pushResult(result.uuid);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space16),
+            child: Row(
+              children: [
+                // Thumbnail with emotion color border
+                Hero(
+                  tag: 'history_thumb_${result.uuid}',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: AppTheme.borderRadiusMedium,
+                      border: Border.all(
+                        color: emotionStyle.color.withValues(alpha: 0.2),
+                        width: 2,
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
-                        child: SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: _buildThumbnail(result),
+                      boxShadow: [
+                        BoxShadow(
+                          color: emotionStyle.color.withValues(alpha: 0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
+                      child: SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: _buildThumbnail(result),
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppTheme.space16),
-    
-                  // Details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Emotion badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: emotionStyle.color.withValues(alpha: 0.12),
-                            borderRadius: AppTheme.borderRadiusPill,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(emotionStyle.emoji, style: const TextStyle(fontSize: 14)),
-                              const SizedBox(width: 4),
-                              Text(
-                                emotionStyle.label,
-                                style: AppTheme.captionStyle.copyWith(
-                                  fontSize: 12,
-                                  color: emotionStyle.color,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
+                ),
+                const SizedBox(width: AppTheme.space16),
+
+                // Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Emotion badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: emotionStyle.color.withValues(alpha: 0.12),
+                          borderRadius: AppTheme.borderRadiusPill,
                         ),
-                        const SizedBox(height: 8),
-                        // Relative timestamp
-                        Row(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 12,
-                              color: AppTheme.textLightColor.withValues(alpha: 0.4),
-                            ),
+                            Text(emotionStyle.emoji, style: const TextStyle(fontSize: 14)),
                             const SizedBox(width: 4),
                             Text(
-                              relativeTime,
+                              emotionStyle.label,
                               style: AppTheme.captionStyle.copyWith(
-                                fontSize: 11,
-                                color: AppTheme.textLightColor.withValues(alpha: 0.6),
+                                fontSize: 12,
+                                color: emotionStyle.color,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Relative timestamp
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: AppTheme.textLightColor.withValues(alpha: 0.4),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            relativeTime,
+                            style: AppTheme.captionStyle.copyWith(
+                              fontSize: 11,
+                              color: AppTheme.textLightColor.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppTheme.space8),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: AppTheme.textLightColor.withValues(alpha: 0.3),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: AppTheme.space8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: AppTheme.textLightColor.withValues(alpha: 0.3),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildThumbnail(DetectionResult result) {
