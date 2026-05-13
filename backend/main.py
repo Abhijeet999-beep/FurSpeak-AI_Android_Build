@@ -28,9 +28,16 @@ app = FastAPI(title="FurSpeak AI")
 app.add_exception_handler(FurSpeakException, furspeak_exception_handler)
 
 # CORS Configuration
+# CORS Configuration
+origins = settings.ALLOWED_ORIGINS
+# Production safety: Credentials + Wildcard is forbidden by many browsers and risky
+if settings.is_production and "*" in origins:
+    logger.warning("CORS: Wildcard origin detected in production. Restricting to empty list to prevent credential risk.")
+    origins = [o for o in origins if o != "*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -134,14 +141,17 @@ async def startup_event():
             logger.warning(f"Database connection attempt {i+1} failed. Retrying in 5s... ({e})")
             await asyncio.sleep(5)
 
-    # ── Model Warmup (blocking, before worker starts) ──────────────────
-    import numpy as np
-
-    logger.info("Running Model Warmup...")
-    dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-    dog_det = model_loader.get_dog_detector()
-    if dog_det:
-        dog_det(dummy, conf=0.4, verbose=False)
+    # ── Model Warmup (Resilient for slow environments) ────────────────
+    try:
+        import numpy as np
+        logger.info("Running Model Warmup...")
+        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+        dog_det = model_loader.get_dog_detector()
+        if dog_det:
+            dog_det(dummy, conf=0.4, verbose=False)
+        logger.info("Model warmup successful.")
+    except Exception as e:
+        logger.warning(f"Model warmup skipped or failed: {e}. The first request might be slow.")
 
     # ── Start GPU worker FIRST (H1 fix — must be running before recovery tasks enqueue) ──
     asyncio.create_task(gpu_worker())
