@@ -524,6 +524,28 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_cancelToken?.isCancelled == true) return;
 
       final uploadFile = compressedFile ?? originalFile;
+
+      // Validate uploadFile before starting the upload
+      if (_isVideo) {
+        final size = await uploadFile.length();
+        if (size <= 0) {
+          throw const PipelineException(
+            message: 'The exported video file is empty. Please try recording/trimming again.',
+            stage: PipelineStage.processing,
+            canRetry: false,
+          );
+        }
+        
+        final isMp4 = await _isMp4File(uploadFile);
+        if (!isMp4) {
+          throw const PipelineException(
+            message: 'The video file has an invalid format. Please try recording/trimming again.',
+            stage: PipelineStage.processing,
+            canRetry: false,
+          );
+        }
+      }
+
       _changeState(HomeState.uploading);
 
       bool pipelineSuccess = false;
@@ -751,5 +773,29 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _state = newState;
     notifyListeners();
+  }
+
+  Future<bool> _isMp4File(File file) async {
+    try {
+      if (!await file.exists()) return false;
+      final size = await file.length();
+      if (size < 8) return false;
+      
+      final raf = await file.open(mode: FileMode.read);
+      try {
+        final bytes = await raf.read(8);
+        if (bytes.length < 8) return false;
+        
+        return bytes[4] == 0x66 && // 'f'
+               bytes[5] == 0x74 && // 't'
+               bytes[6] == 0x79 && // 'y'
+               bytes[7] == 0x70;   // 'p'
+      } finally {
+        await raf.close();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [PIPELINE] Error checking MP4 header: $e');
+      return false;
+    }
   }
 }
