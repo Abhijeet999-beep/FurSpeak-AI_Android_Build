@@ -8,16 +8,21 @@ logger = logging.getLogger("FurSpeak-InferenceService")
 
 class InferenceService:
     @staticmethod
-    def detect_dog_and_roi(rgb_image, request_id="unknown", start_time=None, min_confidence=0.6):
+    def detect_dog_and_roi(rgb_image, request_id="unknown", start_time=None, min_confidence=0.4):
         import time
         import torch
+        import psutil
+        import os
 
         dog_detector = model_loader.get_dog_detector()
 
         t0_inf = time.perf_counter()
         with torch.inference_mode():
-            results = dog_detector(rgb_image, conf=0.4, verbose=False)
-        logger.info(f"[TIMING][{request_id}] YOLO Dog Inference call: {time.perf_counter() - t0_inf:.4f}s")
+            results = dog_detector(rgb_image, conf=0.3, verbose=False)
+            
+        ram_mb = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+        inf_time = time.perf_counter() - t0_inf
+        logger.info(f"[TIMING][{request_id}] YOLO Dog Inference call: {inf_time:.4f}s | RAM: {ram_mb:.1f} MB")
 
         detections = []
         if results and results[0].boxes:
@@ -41,12 +46,16 @@ class InferenceService:
 
         # Filter for dogs with confidence threshold
         dogs = [d for d in detections if d["label"] == "dog" and d["confidence"] >= min_confidence]
+        logger.info(f"[INFERENCE][{request_id}] Dog filter: min_confidence={min_confidence}, candidates={len(dogs)}")
         
         logger.info(f"[INFERENCE][{request_id}] Dog Filtered: {dogs}")
         
         if len(dogs) == 0:
             logger.info(f"[{request_id}] ❌ NO DOG DETECTED — BLOCKED")
             raise FurSpeakException("NO_DOG_DETECTED", "No dog detected in the frame.")
+        elif len(dogs) > 1:
+            logger.info(f"[{request_id}] ❌ MULTIPLE DOGS DETECTED — BLOCKED")
+            raise FurSpeakException("MULTIPLE_DOGS_DETECTED", "Only one dog is allowed per image.")
         else:
             logger.debug(f"[{request_id}] ✅ DOG DETECTED — PASSING TO EMOTION")
 
@@ -72,13 +81,19 @@ class InferenceService:
     def predict_emotion(roi):
         import time
         import torch
+        import psutil
+        import os
+        
         behavior_model = model_loader.get_behavior_model()
         classes = model_loader.get_classes()
 
         t0_inf = time.perf_counter()
         with torch.inference_mode():
             result = behavior_model(roi, verbose=False)
-        logger.info(f"[TIMING] YOLO Emotion Inference call: {time.perf_counter() - t0_inf:.4f}s")
+            
+        ram_mb = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+        inf_time = time.perf_counter() - t0_inf
+        logger.info(f"[TIMING] YOLO Emotion Inference call: {inf_time:.4f}s | RAM: {ram_mb:.1f} MB")
         boxes = result[0].boxes
 
         if not boxes or boxes.cls is None or len(boxes.cls) == 0:

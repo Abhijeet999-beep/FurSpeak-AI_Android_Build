@@ -1,4 +1,8 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get_it/get_it.dart';
@@ -36,6 +40,7 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
+  final GlobalKey _shareCardKey = GlobalKey();
   final FlutterTts _flutterTts = FlutterTts();
   VideoPlayerController? _videoController;
   bool _isDisposed = false;
@@ -183,12 +188,64 @@ class _ResultScreenState extends State<ResultScreen> {
     context.goHome();
   }
 
-  void _handleShare() {
+  Future<void> _handleShare() async {
     FurHaptics.heavy();
     
     final r = _detectionResult;
     if (r == null) return;
 
+    try {
+      debugPrint('[SHARE] Initiating off-screen render capture...');
+      
+      // Get boundary
+      final boundary = _shareCardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        debugPrint('[SHARE] Error: RepaintBoundary render object not found.');
+        _fallbackTextShare(r);
+        return;
+      }
+
+      // Capture image at 1.0 pixel ratio to get exactly 1080x1350 PNG
+      final ui.Image image = await boundary.toImage(pixelRatio: 1.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        debugPrint('[SHARE] Error: toByteData returned null.');
+        _fallbackTextShare(r);
+        return;
+      }
+      
+      final buffer = byteData.buffer.asUint8List();
+      
+      // Save file temporarily
+      final tempDir = await getTemporaryDirectory();
+      final sharePath = '${tempDir.path}/furspeak_result_${r.uuid}.png';
+      final file = File(sharePath);
+      await file.writeAsBytes(buffer, flush: true);
+      
+      debugPrint('[SHARE] PNG saved to temporary path: $sharePath. Sharing...');
+
+      final emoji = EmotionStyle.fromEmotion(r.emotion).emoji;
+      final caption = r.caption.isNotEmpty 
+          ? r.caption 
+          : 'My dog feels ${r.emotion}!';
+
+      String shareText = '🐾 FurSpeak AI — Dog Emotion Insight\n\n';
+      shareText += 'My dog feels ${r.emotion} $emoji\n';
+      shareText += 'Analysis: $caption\n\n';
+      shareText += 'Understand your pet better with FurSpeak AI! ✨';
+
+      await Share.shareXFiles(
+        [XFile(sharePath)],
+        text: shareText,
+        subject: 'My Dog\'s Emotion Analysis',
+      );
+    } catch (e, stack) {
+      debugPrint('❌ [SHARE] Error capturing/sharing card: $e\n$stack');
+      _fallbackTextShare(r);
+    }
+  }
+
+  void _fallbackTextShare(DetectionResult r) {
     final emoji = EmotionStyle.fromEmotion(r.emotion).emoji;
     final caption = r.caption.isNotEmpty 
         ? r.caption 
@@ -199,12 +256,7 @@ class _ResultScreenState extends State<ResultScreen> {
     shareText += 'Analysis: $caption\n\n';
     shareText += 'Understand your pet better with FurSpeak AI! ✨';
 
-    final mediaPath = r.mediaPath;
-    if (mediaPath.isNotEmpty && File(mediaPath).existsSync()) {
-      Share.shareXFiles([XFile(mediaPath)], text: shareText, subject: 'My Dog\'s Emotion Analysis');
-    } else {
-      Share.share(shareText, subject: 'My Dog\'s Emotion Analysis');
-    }
+    Share.share(shareText, subject: 'My Dog\'s Emotion Analysis');
   }
 
   // ─── MEDIA PREVIEW ──────────────────────────────────────────────────
@@ -383,6 +435,18 @@ class _ResultScreenState extends State<ResultScreen> {
         backgroundColor: AppTheme.bgColor,
         body: Stack(
           children: [
+            // Offscreen Share Card for generating clean PNG
+            Positioned(
+              left: -9999,
+              top: 0,
+              child: RepaintBoundary(
+                key: _shareCardKey,
+                child: _ShareCard(
+                  result: r,
+                  emotionStyle: emotionStyle,
+                ),
+              ),
+            ),
             // Background Pattern for immersion
             Positioned.fill(
               child: RepaintBoundary(
@@ -1257,6 +1321,408 @@ class _GuestConversionBottomSheet extends StatelessWidget {
                     color: AppTheme.textLightColor,
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareCard extends StatelessWidget {
+  final DetectionResult result;
+  final EmotionStyle emotionStyle;
+
+  const _ShareCard({
+    required this.result,
+    required this.emotionStyle,
+  });
+
+  String _formatTimestamp(DateTime dt) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final year = dt.year;
+    final month = months[dt.month - 1];
+    final day = dt.day.toString().padLeft(2, '0');
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$day $month $year, $hour:$minute';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isError = (result.emotion.toLowerCase() == 'unknown' || result.confidence == 0.0);
+    final String caption = result.caption.isNotEmpty 
+        ? result.caption 
+        : 'My dog feels ${result.emotion}!';
+    
+    // Limit to 1 suggestion for video (due to timeline space) and 2 for images
+    final displaySuggestions = result.suggestions.take(result.isVideo ? 1 : 2).toList();
+    
+    // Parse timeline
+    final emotionsList = result.timeline
+        .map((e) => (e as Map<String, dynamic>)['emotion']?.toString() ?? 'unknown')
+        .toList();
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 1080,
+        height: 1350,
+        padding: const EdgeInsets.all(72.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(48.0),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF161B2E),
+              Color(0xFF0C0E1A),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 40,
+              spreadRadius: 10,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ─── HEADER ───
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.pets_rounded,
+                      size: 48,
+                      color: emotionStyle.color,
+                    ),
+                    const SizedBox(width: 20),
+                    const Text(
+                      'FurSpeak AI',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 38,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
+                  ),
+                  child: Text(
+                    'EMOTION REPORT',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white.withOpacity(0.7),
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 56),
+
+            // ─── MAIN RESULT DISPLAY ───
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(36),
+                border: Border.all(color: Colors.white.withOpacity(0.05), width: 2.0),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 170,
+                    height: 170,
+                    decoration: BoxDecoration(
+                      color: emotionStyle.color.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: emotionStyle.color.withOpacity(0.2),
+                        width: 3.0,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        emotionStyle.emoji,
+                        style: const TextStyle(fontSize: 80),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 40),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your dog feels',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withOpacity(0.4),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          emotionStyle.label,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 56,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: emotionStyle.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${result.confidence.toInt()}% Match',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: emotionStyle.color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 48),
+
+            // ─── CAPTION INSIGHT ───
+            Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, size: 28, color: emotionStyle.color),
+                const SizedBox(width: 16),
+                const Text(
+                  'Emotional Insight',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              isError
+                  ? 'No emotion detected. Please ensure your dog\'s face is visible and try again.'
+                  : caption,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 26,
+                height: 1.6,
+                fontWeight: FontWeight.w400,
+                color: Colors.white.withOpacity(0.85),
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 48),
+
+            // ─── TIMELINE (IF VIDEO) ───
+            if (result.isVideo && emotionsList.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(Icons.history_toggle_off_rounded, size: 28, color: Colors.white.withOpacity(0.5)),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Mood Timeline',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  for (int i = 0; i < math.min(emotionsList.length, 6); i++) ...[
+                    if (i > 0)
+                      Container(
+                        width: 48,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              EmotionStyle.fromEmotion(emotionsList[i - 1]).color.withOpacity(0.3),
+                              EmotionStyle.fromEmotion(emotionsList[i]).color.withOpacity(0.3),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Column(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: EmotionStyle.fromEmotion(emotionsList[i]).color.withOpacity(0.08),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: EmotionStyle.fromEmotion(emotionsList[i]).color.withOpacity(0.2),
+                              width: 2.0,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              EmotionStyle.fromEmotion(emotionsList[i]).emoji,
+                              style: const TextStyle(fontSize: 36),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          EmotionStyle.fromEmotion(emotionsList[i]).label,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            color: EmotionStyle.fromEmotion(emotionsList[i]).color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 48),
+            ],
+
+            // ─── SUGGESTIONS ───
+            if (displaySuggestions.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(Icons.lightbulb_outline_rounded, size: 28, color: emotionStyle.color),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Response Suggestion',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ...displaySuggestions.map(
+                (s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.05), width: 1.5),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(top: 6),
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: emotionStyle.color.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Text(
+                            s.trim(),
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 24,
+                              height: 1.4,
+                              color: Colors.white.withOpacity(0.85),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+
+            const Spacer(),
+
+            // ─── FOOTER ───
+            Container(
+              padding: const EdgeInsets.only(top: 32),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.white.withOpacity(0.05), width: 1.5),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatTimestamp(result.timestamp),
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 20,
+                      color: Colors.white.withOpacity(0.4),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        color: AppTheme.successColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Analyzed with FurSpeak AI',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withOpacity(0.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

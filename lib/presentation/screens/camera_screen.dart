@@ -397,309 +397,280 @@ class _CameraScreenState extends State<CameraScreen>
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              // Camera Preview — clipped to prevent overflow
-              if (_controller != null && _controller!.value.isInitialized)
-                Positioned.fill(
-                  child: ClipRRect(
-                    child: CameraPreview(_controller!),
-                  ),
-                )
-              else
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFF43E97B)),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Loading camera...',
-                        style:
-                            AppTheme.bodyStyle.copyWith(color: Colors.white70),
-                      ),
-                    ],
-                  ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Camera Preview — clipped to prevent overflow
+            if (_controller != null && _controller!.value.isInitialized)
+              Positioned.fill(
+                child: ClipRRect(
+                  child: CameraPreview(_controller!),
                 ),
-
-              // Focus Frame + Guide Text
-              Center(
+              )
+            else
+              const Center(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 260,
-                      height: 260,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: _isRecording
-                              ? const Color(0xFFF95F62)
-                              : const Color(0xFF43E97B),
-                          width: _isRecording ? 3 : 4,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        color: Colors.transparent,
-                      ),
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF43E97B)),
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _isRecording
-                            ? '🎥 Recording your pup...'
-                            : '🐕 Place dog\'s face here',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                      ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading camera...',
+                      style: TextStyle(color: Colors.white70, fontFamily: 'Inter'),
                     ),
                   ],
                 ),
               ),
 
-              // ===== TOP BAR =====
-              // Recording indicator + Timer (top center)
-              if (_isRecording)
-                Positioned(
-                  top: 16,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.65),
-                        borderRadius: BorderRadius.circular(24),
+            // 2. Focus Frame + Guide Text
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 240, // Slightly smaller for better fit
+                    height: 240,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: _isRecording
+                            ? const Color(0xFFF95F62)
+                            : const Color(0xFF43E97B),
+                        width: 3,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Blinking red dot
-                          FadeTransition(
-                            opacity: _blinkAnimation,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF95F62),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _formatTimer(_recordSeconds),
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '/ ${_formatTimer(_maxDuration)}',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 13,
-                              color: Colors.white.withOpacity(0.5),
-                            ),
-                          ),
-                        ],
+                      borderRadius: BorderRadius.circular(24),
+                      color: Colors.transparent,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _isRecording
+                          ? '🎥 Recording your pup...'
+                          : '🐕 Place dog\'s face here',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                ),
-
-              // Flash Button (top-left) — disabled during recording
-              Positioned(
-                top: 16,
-                left: 20,
-                child: AnimatedOpacity(
-                  opacity: _isRecording ? 0.3 : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: GestureDetector(
-                    onTap: _isRecording ? null : _toggleFlash,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.85),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      child: Icon(
-                        _flashMode == FlashMode.torch
-                            ? Icons.flash_on
-                            : Icons.flash_off,
-                        size: 26,
-                        color: const Color(0xFFFFA726),
-                      ),
-                    ),
-                  ),
-                ),
+                ],
               ),
+            ),
 
-              // Camera Switch Button (top-right) — disabled during recording
-              Positioned(
-                top: 16,
-                right: 20,
-                child: AnimatedOpacity(
-                  opacity: _isRecording ? 0.3 : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: GestureDetector(
-                    onTap: _isRecording ? null : _onCameraSwitch,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.85),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      child: const Icon(Icons.flip_camera_ios,
-                          size: 26, color: Color(0xFF5A5BD9)),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ===== BOTTOM: Capture Button =====
-              Positioned(
-                bottom: 40,
-                left: 0,
-                right: 0,
+            // 3. UI Overlays (Top/Bottom)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Capture / Stop button with progress ring
-                    Center(
-                      child: GestureDetector(
-                        onTap: _isProcessing ? null : (_isRecording ? _onRecordStop : _onCapturePressed),
-                        onLongPress: (_isRecording || _isProcessing) ? null : _onRecordStart,
-                        onLongPressUp: (_isRecording && !_isProcessing) ? _onRecordStop : null,
-                        child: SizedBox(
-                          width: 100,
-                          height: 100,
+                    // TOP BAR
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Flash Button
+                        AnimatedOpacity(
+                          opacity: _isRecording ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: IgnorePointer(
+                            ignoring: _isRecording,
+                            child: _buildRoundIconButton(
+                              icon: _flashMode == FlashMode.torch ? Icons.flash_on : Icons.flash_off,
+                              color: const Color(0xFFFFA726),
+                              onTap: _toggleFlash,
+                            ),
+                          ),
+                        ),
+
+                        // Timer (if recording)
+                        if (_isRecording)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.65),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FadeTransition(
+                                  opacity: _blinkAnimation,
+                                  child: Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFF95F62),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatTimer(_recordSeconds),
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // Switch Camera
+                        AnimatedOpacity(
+                          opacity: _isRecording ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: IgnorePointer(
+                            ignoring: _isRecording,
+                            child: _buildRoundIconButton(
+                              icon: Icons.flip_camera_ios,
+                              color: const Color(0xFF5A5BD9),
+                              onTap: _onCameraSwitch,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    // BOTTOM BAR: Capture Button
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onLongPress: (_isRecording || _isProcessing) ? null : _onRecordStart,
+                          onLongPressUp: (_isRecording && !_isProcessing) ? _onRecordStop : null,
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              // Progress ring (only while recording)
+                              // Progress Ring (while recording)
                               if (_isRecording)
                                 SizedBox(
-                                  width: 100,
-                                  height: 100,
+                                  width: 96,
+                                  height: 96,
                                   child: CircularProgressIndicator(
                                     value: _recordProgress,
                                     strokeWidth: 5,
-                                    valueColor:
-                                        const AlwaysStoppedAnimation<Color>(
-                                            Color(0xFFF95F62)),
-                                    backgroundColor:
-                                        Colors.white.withOpacity(0.2),
+                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF95F62)),
+                                    backgroundColor: Colors.white.withOpacity(0.2),
                                   ),
                                 ),
-                              // Main button
+                              
+                              // Main Button Container (Stable Lerp Fix)
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                width: _isRecording ? 70 : 80,
-                                height: _isRecording ? 70 : 80,
+                                curve: Curves.easeInOut,
+                                width: _isRecording ? 72 : 84,
+                                height: _isRecording ? 72 : 84,
                                 decoration: BoxDecoration(
-                                  color: _isRecording
-                                      ? const Color(0xFFF95F62)
-                                      : const Color(0xFFFFD85C),
+                                  color: _isRecording ? const Color(0xFFF95F62) : const Color(0xFFFFD85C),
                                   shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: _isRecording
-                                          ? const Color(0xFFF95F62)
-                                              .withOpacity(0.4)
-                                          : Colors.amber.withOpacity(0.25),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
                                   border: Border.all(
-                                    color: _isRecording
-                                        ? Colors.white
-                                        : const Color(0xFFFFA726),
+                                    color: _isRecording ? Colors.white : const Color(0xFFFFA726),
                                     width: 4,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _isRecording 
+                                          ? const Color(0xFFF95F62).withOpacity(0.3)
+                                          : const Color(0xFFFFA000).withOpacity(0.2),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                                child: _isProcessing
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 3,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5A5BD9)),
-                                        ),
-                                      )
-                                    : Icon(
-                                        _isRecording
-                                            ? Icons.stop_rounded
-                                            : Icons.camera_alt_rounded,
-                                        color: _isRecording
-                                            ? Colors.white
-                                            : const Color(0xFF5A5BD9),
-                                        size: 36,
-                                      ),
+                                child: InkWell(
+                                  onTap: _isProcessing ? null : (_isRecording ? _onRecordStop : _onCapturePressed),
+                                  customBorder: const CircleBorder(),
+                                  child: Center(
+                                    child: _isProcessing
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 3,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : Icon(
+                                            _isRecording ? Icons.stop_rounded : Icons.camera_alt_rounded,
+                                            color: _isRecording ? Colors.white : const Color(0xFF5A5BD9),
+                                            size: 32,
+                                          ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    // Hint text
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        _isRecording
-                            ? 'Tap to stop recording'
-                            : 'Tap for photo • Hold for video',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withOpacity(0.8),
+                        const SizedBox(height: 16),
+                        // Hint text — wrapped in Container for styling
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.45),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _isRecording
+                                ? 'Tap to stop recording'
+                                : 'Tap for photo • Hold for video',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10), // Safe spacing from screen edge
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildRoundIconButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Icon(icon, size: 24, color: color),
+      ),
+    );
+  }
+
 }

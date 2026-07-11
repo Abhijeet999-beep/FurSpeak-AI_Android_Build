@@ -20,12 +20,13 @@ COPY . /app/backend
 # Create temp directory inside the package or root
 RUN mkdir -p /app/backend/temp
 
-# Expose port
-EXPOSE 8000
+# Expose port (Cloud Run defaults to 8080)
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the application (C7 fix: correct module path)
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application with gunicorn + uvicorn worker. Cloud Run provides PORT env var.
+# Workers restricted to 1 for memory safety in constrained Cloud Run environments.
+CMD exec gunicorn backend.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8080} --timeout 180

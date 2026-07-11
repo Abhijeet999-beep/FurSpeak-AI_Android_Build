@@ -67,6 +67,7 @@ class VideoService:
             consecutive_roi_reuses = 0
             dog_inference_time = 0.0
             emo_inference_time = 0.0
+            prev_gray = None
 
             t0_loop = time.perf_counter()
             frame_idx = 0
@@ -83,11 +84,23 @@ class VideoService:
                     if not ret:
                         break
 
-                    gray_mean = cv2.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))[0]
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    gray_mean = cv2.mean(gray)[0]
                     if gray_mean < _BRIGHTNESS_SKIP_THRESHOLD:
                         frame_idx += 1
-                        del frame
+                        del frame, gray
                         continue
+
+                    if prev_gray is not None:
+                        diff = cv2.absdiff(gray, prev_gray)
+                        mean_diff = np.mean(diff)
+                        if mean_diff < 5.0: # Skip highly similar frames
+                            logger.info(f"[{request_id}] Skipping frame due to low motion (diff: {mean_diff:.2f})")
+                            frame_idx += 1
+                            del frame, gray, diff
+                            continue
+                    
+                    prev_gray = gray.copy()
 
                     try:
                         # PHASE 3: Downscale Before YOLO
@@ -120,7 +133,7 @@ class VideoService:
 
                         if not reused:
                             t0_dog = time.perf_counter()
-                            roi, bbox, dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.6)
+                            roi, bbox, dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.4)
                             t_dog = time.perf_counter() - t0_dog
                             dog_inference_time += t_dog
                             last_dog_roi_bbox = bbox
@@ -171,12 +184,37 @@ class VideoService:
             # H3 fix: ALWAYS release VideoCapture regardless of exception path
             cap.release()
 
-        # Gate Logic
+        # ── Gate Logic: Adaptive Dog Validation ──────────────────────────
         valid_frames = len(valid_detections)
         avg_conf = sum(d["confidence"] for d in valid_detections) / valid_frames if valid_frames > 0 else 0
+        high_conf_frames = sum(1 for d in valid_detections if d["confidence"] >= 0.55)
+        max_conf = max((d["confidence"] for d in valid_detections), default=0)
 
-        if valid_frames < 3 and sum(1 for d in valid_detections if d["confidence"] >= 0.85) < 2:
+        logger.info(
+            f"[VALIDATION][{request_id}] Gate Check: "
+            f"valid_frames={valid_frames}, avg_conf={avg_conf:.4f}, "
+            f"max_conf={max_conf:.4f}, high_conf_frames(≥0.55)={high_conf_frames}, "
+            f"target_count={target_count}"
+        )
+
+        # Reject only when there is genuinely no dog evidence
+        # 1. Zero valid frames → definitely not a dog
+        # 2. All frames have very low confidence (<0.45) → likely a false positive
+        should_reject = False
+        reject_reason = ""
+
+        if valid_frames == 0:
+            should_reject = True
+            reject_reason = "No frames contained a valid dog detection"
+        elif high_conf_frames == 0 and avg_conf < 0.45:
+            should_reject = True
+            reject_reason = f"All detections below acceptance threshold (avg_conf={avg_conf:.4f}, no frame ≥0.55)"
+
+        if should_reject:
+            logger.info(f"[VALIDATION][{request_id}] ❌ REJECTED — {reject_reason}")
             raise FurSpeakException("NOT_A_DOG", "Object did not pass validation.", 400)
+        else:
+            logger.info(f"[VALIDATION][{request_id}] ✅ ACCEPTED — {valid_frames} valid frames, avg_conf={avg_conf:.4f}, max={max_conf:.4f}")
 
         if not label_list or best_frame is None:
             raise FurSpeakException("NO_EMOTION_DETECTED", "No emotion detected.", 400)

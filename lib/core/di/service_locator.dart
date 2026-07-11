@@ -45,7 +45,9 @@ Future<void> setupDependencies() async {
   }
 
   if (!getIt.isRegistered<ApiService>()) {
-    getIt.registerSingleton<ApiService>(ApiService());
+    final apiService = ApiService();
+    await apiService.discoverAndValidateBackend();
+    getIt.registerSingleton<ApiService>(apiService);
   }
 
   if (!getIt.isRegistered<ResultStorageService>()) {

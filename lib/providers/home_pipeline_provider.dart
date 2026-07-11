@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -273,15 +272,28 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _error = null;
     _hasNavigated = false;
 
+    final completer = Completer<void>();
+
     // Route through the orchestrator so processing always preempts any
     // queued preview requests (e.g. video initialisation on other screens).
     await mediaOrchestrator.request(
       MediaRequest(
         MediaIntent.processing,
-        () async => _executePipeline(authProvider),
+        () async {
+          try {
+            await _executePipeline(authProvider);
+            completer.complete();
+          } catch (e, stack) {
+            if (!completer.isCompleted) {
+              completer.completeError(e, stack);
+            }
+          }
+        },
         _requestId!,
       ),
     );
+
+    return completer.future;
   }
 
   // ─── RETRY ────────────────────────────────────────────────────────────
@@ -315,19 +327,32 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
     debugPrint(
         "🔄 [PIPELINE] Retrying request: $_requestId (Attempt $_retryCount)");
 
+    final completer = Completer<void>();
+
     // Start processing via orchestrator
-    mediaOrchestrator.request(
+    await mediaOrchestrator.request(
       MediaRequest(
         MediaIntent.processing,
         () async {
           // Guard: ensure the request hasn't been reset before this task runs.
           if (_requestId != null) {
-            await _executePipeline(authProvider);
+            try {
+              await _executePipeline(authProvider);
+              completer.complete();
+            } catch (e, stack) {
+              if (!completer.isCompleted) {
+                completer.completeError(e, stack);
+              }
+            }
+          } else {
+            completer.complete();
           }
         },
         _requestId!,
       ),
     );
+
+    return completer.future;
   }
 
   // ─── RETRY STORAGE ────────────────────────────────────────────────────
@@ -397,6 +422,21 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
         name: "FurSpeak");
 
     _cancelToken = CancelToken();
+
+    // ─── PRE-FLIGHT CONNECTIVITY CHECK ──────────────────────────────────────
+    final apiService = GetIt.instance<ApiService>();
+    if (!apiService.isBackendConnected) {
+      debugPrint("🔍 [PIPELINE] Backend not marked connected. Re-running health check...");
+      final reconnected = await apiService.discoverAndValidateBackend();
+      if (!reconnected) {
+        throw const PipelineException(
+          message: 'Cannot connect to backend server. Please make sure the FastAPI server is running on port 8000.',
+          stage: PipelineStage.idle,
+          canRetry: true,
+        );
+      }
+    }
+
     _changeState(HomeState.compressing);
 
     File? compressedFile;
@@ -484,28 +524,32 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_cancelToken?.isCancelled == true) return;
 
       final uploadFile = compressedFile ?? originalFile;
+
+      // Validate uploadFile before starting the upload
+      if (_isVideo) {
+        final size = await uploadFile.length();
+        if (size <= 0) {
+          throw const PipelineException(
+            message: 'The exported video file is empty. Please try recording/trimming again.',
+            stage: PipelineStage.processing,
+            canRetry: false,
+          );
+        }
+        
+        final isMp4 = await _isMp4File(uploadFile);
+        if (!isMp4) {
+          throw const PipelineException(
+            message: 'The video file has an invalid format. Please try recording/trimming again.',
+            stage: PipelineStage.processing,
+            canRetry: false,
+          );
+        }
+      }
+
       _changeState(HomeState.uploading);
 
       bool pipelineSuccess = false;
 
-      void deleteCompressedFile() {
-        if (compressedFile != null) {
-          final path = compressedFile.path;
-          getTemporaryDirectory().then((tempDir) {
-            if (path.startsWith(tempDir.path)) {
-              try {
-                if (compressedFile?.existsSync() == true) {
-                  compressedFile?.deleteSync();
-                  developer.log(
-                      "PIPELINE CLEANUP: temp file deleted safely: $path",
-                      name: "FurSpeak");
-                  debugPrint("🗑️ Safe to delete compressed file");
-                }
-              } catch (_) {}
-            }
-          }).catchError((_) {});
-        }
-      }
 
       // ── UPLOAD (orchestrator lock is HELD for the entire duration) ────
       debugPrint('[PIPELINE] ════ UPLOAD PHASE START ════');
@@ -645,10 +689,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
         await authProvider.incrementGuestScanCount();
       }
 
-      if (pipelineSuccess == true) {
-        // [STABILIZATION] Do NOT delete the compressed file yet, as it's needed for the ResultScreen/History previews.
-        // deleteCompressedFile();
-      }
+
     } catch (e) {
       if (_state == HomeState.cancelled) {
         debugPrint("🛑 [PIPELINE] Cancelled state active. Suppressing error.");
@@ -686,6 +727,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ─── STATE MACHINE GUARD ──────────────────────────────────────────────
   void _changeState(HomeState newState) {
+    if (_state == newState) return;
     bool isValid = false;
     switch (_state) {
       case HomeState.idle:
@@ -731,5 +773,29 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _state = newState;
     notifyListeners();
+  }
+
+  Future<bool> _isMp4File(File file) async {
+    try {
+      if (!await file.exists()) return false;
+      final size = await file.length();
+      if (size < 8) return false;
+      
+      final raf = await file.open(mode: FileMode.read);
+      try {
+        final bytes = await raf.read(8);
+        if (bytes.length < 8) return false;
+        
+        return bytes[4] == 0x66 && // 'f'
+               bytes[5] == 0x74 && // 't'
+               bytes[6] == 0x79 && // 'y'
+               bytes[7] == 0x70;   // 'p'
+      } finally {
+        await raf.close();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [PIPELINE] Error checking MP4 header: $e');
+      return false;
+    }
   }
 }

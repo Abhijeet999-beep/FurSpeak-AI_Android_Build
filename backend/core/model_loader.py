@@ -1,4 +1,10 @@
+import os
 import torch
+
+# Disable Ultralytics auto-install to prevent crashes on Windows (exit code 3221225786).
+# All dependencies must be managed via requirements.txt instead.
+os.environ.setdefault("YOLO_AUTOINSTALL", "false")
+
 from ultralytics import YOLO
 import logging
 
@@ -34,16 +40,37 @@ class ModelLoader:
         logger.info(f"Initializing YOLO models on device: {self.device}")
 
         try:
-            self.dog_detector = YOLO(settings.DOG_DETECTOR_MODEL_PATH)
-            self.behavior_model = YOLO(settings.BEHAVIOR_MODEL_PATH)
+            # Hybrid Architecture Logic
+            def get_optimal_path(pt_path, prefer_onnx):
+                onnx_path = os.path.splitext(pt_path)[0] + ".onnx"
+                
+                if prefer_onnx:
+                    if os.path.exists(onnx_path):
+                        return onnx_path
+                    else:
+                        logger.warning(f"⚠️ ONNX file {os.path.basename(onnx_path)} missing! Falling back to PyTorch. Run export_onnx.py for optimized CPU inference.")
+                
+                return pt_path
 
-            # Move models to fixed device enforcing no runtime switching
-            self.dog_detector.to(self.device)
-            self.behavior_model.to(self.device)
-            
-            # O2 fix: Fuse layers for optimized inference memory/speed
-            self.dog_detector.fuse()
-            self.behavior_model.fuse()
+            dog_path = get_optimal_path(settings.DOG_DETECTOR_MODEL_PATH, settings.USE_ONNX_DETECTOR)
+            beh_path = get_optimal_path(settings.BEHAVIOR_MODEL_PATH, settings.USE_ONNX_CLASSIFIER)
+
+            self.dog_detector = YOLO(dog_path, task='detect')
+            self.behavior_model = YOLO(beh_path, task='classify')
+
+            if dog_path.endswith('.onnx'):
+                logger.info("[INFO] Detector backend: ONNX Runtime")
+            else:
+                logger.info("[INFO] Detector backend: PyTorch")
+                self.dog_detector.to(self.device)
+                self.dog_detector.fuse()
+
+            if beh_path.endswith('.onnx'):
+                logger.info("[INFO] Behavior backend: ONNX Runtime")
+            else:
+                logger.info("[INFO] Behavior backend: PyTorch")
+                self.behavior_model.to(self.device)
+                self.behavior_model.fuse()
             
             self._initialized = True
             logger.info("Models loaded and fused successfully")

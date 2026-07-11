@@ -146,6 +146,28 @@ void main() {
       expect(AppRoutes.computeRedirect(session, '/profile-setup'), '/home');
     });
 
+    test('Rule 5 — guest user on /welcome → null (allowed for account creation/linking)', () {
+      final session = AppSessionState(
+        isReady: true,
+        isAuthenticated: true,
+        isGuest: true,
+        hasCompletedOnboarding: true,
+        isProfileComplete: true,
+      );
+      expect(AppRoutes.computeRedirect(session, '/welcome'), isNull);
+    });
+
+    test('Rule 5 — guest user on /signup → null (allowed for account creation/linking)', () {
+      final session = AppSessionState(
+        isReady: true,
+        isAuthenticated: true,
+        isGuest: true,
+        hasCompletedOnboarding: true,
+        isProfileComplete: true,
+      );
+      expect(AppRoutes.computeRedirect(session, '/signup'), isNull);
+    });
+
     // ── RULE 6: Guest on restricted routes → /guest-warning ─────────────
 
     test('Rule 6 — guest on /history → /guest-warning', () {

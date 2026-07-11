@@ -19,13 +19,16 @@ class ImageService:
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
         # Will raise NO_DOG_DETECTED or INVALID_ROI if failed
-        roi, (x1, y1, x2, y2), dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.6)
+        roi, (x1, y1, x2, y2), dog_conf = InferenceService.detect_dog_and_roi(rgb, request_id, min_confidence=0.4)
         
         logger.info(f"[PIPELINE][{request_id}] Dog ROI Found: {x1, y1, x2, y2} (conf: {dog_conf})")
 
-        if dog_conf < 0.65:
-            logger.info(f"[{request_id}] ❌ IMAGE DOG CONFIDENCE {dog_conf} < 0.65 — REJECT")
+        # Adaptive image validation: accept moderate-confidence detections from mobile cameras
+        if dog_conf < 0.45:
+            logger.info(f"[VALIDATION][{request_id}] ❌ IMAGE DOG CONFIDENCE {dog_conf:.4f} < 0.45 — REJECT")
             raise FurSpeakException("NOT_A_DOG", "Object did not pass validation.", 400)
+        else:
+            logger.info(f"[VALIDATION][{request_id}] ✅ IMAGE DOG ACCEPTED — conf={dog_conf:.4f}")
         
         # Will raise NO_EMOTION_DETECTED if failed
         emotion, confidence, _ = InferenceService.predict_emotion(roi)

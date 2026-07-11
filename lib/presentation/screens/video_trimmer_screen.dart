@@ -3,6 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_trimmer/video_trimmer.dart';
+import 'package:video_player/video_player.dart';
+import 'package:ffmpeg_kit_flutter_new_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min_gpl/ffprobe_kit.dart';
 import 'package:furspeak_ai/config/app_theme.dart';
 import 'package:furspeak_ai/config/app_colors.dart';
 import 'package:furspeak_ai/theme/app_animations.dart';
@@ -135,21 +138,246 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     }
   }
 
+  Future<bool> _isValidMp4Container(File file) async {
+    try {
+      if (!await file.exists()) return false;
+      final size = await file.length();
+      if (size < 8) return false;
+      
+      final raf = await file.open(mode: FileMode.read);
+      try {
+        final bytes = await raf.read(8);
+        if (bytes.length < 8) return false;
+        
+        // MP4 magic bytes: 'ftyp' starting at index 4
+        return bytes[4] == 0x66 && // 'f'
+               bytes[5] == 0x74 && // 't'
+               bytes[6] == 0x79 && // 'y'
+               bytes[7] == 0x70;   // 'p'
+      } finally {
+        await raf.close();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [TRIMMER] Error validating MP4 container: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _waitForFileRelease(File file, {int maxAttempts = 15, int delayMs = 150}) async {
+    int attempts = 0;
+    int lastSize = -1;
+    
+    while (attempts < maxAttempts) {
+      if (await file.exists()) {
+        final size = await file.length();
+        debugPrint('🎬 [TRIMMER] Wait attempt ${attempts + 1}: Size is $size bytes (last size was $lastSize)');
+        if (size > 0 && size == lastSize) {
+          // File size has stabilized! Let's check readability
+          try {
+            final raf = await file.open(mode: FileMode.read);
+            await raf.close();
+            debugPrint('🎬 [TRIMMER] File successfully unlocked and stable at $size bytes.');
+            return true;
+          } catch (e) {
+            debugPrint('🎬 [TRIMMER] File exists but still locked: $e');
+          }
+        }
+        lastSize = size;
+      } else {
+        debugPrint('🎬 [TRIMMER] Wait attempt ${attempts + 1}: File does not exist yet.');
+      }
+      
+      attempts++;
+      await Future.delayed(Duration(milliseconds: delayMs));
+    }
+    return false;
+  }
+
+  Future<Map<String, dynamic>> _verifyExportedVideo(String outputPath) async {
+    final file = File(outputPath);
+
+    // Wait for the file to be fully written and closed on disk
+    final released = await _waitForFileRelease(file);
+    
+    // Retrieve FFmpeg exit code and logs if possible
+    int? lastExitCode;
+    String? ffmpegLogs;
+    try {
+      final sessions = await FFmpegKit.listSessions();
+      if (sessions.isNotEmpty) {
+        final lastSession = sessions.last;
+        final returnCode = await lastSession.getReturnCode();
+        lastExitCode = returnCode?.getValue();
+
+        final logs = await lastSession.getLogs();
+        ffmpegLogs = logs.map((l) => l.getMessage()).join('\n');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [TRIMMER] Error retrieving last FFmpeg session: $e');
+    }
+
+    final exists = await file.exists();
+    int size = 0;
+    DateTime? lastModified;
+    if (exists) {
+      size = await file.length();
+      lastModified = await file.lastModified();
+    }
+
+    // Log required verification data
+    debugPrint('🎬 [TRIMMER] VERIFICATION LOGS:');
+    debugPrint('🎬 [TRIMMER] - Output Path: $outputPath');
+    debugPrint('🎬 [TRIMMER] - File Exists: $exists');
+    debugPrint('🎬 [TRIMMER] - File Released: $released');
+    debugPrint('🎬 [TRIMMER] - File Length (Size): $size bytes');
+    debugPrint('🎬 [TRIMMER] - Last Modified Time: $lastModified');
+    debugPrint('🎬 [TRIMMER] - FFmpeg/Trimmer Exit Code: $lastExitCode');
+
+    if (!exists) {
+      return {
+        'valid': false,
+        'exitCode': lastExitCode,
+        'ffmpegLogs': ffmpegLogs,
+        'error': 'Exported file does not exist on disk.',
+      };
+    }
+
+    if (!released || size <= 0) {
+      return {
+        'valid': false,
+        'exitCode': lastExitCode,
+        'ffmpegLogs': ffmpegLogs,
+        'error': 'Exported file is empty or locked by the system.',
+      };
+    }
+    
+    // Check container
+    final isMp4 = await _isValidMp4Container(file);
+    if (!isMp4) {
+      return {
+        'valid': false,
+        'exitCode': lastExitCode,
+        'ffmpegLogs': ffmpegLogs,
+        'error': 'Exported file is not a valid MP4 video.',
+      };
+    }
+
+    // Try extracting metadata using FFprobeKit (primary source - robust for local files)
+    int durationMs = 0;
+    try {
+      debugPrint('🎬 [TRIMMER] Probing metadata using FFprobeKit...');
+      final session = await FFprobeKit.getMediaInformation(outputPath);
+      final mediaInfo = session.getMediaInformation();
+      if (mediaInfo != null) {
+        final durationStr = mediaInfo.getDuration();
+        debugPrint('🎬 [TRIMMER] FFprobe duration string: $durationStr');
+        if (durationStr != null && durationStr.isNotEmpty) {
+          final double? durationSec = double.tryParse(durationStr);
+          if (durationSec != null) {
+            durationMs = (durationSec * 1000).toInt();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [TRIMMER] FFprobe media information check failed: $e');
+    }
+
+    // Fall back to VideoPlayerController if FFprobe failed or returned 0ms
+    if (durationMs <= 0) {
+      debugPrint('🎬 [TRIMMER] FFprobe returned 0 duration. Falling back to VideoPlayerController...');
+      final tempController = VideoPlayerController.file(file);
+      try {
+        await tempController.initialize();
+        final duration = tempController.value.duration;
+        durationMs = duration.inMilliseconds;
+        await tempController.dispose();
+      } catch (e) {
+        await tempController.dispose();
+        debugPrint('⚠️ [TRIMMER] VideoPlayerController fallback check failed: $e');
+      }
+    }
+
+    debugPrint('🎬 [TRIMMER] - Metadata Duration: $durationMs ms');
+
+    if (durationMs <= 0) {
+      return {
+        'valid': false,
+        'exitCode': lastExitCode,
+        'ffmpegLogs': ffmpegLogs,
+        'durationMs': durationMs,
+        'error': 'Exported video has an invalid duration (0ms).',
+      };
+    }
+
+    return {
+      'valid': true,
+      'size': size,
+      'durationMs': durationMs,
+      'exitCode': lastExitCode,
+      'ffmpegLogs': ffmpegLogs,
+    };
+  }
+
   Future<void> _onTrimPressed() async {
+    final double start = _startValueNotifier.value;
+    final double end = _endValueNotifier.value;
+
+    if (start >= end) {
+      _showError('Invalid trim range: Start time must be before end time.');
+      return;
+    }
+
     FurHaptics.impact();
     setState(() => _isTrimming = true);
 
-    await _trimmer.saveTrimmedVideo(
-      startValue: _startValueNotifier.value,
-      endValue: _endValueNotifier.value,
-      onSave: (outputPath) {
+    final originalName = widget.videoPath.split('/').last.split('.').first;
+    // Replace colons, spaces, and other special characters with underscores to prevent URI scheme parsing errors
+    final cleanOriginalName = originalName.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final String customFileName = '${cleanOriginalName}_trimmed_$timestamp';
+
+    final DateTime exportStartTime = DateTime.now();
+    debugPrint('🎬 [TRIMMER] Starting export at $exportStartTime');
+    debugPrint('🎬 [TRIMMER] Target trim range: ${start}ms to ${end}ms (duration: ${end - start}ms)');
+    debugPrint('🎬 [TRIMMER] Saving trimmed video with custom filename: $customFileName');
+
+    _trimmer.saveTrimmedVideo(
+      startValue: start,
+      endValue: end,
+      videoFileName: customFileName,
+      onSave: (outputPath) async {
         if (!mounted) return;
-        setState(() => _isTrimming = false);
+
+        final DateTime exportEndTime = DateTime.now();
+        final elapsed = exportEndTime.difference(exportStartTime);
+
         if (outputPath != null) {
-          FurHaptics.heavy();
-          widget.onTrimmed(outputPath);
+          debugPrint('🎬 [TRIMMER] saveTrimmedVideo callback: outputPath = $outputPath');
+          debugPrint('🎬 [TRIMMER] Export completed in ${elapsed.inMilliseconds}ms');
+          
+          final verification = await _verifyExportedVideo(outputPath);
+          
+          debugPrint('🎬 [TRIMMER] Verification result: ${verification['valid']}');
+          
+          if (verification['valid'] == true) {
+            setState(() => _isTrimming = false);
+            FurHaptics.heavy();
+            widget.onTrimmed(outputPath);
+          } else {
+            setState(() => _isTrimming = false);
+            final String errorMsg = verification['error'] ?? 'Unknown trimming failure.';
+            final String details = 'Path: $outputPath\n'
+                'Size: ${verification['size'] ?? "N/A"} bytes\n'
+                'Duration: ${verification['durationMs'] ?? "N/A"} ms\n'
+                'Exit Code: ${verification['exitCode'] ?? "N/A"}\n'
+                'Error: $errorMsg\n'
+                'FFmpeg Logs:\n${verification['ffmpegLogs'] ?? "None"}';
+            debugPrint('❌ [TRIMMER] Video verification failed:\n$details');
+            _showError('Video export failed: $errorMsg');
+          }
         } else {
-          _showError('Trimming failed. Please try again.');
+          setState(() => _isTrimming = false);
+          _showError('Trimming failed (no output path returned). Please try again.');
         }
       },
     );
@@ -249,70 +477,93 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     final maxDur = Duration(seconds: widget.maxDurationSeconds);
     final needsTrim = _totalDuration > maxDur;
 
-    return Column(
-      children: [
-        // ── Video Preview ──────────────────────────────────────────────
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 100, 12, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double screenHeight = constraints.maxHeight;
+        // Adjust preview height based on available space
+        final bool isSmallScreen = screenHeight < 600;
+
+        return Column(
+          children: [
+            // ── Video Preview ──────────────────────────────────────────────
+            Expanded(
+              flex: isSmallScreen ? 3 : 5,
+              child: Container(
+                margin: EdgeInsets.fromLTRB(
+                  AppTheme.space12,
+                  MediaQuery.of(context).padding.top + 20,
+                  AppTheme.space12,
+                  AppTheme.space12,
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              child: GestureDetector(
-                onTap: _togglePlayPause,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    VideoViewer(trimmer: _trimmer),
-                    
-                    // Play/Pause Overlay
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _isPlayingNotifier,
-                      builder: (context, isPlaying, child) {
-                        return AnimatedOpacity(
-                          duration: AppTheme.animFast,
-                          opacity: isPlaying ? 0.0 : 1.0,
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.4),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white24, width: 1.5),
-                            ),
-                            child: Icon(
-                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 42,
-                            ),
-                          ),
-                        );
-                      },
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
                     ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  child: GestureDetector(
+                    onTap: _togglePlayPause,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        VideoViewer(trimmer: _trimmer),
+                        
+                        // Play/Pause Overlay
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _isPlayingNotifier,
+                          builder: (context, isPlaying, child) {
+                            return AnimatedOpacity(
+                              duration: AppTheme.animFast,
+                              opacity: isPlaying ? 0.0 : 1.0,
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white24, width: 1.5),
+                                ),
+                                child: Icon(
+                                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 36,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Controls & Actions ──────────────────────────────────────────
+            Flexible(
+              flex: isSmallScreen ? 4 : 3,
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: AppTheme.space8),
+                    _buildManualTrimSection(maxDur),
+                    _buildActionButtons(needsTrim),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
                   ],
                 ),
               ),
             ),
-          ),
-        ),
-
-        const SizedBox(height: AppTheme.space16),
-
-        // ── Controls Section ───────────────────────────────────────────
-        _buildManualTrimSection(maxDur),
-
-        // ── Action Buttons ────────────────────────────────────────────
-        _buildActionButtons(needsTrim),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -463,20 +714,28 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
                         height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                       )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
-                          const SizedBox(width: 8),
-                          Text(
-                            needsTrim ? 'Trim & Analyze' : 'Start Analysis',
-                            style: AppTheme.titleStyle.copyWith(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  needsTrim ? 'Trim & Analyze' : 'Start Analysis',
+                                  style: AppTheme.titleStyle.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
               ),
             ),

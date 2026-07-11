@@ -47,6 +47,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await pipeline.processNewMedia(filePath, isVideo, authProvider);
 
     if (!mounted) return;
+
+    // Handle multiple dogs error via a simple, user-friendly snackbar
+    if (pipeline.state == HomeState.error && pipeline.error != null) {
+      final err = pipeline.error!;
+      if (err.type == AppErrorType.multipleDogsDetected) {
+        _showFriendlySnackBar(err.userMessage, err.icon);
+        pipeline.reset();
+        return;
+      }
+    }
+
     final resultId = pipeline.consumeSuccess();
     if (resultId == null) return;
 
@@ -56,21 +67,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildMediaPickerSheet() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.transparent,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppTheme.radiusExtraLarge)),
       ),
       child: PetMoodGlass(
-        opacity: 0.05, // Much subtler for a large sheet
+        opacity: 0.05,
         color: AppTheme.surfaceLow,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusExtraLarge)),
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTheme.radiusExtraLarge)),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppTheme.space24, AppTheme.space12, AppTheme.space24, AppTheme.space32),
+            padding: const EdgeInsets.fromLTRB(AppTheme.space24,
+                AppTheme.space12, AppTheme.space24, AppTheme.space24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Premium Handle
+                // Handle
                 Container(
                   width: 40,
                   height: 5,
@@ -85,49 +99,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     borderRadius: AppTheme.borderRadiusPill,
                   ),
                 ),
-                const SizedBox(height: AppTheme.space24),
-                
+                const SizedBox(height: AppTheme.space20),
                 StaggeredEntrance(
                   children: [
                     ShaderMask(
-                      shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                      shaderCallback: (bounds) =>
+                          AppTheme.primaryGradient.createShader(bounds),
                       child: Text(
                         'Capture a Moment 📸',
                         style: AppTheme.titleStyle.copyWith(
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.8,
                           color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppTheme.space8),
+                    const SizedBox(height: 6),
                     Text(
-                      'How would you like to scan your pet?',
+                      'Photo or video — your choice',
                       style: AppTheme.captionStyle.copyWith(
                         color: AppTheme.textLightColor,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppTheme.space32),
-                
+                const SizedBox(height: AppTheme.space24),
+                // ── Two clean action tiles ──
                 StaggeredEntrance(
-                  staggerDelay: const Duration(milliseconds: 100),
+                  staggerDelay: const Duration(milliseconds: 80),
                   children: [
-                    // Camera Options
                     Row(
                       children: [
                         Expanded(
                           child: SquishButton(
                             useGlobalLock: false,
-                            onPressed: () => Navigator.pop(context, 'camera_photo'),
-                            child: _buildPickerOption(
-                              title: 'Snap Photo',
-                              subtitle: 'Instant results',
-                              icon: '📸',
+                            onPressed: () => Navigator.pop(context, 'camera'),
+                            child: _buildPickerTile(
+                              icon: Icons.camera_alt_rounded,
+                              label: 'Camera',
+                              hint: 'Photo & Video',
                               color: AppTheme.primaryColor,
                             ),
                           ),
@@ -136,44 +149,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Expanded(
                           child: SquishButton(
                             useGlobalLock: false,
-                            onPressed: () => Navigator.pop(context, 'camera_video'),
-                            child: _buildPickerOption(
-                              title: 'Record Video',
-                              subtitle: 'Deep analysis',
-                              icon: '🎥',
+                            onPressed: () => Navigator.pop(context, 'gallery'),
+                            child: _buildPickerTile(
+                              icon: Icons.photo_library_rounded,
+                              label: 'Gallery',
+                              hint: 'Photos & Videos',
                               color: AppTheme.accentColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTheme.space16),
-                    
-                    // Gallery Options
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SquishButton(
-                            useGlobalLock: false,
-                            onPressed: () => Navigator.pop(context, 'gallery_photo'),
-                            child: _buildPickerOption(
-                              title: 'From Gallery',
-                              subtitle: 'Past memories',
-                              icon: '🖼️',
-                              color: AppTheme.tertiaryColor,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppTheme.space16),
-                        Expanded(
-                          child: SquishButton(
-                            useGlobalLock: false,
-                            onPressed: () => Navigator.pop(context, 'gallery_video'),
-                            child: _buildPickerOption(
-                              title: 'Import Video',
-                              subtitle: 'Detailed look',
-                              icon: '🎞️',
-                              color: const Color(0xFF7B61FF),
                             ),
                           ),
                         ),
@@ -189,22 +170,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPickerOption({
-    required String title,
-    required String subtitle,
-    required String icon,
+  Widget _buildPickerTile({
+    required IconData icon,
+    required String label,
+    required String hint,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space24),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space16, vertical: AppTheme.space20),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLowest,
         borderRadius: AppTheme.borderRadiusLarge,
+        border: Border.all(color: color.withOpacity(0.12), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.08),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
             spreadRadius: -4,
           ),
         ],
@@ -213,38 +196,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(AppTheme.space12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [color.withOpacity(0.12), color.withOpacity(0.06)],
+              ),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.2),
-                  blurRadius: 12,
-                  spreadRadius: -4,
-                ),
-              ],
             ),
-            child: Text(icon, style: const TextStyle(fontSize: 32)),
+            child: Icon(icon, size: 28, color: color),
           ),
-          const SizedBox(height: AppTheme.space16),
+          const SizedBox(height: AppTheme.space12),
           Text(
-            title, 
+            label,
             textAlign: TextAlign.center,
             style: AppTheme.titleStyle.copyWith(
-              fontSize: 15, 
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               color: AppTheme.textColor,
-              letterSpacing: -0.4,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
-            subtitle, 
+            hint,
             textAlign: TextAlign.center,
             style: AppTheme.captionStyle.copyWith(
               fontSize: 11,
-              color: AppTheme.textLightColor.withOpacity(0.8),
+              color: AppTheme.textLightColor.withOpacity(0.7),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -259,9 +239,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _showMediaPicker() async {
-    debugPrint('HomeScreen: _showMediaPicker called, _isPickerOpen=$_isPickerOpen');
+    debugPrint(
+        'HomeScreen: _showMediaPicker called, _isPickerOpen=$_isPickerOpen');
     if (_isPickerOpen) return;
-    
+
     setState(() => _isPickerOpen = true);
     String? choice;
 
@@ -290,69 +271,67 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     if (choice == null) return;
 
-    if (choice.startsWith('camera')) {
+    if (choice == 'camera') {
       final status = await Permission.camera.status;
       if (!status.isGranted) {
         if (status.isDenied) {
           final shouldRequest = await showEducationalPermissionSheet(context);
           if (!shouldRequest) return;
         }
-        
+
         await [Permission.camera, Permission.microphone].request();
-        
+
         final newStatus = await Permission.camera.status;
         if (!newStatus.isGranted) {
           if (newStatus.isPermanentlyDenied) {
             if (mounted) {
               _showFriendlySnackBar(
-                  'Camera access disabled. Please enable it in Settings.', Icons.settings);
+                  'Camera access disabled. Please enable it in Settings.',
+                  Icons.settings);
             }
           } else {
             if (mounted) {
-              _showFriendlySnackBar(
-                  'We need access to see your dog 🐶', Icons.no_photography_rounded);
+              _showFriendlySnackBar('We need access to see your dog 🐶',
+                  Icons.no_photography_rounded);
             }
           }
           return;
         }
       }
 
-      final picker = ImagePicker();
-      String? result;
-      bool isVideo = choice == 'camera_video';
+      // Open CameraScreen (supports tap-for-photo & hold-for-video)
+      if (!mounted) return;
+      String? result = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const CameraScreen()),
+      );
 
-      if (isVideo) {
-        final XFile? pickedVideo = await picker.pickVideo(
-          source: ImageSource.camera,
-          maxDuration: const Duration(seconds: 60),
-        );
-        if (pickedVideo != null) {
-          if (!mounted) return;
-          result = await Navigator.push<String>(
+      if (result != null && mounted) {
+        // Detect if CameraScreen returned a video or photo
+        final ext = result.split('.').last.toLowerCase();
+        final videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'};
+        final bool isVideo = videoExts.contains(ext);
+
+        if (isVideo) {
+          // Route video through trimmer
+          final trimmed = await Navigator.push<String>(
             context,
             MaterialPageRoute(
               builder: (_) => VideoTrimmerScreen(
-                videoPath: pickedVideo.path,
+                videoPath: result!,
                 onTrimmed: (path) => Navigator.pop(context, path),
               ),
             ),
           );
-        }
-      } else {
-        result = await Navigator.push<String>(
-          context,
-          MaterialPageRoute(builder: (_) => const CameraScreen()),
-        );
-      }
-
-      if (result != null && mounted) {
-        if (!isVideo) {
+          if (trimmed == null) return;
+          result = trimmed;
+        } else {
+          // Route photo through cropper
           final cropped = await MediaUtils.cropImage(File(result));
           if (cropped != null) {
             result = cropped.path;
           } else {
-            // User cancelled crop, abort pipeline
-            return;
+            return; // User cancelled crop
           }
         }
 
@@ -360,13 +339,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           isVideo ? '🎥 Video captured!' : '📷 Image captured!',
           isVideo ? Icons.videocam : Icons.camera_alt,
         );
-
         await _startPipeline(result, isVideo);
       }
       return;
     }
 
-    if (choice.startsWith('gallery')) {
+    if (choice == 'gallery') {
       // Permission check for gallery
       if (Platform.isAndroid) {
         final status = await Permission.photos.status;
@@ -377,26 +355,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       final picker = ImagePicker();
-      XFile? picked;
-      bool isVideo = choice == 'gallery_video';
+      // pickMedia lets user choose either photo or video from a single picker
+      final XFile? picked = await picker.pickMedia();
 
-      if (isVideo) {
-        picked = await picker.pickVideo(source: ImageSource.gallery);
-      } else {
-        picked = await picker.pickImage(source: ImageSource.gallery);
-      }
-      
       if (picked == null) return;
-
       if (!mounted) return;
-      
+
+      // Determine media type from file extension
+      final ext = picked.path.split('.').last.toLowerCase();
+      final videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'};
+      final bool isVideo = videoExts.contains(ext);
+
       String? finalPath;
       if (isVideo) {
         finalPath = await Navigator.push<String>(
           context,
           MaterialPageRoute(
             builder: (_) => VideoTrimmerScreen(
-              videoPath: picked!.path,
+              videoPath: picked.path,
               onTrimmed: (path) => Navigator.pop(context, path),
             ),
           ),
@@ -414,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         isVideo ? '🎥 Video selected!' : '📷 Image selected!',
         isVideo ? Icons.videocam : Icons.camera_alt,
       );
-      
+
       await _startPipeline(finalPath, isVideo);
     }
   }
@@ -439,6 +415,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       if (!mounted) return;
+
+      // Handle multiple dogs error via a simple, user-friendly snackbar on retry
+      if (pipeline.state == HomeState.error && pipeline.error != null) {
+        final err = pipeline.error!;
+        if (err.type == AppErrorType.multipleDogsDetected) {
+          _showFriendlySnackBar(err.userMessage, err.icon);
+          pipeline.reset();
+          return;
+        }
+      }
+
       final resultId = pipeline.consumeSuccess();
       if (resultId == null) return;
 
@@ -474,7 +461,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         backgroundColor: AppTheme.textColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
+        shape:
+            RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusMedium),
         duration: const Duration(seconds: 2),
         margin: const EdgeInsets.all(AppTheme.space16),
       ),
@@ -483,17 +471,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isProcessing = context.select((HomePipelineProvider p) => p.isProcessing);
+    final isProcessing =
+        context.select((HomePipelineProvider p) => p.isProcessing);
     final isGuest = context.select((AuthProvider p) => p.isGuest);
-    final error = context.select((HomePipelineProvider p) => p.error);
-
 
     return PopScope(
       canPop: !isProcessing,
       onPopInvoked: (didPop) {
         if (didPop) return;
         if (isProcessing) {
-          _showFriendlySnackBar('Still thinking! Cancel to go back.', Icons.hourglass_top_rounded);
+          _showFriendlySnackBar('Still thinking! Cancel to go back.',
+              Icons.hourglass_top_rounded);
         }
       },
       child: Scaffold(
@@ -518,32 +506,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             IgnorePointer(
               ignoring: isProcessing,
               child: SafeArea(
-                bottom: false, // Handle bottom padding manually for better control
+                bottom:
+                    false, // Handle bottom padding manually for better control
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
                         child: IntrinsicHeight(
                           child: Padding(
                             padding: EdgeInsets.fromLTRB(
                               AppTheme.space24,
                               0,
                               AppTheme.space24,
-                              MediaQuery.of(context).padding.bottom + AppTheme.space24,
+                              MediaQuery.of(context).padding.bottom +
+                                  AppTheme.space24,
                             ),
                             child: Column(
                               children: [
                                 const SizedBox(height: AppTheme.space24),
                                 StaggeredEntrance(
-                                  staggerDelay: const Duration(milliseconds: 120), // More deliberate
+                                  staggerDelay: const Duration(
+                                      milliseconds: 120), // More deliberate
                                   children: [
                                     Text(
                                       'How is your',
                                       textAlign: TextAlign.center,
                                       style: AppTheme.headingStyle.copyWith(
-                                        color: AppTheme.textColor.withOpacity(0.85),
+                                        color: AppTheme.textColor
+                                            .withOpacity(0.85),
                                         fontSize: 24,
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: -0.5,
@@ -551,13 +544,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     ),
                                     const SizedBox(height: 2),
                                     ShaderMask(
-                                      shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                                      shaderCallback: (bounds) => AppTheme
+                                          .primaryGradient
+                                          .createShader(bounds),
                                       child: Text(
                                         'dog',
                                         textAlign: TextAlign.center,
                                         style: AppTheme.headingStyle.copyWith(
                                           color: Colors.white,
-                                          fontSize: 84, // Slightly larger for impact
+                                          fontSize:
+                                              70, // Slightly larger for impact
                                           fontWeight: FontWeight.w800,
                                           height: 0.85,
                                           letterSpacing: -5.0,
@@ -578,9 +574,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     const SizedBox(height: AppTheme.space20),
                                     const SizedBox(height: AppTheme.space16),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 10),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.surfaceLow.withOpacity(0.4),
+                                        color: AppTheme.surfaceLow
+                                            .withOpacity(0.4),
                                         borderRadius: AppTheme.borderRadiusPill,
                                       ),
                                       child: Text(
@@ -599,7 +597,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 if (isGuest) ...[
                                   const SizedBox(height: AppTheme.space12),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: AppTheme.space12,
+                                        vertical: AppTheme.space8),
                                     decoration: BoxDecoration(
                                       color: AppTheme.surfaceContainerLow,
                                       borderRadius: AppTheme.borderRadiusPill,
@@ -607,12 +607,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.pets, size: 14, color: AppTheme.accentColor),
+                                        const Icon(Icons.pets,
+                                            size: 14,
+                                            color: AppTheme.accentColor),
                                         const SizedBox(width: AppTheme.space8),
                                         Flexible(
                                           child: Text(
                                             "Scanning as guest — sign in to save your dog's insights",
-                                            style: AppTheme.captionStyle.copyWith(
+                                            style:
+                                                AppTheme.captionStyle.copyWith(
                                               color: AppTheme.accentColor,
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
@@ -626,45 +629,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 const SizedBox(height: AppTheme.space24),
 
                                 // Animated Dog Card
-                                 StaggeredEntrance(
-                                   initialDelay: const Duration(milliseconds: 400),
-                                   children: [
-                                     RadialGlow(
-                                       color: AppTheme.primaryColor.withOpacity(0.35),
-                                       size: 340,
-                                       child: FloatingLottie(
-                                         distance: 14.0, 
-                                         duration: const Duration(milliseconds: 3500),
-                                         child: PetMoodGlass(
-                                           opacity: 0.8,
-                                           borderRadius: AppTheme.borderRadiusExtraLarge,
-                                           child: Container(
-                                             width: double.infinity,
-                                             height: 280,
-                                             padding: const EdgeInsets.all(AppTheme.space24),
-                                             child: RepaintBoundary(
-                                               child: Lottie.asset(
-                                                 LottieRegistry.get(_randomDogKey),
-                                                 fit: BoxFit.contain,
-                                                 errorBuilder: (context, error, stackTrace) {
-                                                   return const Center(
-                                                     child: Icon(Icons.pets_rounded, size: 80, color: AppTheme.primaryColor),
-                                                   );
-                                                 },
-                                               ),
-                                             ),
-                                           ),
-                                         ),
-                                       ),
-                                     ),
-                                   ],
-                                 ),
+                                StaggeredEntrance(
+                                  initialDelay:
+                                      const Duration(milliseconds: 400),
+                                  children: [
+                                    RadialGlow(
+                                      color: AppTheme.primaryColor
+                                          .withOpacity(0.35),
+                                      size: 340,
+                                      child: FloatingLottie(
+                                        distance: 14.0,
+                                        duration:
+                                            const Duration(milliseconds: 3500),
+                                        child: PetMoodGlass(
+                                          opacity: 0.8,
+                                          borderRadius:
+                                              AppTheme.borderRadiusExtraLarge,
+                                          child: Container(
+                                            width: double.infinity,
+                                            height: 280,
+                                            padding: const EdgeInsets.all(
+                                                AppTheme.space24),
+                                            child: RepaintBoundary(
+                                              child: Lottie.asset(
+                                                LottieRegistry.get(
+                                                    _randomDogKey),
+                                                fit: BoxFit.contain,
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
+                                                  return const Center(
+                                                    child: Icon(
+                                                        Icons.pets_rounded,
+                                                        size: 80,
+                                                        color: AppTheme
+                                                            .primaryColor),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
 
                                 const SizedBox(height: 32),
 
                                 // ═══ PRIMARY CTA: Scan Emotion ═══
                                 StaggeredEntrance(
-                                  initialDelay: const Duration(milliseconds: 600),
+                                  initialDelay:
+                                      const Duration(milliseconds: 600),
                                   children: [
                                     Opacity(
                                       opacity: _isPickerOpen ? 0.6 : 1.0,
@@ -673,17 +688,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         child: BoundedPulse(
                                           child: SquishButton(
                                             useGlobalLock: false,
-                                            onPressed: isProcessing || _isPickerOpen ? null : _triggerMediaPicker,
+                                            onPressed:
+                                                isProcessing || _isPickerOpen
+                                                    ? null
+                                                    : _triggerMediaPicker,
                                             pressScale: 0.95,
                                             child: Container(
                                               width: double.infinity,
                                               height: 72,
                                               decoration: BoxDecoration(
-                                                gradient: AppTheme.primaryGradient,
-                                                borderRadius: AppTheme.borderRadiusPill,
+                                                gradient:
+                                                    AppTheme.primaryGradient,
+                                                borderRadius:
+                                                    AppTheme.borderRadiusPill,
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: AppTheme.primaryColor.withOpacity(0.35),
+                                                    color: AppTheme.primaryColor
+                                                        .withOpacity(0.35),
                                                     blurRadius: 24,
                                                     offset: const Offset(0, 10),
                                                   ),
@@ -691,39 +712,64 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                               ),
                                               child: Shimmer.fromColors(
                                                 baseColor: Colors.white,
-                                                highlightColor: Colors.white.withOpacity(0.5),
-                                                period: const Duration(milliseconds: 3000),
+                                                highlightColor: Colors.white
+                                                    .withOpacity(0.5),
+                                                period: const Duration(
+                                                    milliseconds: 3000),
                                                 child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
                                                   children: [
                                                     Container(
-                                                      padding: const EdgeInsets.all(12),
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              12),
                                                       decoration: BoxDecoration(
-                                                        color: Colors.white.withOpacity(0.2),
-                                                        borderRadius: AppTheme.borderRadiusMedium,
+                                                        color: Colors.white
+                                                            .withOpacity(0.2),
+                                                        borderRadius: AppTheme
+                                                            .borderRadiusMedium,
                                                       ),
-                                                      child: const Icon(Icons.auto_awesome_rounded, size: 28, color: Colors.white),
+                                                      child: const Icon(
+                                                          Icons
+                                                              .auto_awesome_rounded,
+                                                          size: 28,
+                                                          color: Colors.white),
                                                     ),
-                                                    const SizedBox(width: AppTheme.space16),
+                                                    const SizedBox(
+                                                        width:
+                                                            AppTheme.space16),
                                                     Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Text(
                                                           'Scan Emotion',
-                                                          style: AppTheme.titleStyle.copyWith(
+                                                          style: AppTheme
+                                                              .titleStyle
+                                                              .copyWith(
                                                             color: Colors.white,
                                                             fontSize: 22,
-                                                            fontWeight: FontWeight.w800,
+                                                            fontWeight:
+                                                                FontWeight.w800,
                                                             letterSpacing: -0.5,
                                                           ),
                                                         ),
                                                         Text(
                                                           'Photo or Video',
-                                                          style: AppTheme.captionStyle.copyWith(
-                                                            color: Colors.white.withOpacity(0.85),
+                                                          style: AppTheme
+                                                              .captionStyle
+                                                              .copyWith(
+                                                            color: Colors.white
+                                                                .withOpacity(
+                                                                    0.85),
                                                             fontSize: 13,
-                                                            fontWeight: FontWeight.w600,
+                                                            fontWeight:
+                                                                FontWeight.w600,
                                                           ),
                                                         ),
                                                       ],
@@ -743,71 +789,92 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                                 // View Results CTA
                                 StaggeredEntrance(
-                                  initialDelay: const Duration(milliseconds: 800),
+                                  initialDelay:
+                                      const Duration(milliseconds: 800),
                                   children: [
                                     Selector<HomePipelineProvider, bool>(
-                                      selector: (_, p) => p.state == HomeState.success,
+                                      selector: (_, p) =>
+                                          p.state == HomeState.success,
                                       builder: (context, isResult, _) {
-                                        if (!isResult) return const SizedBox.shrink();
+                                        if (!isResult)
+                                          return const SizedBox.shrink();
 
-                                    return BoundedPulse(
-                                      maxPulses: 3,
-                                      child: SquishButton(
-                                          onPressed: () {
-                                            FurHaptics.success();
-                                            final pipeline = context.read<HomePipelineProvider>();
-                                            final resultId = pipeline.consumeSuccess();
-                                            if (resultId != null) {
-                                              context.pushResult(resultId);
-                                              pipeline.resetPipeline();
-                                            } else if (pipeline.lastResultId != null) {
-                                              context.pushResult(pipeline.lastResultId!);
-                                              pipeline.resetPipeline();
-                                            }
-                                          },
-                                        child: Container(
-                                          width: double.infinity,
-                                          height: 60,
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                AppTheme.successColor,
-                                                Color(0xFF2ECC71),
-                                              ],
-                                            ),
-                                            borderRadius: AppTheme.borderRadiusPill,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppTheme.successColor.withOpacity(0.35),
-                                                blurRadius: 20,
-                                                offset: const Offset(0, 8),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Shimmer.fromColors(
-                                            baseColor: Colors.white,
-                                            highlightColor: Colors.white.withOpacity(0.6),
-                                            period: const Duration(seconds: 4),
-                                            child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                const Icon(Icons.auto_awesome_rounded, size: 24, color: Colors.white),
-                                                const SizedBox(width: AppTheme.space12),
-                                                Text(
-                                                  'View Results ✨',
-                                                  style: AppTheme.titleStyle.copyWith(
-                                                    color: Colors.white,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: -0.2,
-                                                  ),
+                                        return BoundedPulse(
+                                          maxPulses: 3,
+                                          child: SquishButton(
+                                            onPressed: () {
+                                              FurHaptics.success();
+                                              final pipeline = context
+                                                  .read<HomePipelineProvider>();
+                                              final resultId =
+                                                  pipeline.consumeSuccess();
+                                              if (resultId != null) {
+                                                context.pushResult(resultId);
+                                                pipeline.resetPipeline();
+                                              } else if (pipeline
+                                                      .lastResultId !=
+                                                  null) {
+                                                context.pushResult(
+                                                    pipeline.lastResultId!);
+                                                pipeline.resetPipeline();
+                                              }
+                                            },
+                                            child: Container(
+                                              width: double.infinity,
+                                              height: 60,
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [
+                                                    AppTheme.successColor,
+                                                    Color(0xFF2ECC71),
+                                                  ],
                                                 ),
-                                              ],
+                                                borderRadius:
+                                                    AppTheme.borderRadiusPill,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: AppTheme.successColor
+                                                        .withOpacity(0.35),
+                                                    blurRadius: 20,
+                                                    offset: const Offset(0, 8),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Shimmer.fromColors(
+                                                baseColor: Colors.white,
+                                                highlightColor: Colors.white
+                                                    .withOpacity(0.6),
+                                                period:
+                                                    const Duration(seconds: 4),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(
+                                                        Icons
+                                                            .auto_awesome_rounded,
+                                                        size: 24,
+                                                        color: Colors.white),
+                                                    const SizedBox(
+                                                        width:
+                                                            AppTheme.space12),
+                                                    Text(
+                                                      'View Results ✨',
+                                                      style: AppTheme.titleStyle
+                                                          .copyWith(
+                                                        color: Colors.white,
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        letterSpacing: -0.2,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                    );
+                                        );
                                       },
                                     ),
                                   ],
@@ -835,7 +902,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   right: 0,
                   bottom: 56,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                     child: Material(
                       elevation: 0,
                       borderRadius: AppTheme.borderRadiusLarge,
@@ -850,7 +918,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(error.emoji, style: const TextStyle(fontSize: 40)),
+                            Text(error.emoji,
+                                style: const TextStyle(fontSize: 40)),
                             const SizedBox(height: AppTheme.space12),
                             Text(
                               error.userMessage,
@@ -877,7 +946,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 TextButton(
-                                  onPressed: () => context.read<HomePipelineProvider>().reset(),
+                                  onPressed: () => context
+                                      .read<HomePipelineProvider>()
+                                      .reset(),
                                   child: const Text('Dismiss'),
                                 ),
                                 if (error.canRetry) ...[
@@ -885,17 +956,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   SquishButton(
                                     onPressed: _handleRetry,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24, vertical: AppTheme.space12),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: AppTheme.space24,
+                                          vertical: AppTheme.space12),
                                       decoration: BoxDecoration(
                                         color: AppTheme.primaryColor,
-                                        borderRadius: AppTheme.borderRadiusMedium,
+                                        borderRadius:
+                                            AppTheme.borderRadiusMedium,
                                       ),
                                       child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.refresh_rounded, size: 18, color: Colors.white),
+                                          Icon(Icons.refresh_rounded,
+                                              size: 18, color: Colors.white),
                                           SizedBox(width: 6),
-                                          Text('Try Again', style: TextStyle(color: Colors.white)),
+                                          Text('Try Again',
+                                              style: TextStyle(
+                                                  color: Colors.white)),
                                         ],
                                       ),
                                     ),
@@ -928,7 +1005,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               width: 120,
                               height: 120,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const CircularProgressIndicator(),
+                              errorBuilder: (_, __, ___) =>
+                                  const CircularProgressIndicator(),
                             ),
                           ),
                           const SizedBox(height: AppTheme.space24),
@@ -936,20 +1014,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             opacity: 0.92,
                             borderRadius: AppTheme.borderRadiusLarge,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space24, vertical: AppTheme.space16),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.space24,
+                                  vertical: AppTheme.space16),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _PipelineStageIndicator(
                                     state: pipeline.state,
                                     uploadProgress: pipeline.uploadProgress,
-                                    compressionProgress: pipeline.compressionProgress,
-                                    processingProgress: pipeline.processingProgress,
+                                    compressionProgress:
+                                        pipeline.compressionProgress,
+                                    processingProgress:
+                                        pipeline.processingProgress,
                                   ),
                                   const SizedBox(height: AppTheme.space12),
                                   ProcessingMessageRotator(
                                     isActive: true,
-                                    textStyle: AppTheme.titleStyle.copyWith(fontSize: 16),
+                                    textStyle: AppTheme.titleStyle
+                                        .copyWith(fontSize: 16),
                                   ),
                                 ],
                               ),
@@ -958,9 +1041,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           const SizedBox(height: 32),
                           TextButton.icon(
                             onPressed: () => pipeline.cancelProcessing(),
-                            icon: const Icon(Icons.close_rounded, color: Colors.white),
-                            label: const Text('Cancel', style: TextStyle(color: Colors.white)),
-                            style: TextButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.2)),
+                            icon: const Icon(Icons.close_rounded,
+                                color: Colors.white),
+                            label: const Text('Cancel',
+                                style: TextStyle(color: Colors.white)),
+                            style: TextButton.styleFrom(
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: 0.2)),
                           ),
                         ],
                       ),
@@ -1000,9 +1087,12 @@ class _PipelineStageIndicator extends StatelessWidget {
     if (activeIndex < 0) activeIndex = 0;
 
     double stageInternalProgress = 0.0;
-    if (state == HomeState.compressing) stageInternalProgress = compressionProgress;
-    else if (state == HomeState.uploading) stageInternalProgress = uploadProgress;
-    else if (state == HomeState.processing) stageInternalProgress = processingProgress;
+    if (state == HomeState.compressing)
+      stageInternalProgress = compressionProgress;
+    else if (state == HomeState.uploading)
+      stageInternalProgress = uploadProgress;
+    else if (state == HomeState.processing)
+      stageInternalProgress = processingProgress;
 
     final totalProgress = (activeIndex + stageInternalProgress) / stages.length;
 
@@ -1012,8 +1102,12 @@ class _PipelineStageIndicator extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(stages[activeIndex].$1, style: AppTheme.titleStyle.copyWith(fontSize: 13, color: AppTheme.primaryColor)),
-            Text('Step ${activeIndex + 1} of ${stages.length}', style: AppTheme.captionStyle.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(stages[activeIndex].$1,
+                style: AppTheme.titleStyle
+                    .copyWith(fontSize: 13, color: AppTheme.primaryColor)),
+            Text('Step ${activeIndex + 1} of ${stages.length}',
+                style: AppTheme.captionStyle
+                    .copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
           ],
         ),
         const SizedBox(height: AppTheme.space8),

@@ -106,11 +106,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
-    
-    return PopScope(
-      canPop: !isLoading,
+    return Selector<AuthProvider, bool>(
+      selector: (_, provider) => provider.isLoading,
+      builder: (context, isLoading, child) {
+        return PopScope(
+          canPop: !isLoading,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+          },
+          child: child!,
+        );
+      },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: AppTheme.bgColor,
         body: Stack(
           children: [
@@ -125,21 +133,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.only(left: 16, top: 8),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textColor),
-                  onPressed: isLoading ? null : () => context.pop(),
+                child: Selector<AuthProvider, bool>(
+                  selector: (_, provider) => provider.isLoading,
+                  builder: (context, isLoading, child) {
+                    return IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textColor),
+                      onPressed: isLoading ? null : () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(AppRoutes.welcome);
+                        }
+                      },
+                    );
+                  },
                 ),
               ),
             ),
 
             SafeArea(
               child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const SizedBox(height: 56),
                       // Premium Header with Lottie
                       Center(
                         child: Column(
@@ -301,12 +322,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const SizedBox(height: 40),
                           
                           // Sign Up Button
-                          AuthButton(
-                            label: 'Create Account 🐾',
-                            color: AppTheme.primaryColor,
-                            textColor: Colors.white,
-                            onPressed: isLoading ? null : _signUp,
-                            isLoading: isLoading,
+                          Selector<AuthProvider, bool>(
+                            selector: (_, provider) => provider.isLoading,
+                            builder: (context, isLoading, child) {
+                              return AuthButton(
+                                label: 'Create Account 🐾',
+                                color: AppTheme.primaryColor,
+                                textColor: Colors.white,
+                                onPressed: isLoading ? null : _signUp,
+                                isLoading: isLoading,
+                              );
+                            },
                           ),
                           
                           const SizedBox(height: 24),
@@ -357,24 +383,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           
                           // Already have account
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Already have an account?', style: AppTheme.captionStyle),
-                              TextButton(
-                                onPressed: isLoading ? null : () {
-                                  FurHaptics.tap();
-                                  context.goEmailLogin();
-                                },
-                                child: Text(
-                                  'Sign In',
-                                  style: AppTheme.bodyStyle.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.bold,
+                          Selector<AuthProvider, bool>(
+                            selector: (_, provider) => provider.isLoading,
+                            builder: (context, isLoading, child) {
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Already have an account?', style: AppTheme.captionStyle),
+                                  TextButton(
+                                    onPressed: isLoading ? null : () {
+                                      FurHaptics.tap();
+                                      if (context.canPop()) {
+                                        context.pop();
+                                      } else {
+                                        context.go(AppRoutes.welcome);
+                                      }
+                                    },
+                                    child: Text(
+                                      'Sign In',
+                                      style: AppTheme.bodyStyle.copyWith(
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 40),
                         ],
@@ -386,40 +421,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
 
             // Loading overlay
-            if (isLoading)
-              Positioned.fill(
-                child: PetMoodGlass(
-                  opacity: 0.8,
-                  borderRadius: BorderRadius.zero,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: AppTheme.borderRadiusExtraLarge,
-                        boxShadow: AppTheme.softShadow,
+            Selector<AuthProvider, bool>(
+              selector: (_, provider) => provider.isLoading,
+              builder: (context, isLoading, child) {
+                if (!isLoading) return const SizedBox.shrink();
+                return Positioned.fill(
+                  child: PetMoodGlass(
+                    opacity: 0.8,
+                    borderRadius: BorderRadius.zero,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: AppTheme.borderRadiusExtraLarge,
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Lottie.asset(
+                              LottieRegistry.get('loading'),
+                              width: 100,
+                              height: 100,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const CircularProgressIndicator(),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Setting up your kennel... 🐾',
+                              style: AppTypography.h3.copyWith(fontSize: 16),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Lottie.asset(
-                            LottieRegistry.get('loading'),
-                            width: 100,
-                            height: 100,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const CircularProgressIndicator(),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Setting up your kennel... 🐾',
-                            style: AppTypography.h3.copyWith(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).animate().fadeIn(duration: 300.ms),
-                ),
-              ),
+                    ).animate().fadeIn(duration: 300.ms),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),

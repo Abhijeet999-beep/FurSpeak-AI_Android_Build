@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 enum AppErrorType {
   noDogDetected,
+  multipleDogsDetected,
   noEmotion,
   invalidRoi,
   corruptMedia,
@@ -50,6 +51,22 @@ class ErrorMapper {
   static AppError mapException(dynamic error) {
     final message = error.toString().toLowerCase();
     final isPreResponse = message.contains('[pre_response]');
+
+    // ── Multiple Dogs Detected ─────────────────────────────────────────
+    if (message.contains('multiple_dogs') ||
+        message.contains('multiple dogs') ||
+        message.contains('more than one dog') ||
+        message.contains('too many dogs')) {
+      return const AppError(
+        type: AppErrorType.multipleDogsDetected,
+        userMessage: "Only one dog is allowed per scan!",
+        emoji: '🐕🐕',
+        icon: Icons.pets_rounded,
+        canRetry: false,
+        hint:
+            '• Please ensure only one dog is in the image or video\n• Crop the image to show only one dog',
+      );
+    }
 
     // ── No Dog Detected ──────────────────────────────────────────────
     if (message.contains('no_dog_detected') ||

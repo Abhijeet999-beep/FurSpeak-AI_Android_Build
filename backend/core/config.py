@@ -12,11 +12,19 @@ _DEV_JWT_SECRET = "super-secret-key-for-dev"
 
 class Settings(BaseSettings):
     DEBUG_VISUAL: bool = False
-    TEMP_DIR: str = os.path.join(BASE_DIR, "temp")
+    TEMP_DIR: str = os.getenv("TEMP_DIR", "/tmp/furspeak_temp" if os.getenv("K_SERVICE") else os.path.join(BASE_DIR, "temp"))
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
 
+    # Deployment optimizations
+    LIGHT_MODE: bool = os.getenv("LIGHT_MODE", "true").lower() == "true"
+    USE_ONNX_DETECTOR: bool = os.getenv("USE_ONNX_DETECTOR", "true").lower() == "true"
+    USE_ONNX_CLASSIFIER: bool = os.getenv("USE_ONNX_CLASSIFIER", "false").lower() == "true"
+
     # YOLO Model paths
-    DOG_DETECTOR_MODEL_PATH: str = os.path.join(BASE_DIR, "ml", "weights", "yolov8m.pt")
+    # Fallback to nano model in light mode
+    DOG_DETECTOR_MODEL_PATH: str = os.path.join(
+        BASE_DIR, "ml", "weights", "yolov8n.pt" if os.getenv("LIGHT_MODE", "true").lower() == "true" else "yolov8m.pt"
+    )
     BEHAVIOR_MODEL_PATH: str = os.path.join(BASE_DIR, "ml", "weights", "best.pt")
 
     # Strict Video Input Rules

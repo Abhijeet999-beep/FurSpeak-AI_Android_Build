@@ -8,10 +8,8 @@ logger = logging.getLogger("FurSpeak-Security")
 
 security = HTTPBearer(auto_error=False)
 
-# Environment gate: only "development" allows auth bypass.
-# Production MUST have ENVIRONMENT=production set explicitly.
-_ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
-_IS_PRODUCTION = _ENVIRONMENT == "production"
+_IS_PRODUCTION = settings.is_production
+_ENVIRONMENT = settings.ENVIRONMENT.lower()
 
 try:
     import firebase_admin

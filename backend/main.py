@@ -8,6 +8,12 @@ from backend.routers import auth, dog, history, detection
 from backend.core.model_loader import model_loader
 from backend.utils.temp_cleanup import cleanup_stale_temp_files
 from backend.core import security
+from backend.core.database import engine
+from backend.models import Base
+import cv2
+
+# Set OpenCV thread limit globally to prevent memory spikes in Docker/Cloud Run
+cv2.setNumThreads(1)
 import asyncio
 import os
 import uuid
@@ -27,6 +33,14 @@ if settings.SENTRY_DSN:
 app = FastAPI(title="FurSpeak AI")
 app.add_exception_handler(FurSpeakException, furspeak_exception_handler)
 
+# Prometheus Metrics
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+    logger.info("Prometheus metrics initialized at /metrics")
+except Exception as e:
+    logger.warning(f"Failed to initialize Prometheus metrics: {e}")
+
 # CORS Configuration
 # CORS Configuration
 origins = settings.ALLOWED_ORIGINS
@@ -45,13 +59,29 @@ app.add_middleware(
 
 @app.middleware("http")
 async def request_tracing_middleware(request: Request, call_next):
+    import time
+    import psutil
+    import os
+
     trace_id = str(uuid.uuid4())
     trace_id_var.set(trace_id)
     endpoint_var.set(request.url.path)
     method_var.set(request.method)
     
+    start_time = time.perf_counter()
+    process = psutil.Process(os.getpid())
+    start_ram = process.memory_info().rss / 1024 / 1024
+
     response = await call_next(request)
+
+    end_ram = process.memory_info().rss / 1024 / 1024
+    process_time = time.perf_counter() - start_time
+    
+    if request.url.path not in ["/health", "/ping", "/metrics"]:
+        logger.info(f"[TELEMETRY] {request.method} {request.url.path} | Time: {process_time:.4f}s | RAM Delta: {end_ram - start_ram:+.1f}MB | RAM Total: {end_ram:.1f}MB")
+
     response.headers["X-Trace-ID"] = trace_id
+    response.headers["X-Process-Time"] = str(process_time)
     return response
 
 @app.middleware("http")
@@ -126,6 +156,10 @@ async def startup_event():
         logger.error(f"FurSpeak backend started with {workers} workers.")
         raise RuntimeError("FurSpeak backend currently supports only ONE worker due to GPU serialization architecture. Set workers to 1.")
 
+    # ── Move Heavy Initialization to Background ────────────────────────
+    asyncio.create_task(initialize_backend())
+
+async def initialize_backend():
     # ── Database Initialization (with retry for cold starts) ──────────
     import time
     for i in range(5):
@@ -137,9 +171,11 @@ async def startup_event():
         except Exception as e:
             if i == 4:
                 logger.error(f"FATAL: Database initialization failed after 5 attempts: {e}")
-                raise
-            logger.warning(f"Database connection attempt {i+1} failed. Retrying in 5s... ({e})")
-            await asyncio.sleep(5)
+                # We don't raise here to prevent crashing the whole process; 
+                # health check will reflect the failure.
+            else:
+                logger.warning(f"Database connection attempt {i+1} failed. Retrying in 5s... ({e})")
+                await asyncio.sleep(5)
 
     # ── Model Warmup (Resilient for slow environments) ────────────────
     try:
@@ -163,32 +199,35 @@ async def startup_event():
     from backend.core.database import AsyncSessionLocal
     from backend.services.detection_service import DetectionService
 
-    async with AsyncSessionLocal() as db:
-        stmt = select(Job).where(Job.status == "processing")
-        stuck_jobs = (await db.execute(stmt)).scalars().all()
-        for job in stuck_jobs:
-            if job.request_hash:
-                isolated_path = os.path.join(settings.TEMP_DIR, job.id, "video.mp4")
-                if os.path.exists(isolated_path):
-                    logger.info(f"Re-queuing stuck job {job.id}")
-                    from backend.models.user import User
+    try:
+        async with AsyncSessionLocal() as db:
+            stmt = select(Job).where(Job.status == "processing")
+            stuck_jobs = (await db.execute(stmt)).scalars().all()
+            for job in stuck_jobs:
+                if job.request_hash:
+                    isolated_path = os.path.join(settings.TEMP_DIR, job.id, "video.mp4")
+                    if os.path.exists(isolated_path):
+                        logger.info(f"Re-queuing stuck job {job.id}")
+                        from backend.models.user import User
 
-                    mock_user = User(id=job.user_id or f"guest_recovered_{job.id}")
-                    mock_user.is_guest = job.user_id is None
-                    asyncio.create_task(
-                        DetectionService._video_worker_task(
-                            job.id, isolated_path, job.request_hash, mock_user
+                        mock_user = User(id=job.user_id or f"guest_recovered_{job.id}")
+                        mock_user.is_guest = job.user_id is None
+                        asyncio.create_task(
+                            DetectionService._video_worker_task(
+                                job.id, isolated_path, job.request_hash, mock_user
+                            )
                         )
-                    )
-                else:
-                    logger.warning(f"Marking job {job.id} as failed (temp file missing)")
-                    job.status = "failed"
-                    job.result_json = {"error": "Server restarted and source file was lost."}
-                    db.add(job)
-        await db.commit()
+                    else:
+                        logger.warning(f"Marking job {job.id} as failed (temp file missing)")
+                        job.status = "failed"
+                        job.result_json = {"error": "Server restarted and source file was lost."}
+                        db.add(job)
+            await db.commit()
+    except Exception as e:
+        logger.warning(f"Job recovery failed: {e}")
 
     dev = model_loader.get_device()
-    logger.info(f"API Started. Device: {dev}")
+    logger.info(f"API Background Init Complete. Device: {dev}")
 
 
 # ── C5 FIX: REMOVED StaticFiles(directory=TEMP_DIR) ──────────────────

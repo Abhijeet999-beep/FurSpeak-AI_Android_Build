@@ -55,8 +55,8 @@ def _set_duplicate(request_hash: str, job_id: str):
 class DetectionService:
 
     @staticmethod
-    def _enforce_temp_size_cap():
-        """Reject requests when temp storage exceeds 500 MB. Optimized to walk disk sparingly."""
+    async def _enforce_temp_size_cap():
+        """Reject requests when temp storage exceeds 500 MB. Optimized to not block event loop."""
         global _LAST_SIZE_CHECK_TIME
         now = time.time()
 
@@ -64,36 +64,41 @@ class DetectionService:
         if now - _LAST_SIZE_CHECK_TIME < _SIZE_CHECK_INTERVAL:
             return
 
-        total_size = 0
-        try:
-            for dp, _, fn in os.walk(settings.TEMP_DIR):
-                for f in fn:
-                    fp = os.path.join(dp, f)
-                    if not os.path.islink(fp):
-                        total_size += os.path.getsize(fp)
-        except OSError:
-            pass # Directory might be being cleaned up
+        def _get_size():
+            total_size = 0
+            try:
+                for dp, _, fn in os.walk(settings.TEMP_DIR):
+                    for f in fn:
+                        fp = os.path.join(dp, f)
+                        if not os.path.islink(fp):
+                            total_size += os.path.getsize(fp)
+            except OSError:
+                pass # Directory might be being cleaned up
+            return total_size
 
-        _LAST_SIZE_CHECK_TIME = now
+        total_size = await asyncio.to_thread(_get_size)
+        _LAST_SIZE_CHECK_TIME = time.time()
 
         if total_size > 500 * 1024 * 1024:  # 500 MB
             logger.warning(f"Temp storage threshold reached ({total_size / 1024 / 1024:.1f} MB). Triggering cleanup.")
             from backend.utils.temp_cleanup import cleanup_stale_temp_files
-            cleanup_stale_temp_files(settings.TEMP_DIR, max_age_seconds=3600)  # Clear stale files older than 1h
+            await asyncio.to_thread(cleanup_stale_temp_files, settings.TEMP_DIR, 3600)  # Clear stale files older than 1h
             
             # Reset counter so next request forces a re-check after cleanup
             _LAST_SIZE_CHECK_TIME = 0
 
     @staticmethod
     async def process_image_sync(file: UploadFile, user: User, db: AsyncSession) -> DetectionResult:
-        DetectionService._enforce_temp_size_cap()
+        await DetectionService._enforce_temp_size_cap()
         # 1. Safe stream to temp
         fd, temp_path = tempfile.mkstemp(dir=settings.TEMP_DIR, suffix=".jpg")
         os.close(fd)
 
         try:
-            with open(temp_path, "wb") as f_out:
-                shutil.copyfileobj(file.file, f_out)
+            def _save():
+                with open(temp_path, "wb") as f_out:
+                    shutil.copyfileobj(file.file, f_out)
+            await asyncio.to_thread(_save)
 
             if os.path.getsize(temp_path) > settings.MAX_FILE_SIZE_BYTES:
                 raise FurSpeakException("FILE_TOO_LARGE", "File exceeds max size.", 413)
@@ -134,14 +139,16 @@ class DetectionService:
         file: UploadFile, user: User, db: AsyncSession, base_url: str
     ) -> JobStatusResponse:
         t0_total = time.perf_counter()
-        DetectionService._enforce_temp_size_cap()
+        await DetectionService._enforce_temp_size_cap()
         fd, temp_path = tempfile.mkstemp(dir=settings.TEMP_DIR, suffix=".mp4")
         os.close(fd)
 
         try:
             t0_upload = time.perf_counter()
-            with open(temp_path, "wb") as f_out:
-                shutil.copyfileobj(file.file, f_out)
+            def _save():
+                with open(temp_path, "wb") as f_out:
+                    shutil.copyfileobj(file.file, f_out)
+            await asyncio.to_thread(_save)
             logger.info(f"[TIMING] process_video_async -> File Write: {time.perf_counter() - t0_upload:.4f}s")
 
             if os.path.getsize(temp_path) > settings.MAX_FILE_SIZE_BYTES:
@@ -157,7 +164,7 @@ class DetectionService:
                 t0_norm = time.perf_counter()
                 from backend.utils.media_processor import MediaProcessor
 
-                temp_path = MediaProcessor.validate_and_normalize_video(temp_path)
+                temp_path = await asyncio.to_thread(MediaProcessor.validate_and_normalize_video, temp_path)
                 logger.info(f"[TIMING] process_video_async -> Normalization: {time.perf_counter() - t0_norm:.4f}s")
             except FurSpeakException:
                 safe_remove(temp_path)
@@ -166,7 +173,7 @@ class DetectionService:
                 logger.warning(f"Video normalization skipped (ffmpeg unavailable?): {e}")
 
             t0_hash = time.perf_counter()
-            request_hash = compute_sha256(temp_path)
+            request_hash = await asyncio.to_thread(compute_sha256, temp_path)
             logger.info(f"[TIMING] process_video_async -> Hash compute: {time.perf_counter() - t0_hash:.4f}s")
             logger.info(f"[TIMING] process_video_async -> Total Pre-processing: {time.perf_counter() - t0_total:.4f}s")
 
@@ -212,7 +219,7 @@ class DetectionService:
             isolated_temp_path = os.path.join(job_temp_dir, "video.mp4")
             if os.path.exists(isolated_temp_path):
                 safe_remove(isolated_temp_path)
-            shutil.move(temp_path, isolated_temp_path)
+            await asyncio.to_thread(shutil.move, temp_path, isolated_temp_path)
             temp_path = isolated_temp_path
 
             if not existing_job:

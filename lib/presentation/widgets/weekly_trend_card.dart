@@ -42,11 +42,14 @@ class WeeklyTrendCard extends StatelessWidget {
             children: [
               const Icon(Icons.compare_arrows, color: AppTheme.primaryColor, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'This Week vs Last Week',
-                style: AppTheme.subheadingStyle.copyWith(fontWeight: FontWeight.bold),
+              Flexible(
+                child: Text(
+                  'This Week vs Last Week',
+                  style: AppTheme.subheadingStyle.copyWith(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               if (pctChange.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

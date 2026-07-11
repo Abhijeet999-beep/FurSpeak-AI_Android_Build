@@ -30,20 +30,83 @@ class ApiService {
     ),
   );
 
+  bool _isBackendConnected = false;
+  bool get isBackendConnected => _isBackendConnected;
+
   ApiService() {
-    _testConnection();
+    discoverAndValidateBackend();
   }
 
-  /// Temporary health check for debugging connectivity.
-  Future<void> _testConnection() async {
-    try {
-      debugPrint(
-          '🔍 [API SERVICE] Testing connection to: ${ApiConfig.baseUrl}/health');
-      final response = await _dio.get('/health');
-      debugPrint('🔍 [API SERVICE] Health check response: ${response.data}');
-    } catch (e) {
-      debugPrint('❌ [API SERVICE] Health check failed: $e');
+  /// Dynamically tests candidate backend URLs to locate and bind the active backend
+  /// environment (Emulator, ADB reverse, or Wi-Fi LAN IP).
+  Future<bool> discoverAndValidateBackend() async {
+    final List<String> candidates = [];
+    final envUrl = dotenv.env['API_BASE_URL'];
+    final isProduction = dotenv.env['ENVIRONMENT'] == 'production';
+
+    if (isProduction) {
+      if (envUrl != null && envUrl.isNotEmpty) {
+        candidates.add(envUrl);
+      }
+    } else {
+      if (envUrl != null && envUrl.isNotEmpty) {
+        candidates.add(envUrl);
+      }
+      if (!candidates.contains('http://127.0.0.1:8000')) {
+        candidates.add('http://127.0.0.1:8000');
+      }
+      if (!candidates.contains('http://10.0.2.2:8000')) {
+        candidates.add('http://10.0.2.2:8000');
+      }
+      final pcLanIp = dotenv.env['PC_LAN_IP'];
+      if (pcLanIp != null && pcLanIp.isNotEmpty) {
+        final lanUrl = pcLanIp.startsWith('http') ? pcLanIp : 'http://$pcLanIp:8000';
+        if (!candidates.contains(lanUrl)) {
+          candidates.add(lanUrl);
+        }
+      }
     }
+
+    String? selectedUrl;
+    _isBackendConnected = false;
+
+    debugPrint('🔍 [API SERVICE] Starting backend connectivity health check...');
+    debugPrint('🔍 [API SERVICE] Candidate URLs to test: $candidates');
+
+    for (final url in candidates) {
+      final cleanUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+      try {
+        debugPrint('🔍 [API SERVICE] Testing candidate URL: $cleanUrl/health');
+        
+        final testDio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 2),
+          receiveTimeout: const Duration(seconds: 2),
+        ));
+        
+        final response = await testDio.get('$cleanUrl/health');
+        if (response.statusCode == 200) {
+          selectedUrl = cleanUrl;
+          _isBackendConnected = true;
+          debugPrint('✅ [API SERVICE] Connection successful to candidate: $cleanUrl');
+          break;
+        }
+      } catch (e) {
+        debugPrint('❌ [API SERVICE] Candidate URL failed: $cleanUrl | Error: $e');
+      }
+    }
+
+    if (selectedUrl != null) {
+      ApiConfig.setBaseUrl(selectedUrl);
+      _dio.options.baseUrl = selectedUrl;
+      debugPrint('ℹ️ [API SERVICE] Active Base URL set to: ${_dio.options.baseUrl}');
+    } else {
+      final fallbackUrl = envUrl ?? 'http://10.0.2.2:8000';
+      ApiConfig.setBaseUrl(fallbackUrl);
+      _dio.options.baseUrl = fallbackUrl;
+      debugPrint('⚠️ [API SERVICE] Health check failed for all candidates. Falling back to: ${_dio.options.baseUrl}');
+    }
+
+    return _isBackendConnected;
   }
 
   /// True when an upload is actively in-flight.
@@ -451,10 +514,10 @@ class ApiService {
         // Extract server error details if available
         final responseData = dioErr.response?.data;
         if (responseData is Map<String, dynamic>) {
-          final errorType = responseData['error_type'] ?? '';
+          final errorType = responseData['error_type'] ?? responseData['error_code'] ?? '';
           final errorMsg = responseData['message'] ?? 'Unknown server error';
           return PipelineException(
-            message: '$errorType: $errorMsg',
+            message: errorType.isNotEmpty ? '$errorType: $errorMsg' : errorMsg,
             stage: fallbackStage,
             canRetry: false,
           );
