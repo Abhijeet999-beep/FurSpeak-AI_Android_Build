@@ -73,57 +73,60 @@ class RootNavShell extends StatelessWidget {
       },
       child: Scaffold(
         body: navigationShell,
-        bottomNavigationBar: NavigationBar(
-          backgroundColor: AppTheme.bgColor,
-          surfaceTintColor: Colors.transparent,
-          indicatorColor: AppTheme.primaryColor.withOpacity(0.1),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          selectedIndex: currentIndex,
-          onDestinationSelected: (index) {
-            HapticFeedback.selectionClick();
-            if (isGuest && (index == 1 || index == 2)) {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => GuestModeWarningScreen(
-                  onContinue: () {
-                    Navigator.pop(context);
-                    navigationShell.goBranch(0);
-                  },
-                  onSignIn: () {
-                    Navigator.pop(context);
-                    context.goWelcome();
-                  },
-                ),
-              );
-            } else {
-              navigationShell.goBranch(
-                index,
-                initialLocation: index == navigationShell.currentIndex,
-              );
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primaryColor),
-              label: 'Home',
-              tooltip: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history_rounded, color: AppTheme.primaryColor),
-              label: 'History',
-              tooltip: 'Scan History',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings_rounded, color: AppTheme.primaryColor),
-              label: 'Settings',
-              tooltip: 'Settings',
-            ),
-          ],
+        bottomNavigationBar: SafeArea(
+          bottom: true,
+          child: NavigationBar(
+            backgroundColor: AppTheme.bgColor,
+            surfaceTintColor: Colors.transparent,
+            indicatorColor: AppTheme.primaryColor.withOpacity(0.1),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            selectedIndex: currentIndex,
+            onDestinationSelected: (index) {
+              HapticFeedback.selectionClick();
+              if (isGuest && (index == 1 || index == 2)) {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => GuestModeWarningScreen(
+                    onContinue: () {
+                      Navigator.pop(context);
+                      navigationShell.goBranch(0);
+                    },
+                    onSignIn: () {
+                      Navigator.pop(context);
+                      context.goWelcome();
+                    },
+                  ),
+                );
+              } else {
+                navigationShell.goBranch(
+                  index,
+                  initialLocation: index == navigationShell.currentIndex,
+                );
+              }
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primaryColor),
+                label: 'Home',
+                tooltip: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history_rounded, color: AppTheme.primaryColor),
+                label: 'History',
+                tooltip: 'Scan History',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_rounded, color: AppTheme.primaryColor),
+                label: 'Settings',
+                tooltip: 'Settings',
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -96,8 +96,33 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
     
     final profile = await isar.dogProfiles.getByUserId(uid);
-    if (profile != null && mounted) {
-      authProvider.markProfileAsComplete();
+    final isEditing = GoRouterState.of(context).uri.queryParameters['edit'] == 'true';
+
+    if (profile != null) {
+      if (isEditing) {
+        if (mounted) {
+          setState(() {
+            _nameController.text = profile.name;
+            if (_breeds.contains(profile.breed)) {
+              _selectedBreed = profile.breed;
+            } else if (profile.breed.isNotEmpty) {
+              _selectedBreed = 'Other';
+              _customBreedController.text = profile.breed;
+            }
+            _selectedGender = profile.gender;
+            _selectedBirthday = profile.birthday;
+            _weight = profile.weight ?? 10.0;
+            _activityLevel = profile.activityLevel;
+            _notesController.text = profile.notes ?? '';
+            _profileImagePath = profile.imageUrl;
+            _checkingProfile = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          authProvider.markProfileAsComplete();
+        }
+      }
     } else if (mounted) {
       setState(() => _checkingProfile = false);
       _requestNameFocusAfterBuild();
@@ -198,6 +223,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     try {
       final isar = GetIt.instance<Isar>();
+      final existingProfile = await isar.dogProfiles.getByUserId(uid);
+
       final profile = DogProfile(
         userId: uid,
         name: _nameController.text.trim(),
@@ -209,9 +236,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         activityLevel: _activityLevel,
         notes: _notesController.text.trim(),
         imageUrl: _profileImagePath, // This would normally be a URL after upload
-        createdAt: DateTime.now(),
+        createdAt: existingProfile?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
+
+      if (existingProfile != null) {
+        profile.id = existingProfile.id;
+      }
 
       await isar.writeTxn(() async {
         await isar.dogProfiles.put(profile);
@@ -285,7 +316,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
     );
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+        final isEditing = GoRouterState.of(context).uri.queryParameters['edit'] == 'true';
+        if (isEditing) {
+          context.go(AppRoutes.settings);
+        }
+      }
     });
   }
 
@@ -406,18 +443,32 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Widget _buildHeader() {
+    final isEditing = GoRouterState.of(context).uri.queryParameters['edit'] == 'true';
     return Padding(
       padding: const EdgeInsets.all(AppTheme.space24),
-      child: Column(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Text(
-            'Create Profile',
-            style: AppTheme.headingStyle.copyWith(fontSize: 28),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tell us about your furry friend',
-            style: AppTheme.captionStyle,
+          if (isEditing)
+            Positioned(
+              left: 0,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.primaryColor),
+                onPressed: () => context.go(AppRoutes.settings),
+              ),
+            ),
+          Column(
+            children: [
+              Text(
+                isEditing ? 'Edit Profile' : 'Create Profile',
+                style: AppTheme.headingStyle.copyWith(fontSize: 28),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isEditing ? 'Update your pup\'s details' : 'Tell us about your furry friend',
+                style: AppTheme.captionStyle,
+              ),
+            ],
           ),
         ],
       ),

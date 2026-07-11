@@ -106,9 +106,9 @@ class ApiPipelineResponse {
     // 5. Final Assembly with field name fallbacks (summary -> caption, thumbnail_url -> frame_image_url)
     return ApiPipelineResponse(
       status: data['status']?.toString() ??
-          (json['success'] == true ? 'success' : 'error'),
+          (json['success'] == false ? 'error' : 'success'),
       jobId: data['job_id']?.toString(),
-      emotion: data['emotion']?.toString() ?? 'unknown',
+      emotion: data['emotion']?.toString(),
       confidence: safeConfidence,
       caption: (data['caption'] ?? data['summary'] ?? data['description'])
               ?.toString() ??

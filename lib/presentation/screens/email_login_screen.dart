@@ -82,10 +82,20 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
-    return PopScope(
-      canPop: !isLoading,
+    return Selector<AuthProvider, bool>(
+      selector: (_, provider) => provider.isLoading,
+      builder: (context, isLoading, child) {
+        return PopScope(
+          canPop: !isLoading,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            // Optionally show a "Please wait" toast/snack if blocked
+          },
+          child: child!,
+        );
+      },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: AppTheme.bgColor,
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -93,9 +103,14 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           elevation: 0,
           leading: Padding(
             padding: const EdgeInsets.only(left: 8.0),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textColor),
-              onPressed: isLoading ? null : () => context.pop(),
+            child: Selector<AuthProvider, bool>(
+              selector: (_, provider) => provider.isLoading,
+              builder: (context, isLoading, child) {
+                return IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textColor),
+                  onPressed: isLoading ? null : () => Navigator.of(context).maybePop(),
+                );
+              },
             ),
           ),
         ),
@@ -107,12 +122,14 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             child: Stack(
               children: [
                 SingleChildScrollView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        const SizedBox(height: 56),
                         // Premium Header with Lottie
                         Center(
                           child: Column(
@@ -232,25 +249,35 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                             const SizedBox(height: 8),
                             Align(
                               alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: isLoading ? null : _resetPassword,
-                                child: Text(
-                                  'Forgot Password?',
-                                  style: AppTypography.caption.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
+                              child: Selector<AuthProvider, bool>(
+                                selector: (_, provider) => provider.isLoading,
+                                builder: (context, isLoading, child) {
+                                  return TextButton(
+                                    onPressed: isLoading ? null : _resetPassword,
+                                    child: Text(
+                                      'Forgot Password?',
+                                      style: AppTypography.caption.copyWith(
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             const SizedBox(height: 32),
                             // Sign In Button
-                            AuthButton(
-                              label: 'Sign In 🐶',
-                              color: AppTheme.primaryColor,
-                              textColor: Colors.white,
-                              onPressed: isLoading ? null : _login,
-                              isLoading: isLoading,
+                            Selector<AuthProvider, bool>(
+                              selector: (_, provider) => provider.isLoading,
+                              builder: (context, isLoading, child) {
+                                return AuthButton(
+                                  label: 'Sign In 🐶',
+                                  color: AppTheme.primaryColor,
+                                  textColor: Colors.white,
+                                  onPressed: isLoading ? null : _login,
+                                  isLoading: isLoading,
+                                );
+                              },
                             ),
                             const SizedBox(height: 32),
                             Row(
@@ -325,42 +352,47 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                     ),
                   ),
                 ),
-                if (isLoading)
-                  Positioned.fill(
-                    child: PetMoodGlass(
-                      opacity: 0.8,
-                      borderRadius: BorderRadius.zero,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(28),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: AppTheme.borderRadiusExtraLarge,
-                            boxShadow: AppTheme.softShadow,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RepaintBoundary(
-                                child: Lottie.asset(
-                                  LottieRegistry.get('loading'),
-                                  width: 80,
-                                  height: 80,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppTheme.primaryColor),
+                Selector<AuthProvider, bool>(
+                  selector: (_, provider) => provider.isLoading,
+                  builder: (context, isLoading, child) {
+                    if (!isLoading) return const SizedBox.shrink();
+                    return Positioned.fill(
+                      child: PetMoodGlass(
+                        opacity: 0.8,
+                        borderRadius: BorderRadius.zero,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: AppTheme.borderRadiusExtraLarge,
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                RepaintBoundary(
+                                  child: Lottie.asset(
+                                    LottieRegistry.get('loading'),
+                                    width: 80,
+                                    height: 80,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppTheme.primaryColor),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text('Signing you in...', style: AppTypography.h3.copyWith(fontSize: 16)),
-                            ],
+                                const SizedBox(height: 16),
+                                Text('Signing you in...', style: AppTypography.h3.copyWith(fontSize: 16)),
+                              ],
+                            ),
                           ),
-                        ),
-                      ).animate().fadeIn(duration: 300.ms),
-                    ),
-                  ),
+                        ).animate().fadeIn(duration: 300.ms),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

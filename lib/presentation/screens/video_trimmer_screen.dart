@@ -249,70 +249,93 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     final maxDur = Duration(seconds: widget.maxDurationSeconds);
     final needsTrim = _totalDuration > maxDur;
 
-    return Column(
-      children: [
-        // ── Video Preview ──────────────────────────────────────────────
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 100, 12, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double screenHeight = constraints.maxHeight;
+        // Adjust preview height based on available space
+        final bool isSmallScreen = screenHeight < 600;
+
+        return Column(
+          children: [
+            // ── Video Preview ──────────────────────────────────────────────
+            Expanded(
+              flex: isSmallScreen ? 3 : 5,
+              child: Container(
+                margin: EdgeInsets.fromLTRB(
+                  AppTheme.space12,
+                  MediaQuery.of(context).padding.top + 20,
+                  AppTheme.space12,
+                  AppTheme.space12,
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              child: GestureDetector(
-                onTap: _togglePlayPause,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    VideoViewer(trimmer: _trimmer),
-                    
-                    // Play/Pause Overlay
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _isPlayingNotifier,
-                      builder: (context, isPlaying, child) {
-                        return AnimatedOpacity(
-                          duration: AppTheme.animFast,
-                          opacity: isPlaying ? 0.0 : 1.0,
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.4),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white24, width: 1.5),
-                            ),
-                            child: Icon(
-                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 42,
-                            ),
-                          ),
-                        );
-                      },
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
                     ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  child: GestureDetector(
+                    onTap: _togglePlayPause,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        VideoViewer(trimmer: _trimmer),
+                        
+                        // Play/Pause Overlay
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _isPlayingNotifier,
+                          builder: (context, isPlaying, child) {
+                            return AnimatedOpacity(
+                              duration: AppTheme.animFast,
+                              opacity: isPlaying ? 0.0 : 1.0,
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white24, width: 1.5),
+                                ),
+                                child: Icon(
+                                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 36,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Controls & Actions ──────────────────────────────────────────
+            Flexible(
+              flex: isSmallScreen ? 4 : 3,
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: AppTheme.space8),
+                    _buildManualTrimSection(maxDur),
+                    _buildActionButtons(needsTrim),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
                   ],
                 ),
               ),
             ),
-          ),
-        ),
-
-        const SizedBox(height: AppTheme.space16),
-
-        // ── Controls Section ───────────────────────────────────────────
-        _buildManualTrimSection(maxDur),
-
-        // ── Action Buttons ────────────────────────────────────────────
-        _buildActionButtons(needsTrim),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -463,20 +486,28 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
                         height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                       )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
-                          const SizedBox(width: 8),
-                          Text(
-                            needsTrim ? 'Trim & Analyze' : 'Start Analysis',
-                            style: AppTheme.titleStyle.copyWith(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  needsTrim ? 'Trim & Analyze' : 'Start Analysis',
+                                  style: AppTheme.titleStyle.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
               ),
             ),

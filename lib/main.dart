@@ -55,6 +55,9 @@ void _cleanupTempDirectoryAsynchronously() {
 void main() async {
   if (kDebugMode) {
     enableFlutterDriverExtension();
+    // Restoring default HttpOverrides to prevent the driver extension from blocking/hijacking
+    // normal network connections (e.g. backend api requests) during local debug runs.
+    HttpOverrides.global = null;
   }
   WidgetsFlutterBinding.ensureInitialized();
 

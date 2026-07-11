@@ -1,10 +1,18 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConfig {
-  static const String localBaseUrl = 'http://10.0.2.2:8000'; // Default Android Emulator address
+  static String? _resolvedBaseUrl;
+
+  static void setBaseUrl(String url) {
+    _resolvedBaseUrl = url;
+  }
 
   // Load base URL from .env file (supports local and production toggles)
   static String get baseUrl {
+    if (_resolvedBaseUrl != null) {
+      return _resolvedBaseUrl!;
+    }
+
     final envUrl = dotenv.env['API_BASE_URL'];
     final isProduction = dotenv.env['ENVIRONMENT'] == 'production';
 
@@ -16,7 +24,7 @@ class ApiConfig {
       throw Exception('API_BASE_URL must be defined in .env for production environment');
     }
 
-    return localBaseUrl;
+    return 'http://10.0.2.2:8000';
   }
 
   // API Endpoints

@@ -71,31 +71,50 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _continueAsGuest() async {
+    debugPrint('📸 [WELCOME SCREEN] Continue as Guest tapped');
     final authProvider = context.read<AuthProvider>();
-    if (authProvider.isLoading) return;
+    if (authProvider.isLoading) {
+      debugPrint('⚠️ [WELCOME SCREEN] Guest sign-in blocked: AuthProvider is loading');
+      return;
+    }
 
     FurHaptics.tap();
 
+    debugPrint('⏳ [WELCOME SCREEN] Launching guest sign-in...');
     await authProvider.continueAsGuest();
     
     if (mounted) {
       if (authProvider.errorType != null) {
         final errorMsg = AuthErrorMapper.getErrorMessage(authProvider.errorType!);
+        debugPrint('❌ [WELCOME SCREEN] Guest sign-in error: $errorMsg');
         if (errorMsg.isNotEmpty) {
           _showFriendlySnackBar(errorMsg, icon: Icons.error_outline);
         }
       } else if (authProvider.errorMessage != null) {
+        debugPrint('❌ [WELCOME SCREEN] Guest sign-in error message: ${authProvider.errorMessage}');
         _showFriendlySnackBar(authProvider.errorMessage!, icon: Icons.error_outline);
+      } else {
+        debugPrint('✅ [WELCOME SCREEN] Guest sign-in succeeded. Navigating to Home...');
+        context.go(AppRoutes.home);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
-    return PopScope(
-      canPop: !isLoading,
+    return Selector<AuthProvider, bool>(
+      selector: (_, provider) => provider.isLoading,
+      builder: (context, isLoading, child) {
+        return PopScope(
+          canPop: !isLoading,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+          },
+          child: child!,
+        );
+      },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: AppTheme.bgColor,
         body: Container(
           decoration: const BoxDecoration(
@@ -157,41 +176,46 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 48),
 
                       // ==== AUTH BUTTONS ====
-                      StaggeredEntrance(
-                        initialDelay: 400.ms,
-                        children: [
-                          // 1. Continue with Google
-                          AuthButton(
-                            label: 'Continue with Google',
-                            color: Colors.white,
-                            textColor: AppTheme.textColor,
-                            onPressed: isLoading ? null : _signInWithGoogle,
-                            iconWidget: _googleIcon(),
-                          ),
-                          const SizedBox(height: 12),
-                          // 2. Continue with Phone
-                          AuthButton(
-                            label: 'Continue with Phone',
-                            icon: Icons.phone_rounded,
-                            color: AppTheme.successColor,
-                            textColor: Colors.white,
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    FurHaptics.tap();
-                                    context.push(AppRoutes.phoneLogin);
-                                  },
-                          ),
-                          const SizedBox(height: 12),
-                          // 3. Continue as Guest (Value-driven label)
-                          AuthButton(
-                            label: 'Analyze your pet 📸',
-                            icon: Icons.camera_alt_rounded,
-                            color: AppTheme.accentColor,
-                            textColor: Colors.white,
-                            onPressed: isLoading ? null : _continueAsGuest,
-                          ),
-                        ],
+                      Selector<AuthProvider, bool>(
+                        selector: (_, provider) => provider.isLoading,
+                        builder: (context, isLoading, child) {
+                          return StaggeredEntrance(
+                            initialDelay: 400.ms,
+                            children: [
+                              // 1. Continue with Google
+                              AuthButton(
+                                label: 'Continue with Google',
+                                color: Colors.white,
+                                textColor: AppTheme.textColor,
+                                onPressed: isLoading ? null : _signInWithGoogle,
+                                iconWidget: _googleIcon(),
+                              ),
+                              const SizedBox(height: 12),
+                              // 2. Continue with Phone
+                              AuthButton(
+                                label: 'Continue with Phone',
+                                icon: Icons.phone_rounded,
+                                color: AppTheme.successColor,
+                                textColor: Colors.white,
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        FurHaptics.tap();
+                                        context.push(AppRoutes.phoneLogin);
+                                      },
+                              ),
+                              const SizedBox(height: 12),
+                              // 3. Continue as Guest (Value-driven label)
+                              AuthButton(
+                                label: 'Analyze your pet',
+                                icon: Icons.camera_alt_rounded,
+                                color: AppTheme.accentColor,
+                                textColor: Colors.white,
+                                onPressed: isLoading ? null : _continueAsGuest,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 28),
                       
@@ -231,23 +255,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton(
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    FurHaptics.tap();
-                                    context.push(AppRoutes.emailLogin);
-                                  },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            ),
-                            child: Text(
-                              'Sign in with Email',
-                              style: AppTypography.body1.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                          Selector<AuthProvider, bool>(
+                            selector: (_, provider) => provider.isLoading,
+                            builder: (context, isLoading, child) {
+                              return TextButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        FurHaptics.tap();
+                                        context.push(AppRoutes.emailLogin);
+                                      },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                ),
+                                child: Text(
+                                  'Sign in with Email',
+                                  style: AppTypography.body1.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ).animate().fadeIn(delay: 900.ms),
@@ -258,20 +287,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Text("Don't have an account?",
                               style: AppTheme.captionStyle.copyWith(fontSize: 14)),
-                          TextButton(
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    FurHaptics.tap();
-                                    context.goSignUp();
-                                  },
-                            child: Text(
-                              'Sign Up',
-                              style: AppTypography.body1.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
+                          Selector<AuthProvider, bool>(
+                            selector: (_, provider) => provider.isLoading,
+                            builder: (context, isLoading, child) {
+                              return TextButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        FurHaptics.tap();
+                                        context.push(AppRoutes.signup);
+                                      },
+                                child: Text(
+                                  'Sign Up',
+                                  style: AppTypography.body1.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ).animate().fadeIn(delay: 1000.ms),
@@ -280,42 +314,47 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 // Loading overlay
-                if (isLoading)
-                  Positioned.fill(
-                    child: PetMoodGlass(
-                      opacity: 0.8,
-                      borderRadius: BorderRadius.zero,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(28),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: AppTheme.borderRadiusExtraLarge,
-                            boxShadow: AppTheme.softShadow,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RepaintBoundary(
-                                child: Lottie.asset(
-                                  LottieRegistry.get('loading'),
-                                  width: 90,
-                                  height: 90,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const CircularProgressIndicator(),
+                Selector<AuthProvider, bool>(
+                  selector: (_, provider) => provider.isLoading,
+                  builder: (context, isLoading, child) {
+                    if (!isLoading) return const SizedBox.shrink();
+                    return Positioned.fill(
+                      child: PetMoodGlass(
+                        opacity: 0.8,
+                        borderRadius: BorderRadius.zero,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: AppTheme.borderRadiusExtraLarge,
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                RepaintBoundary(
+                                  child: Lottie.asset(
+                                    LottieRegistry.get('loading'),
+                                    width: 90,
+                                    height: 90,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const CircularProgressIndicator(),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Signing you in... 🐶',
-                                style: AppTypography.h3.copyWith(fontSize: 16),
-                              ),
-                            ],
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Signing you in... 🐶',
+                                  style: AppTypography.h3.copyWith(fontSize: 16),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ).animate().fadeIn(duration: 300.ms),
-                    ),
-                  ),
+                        ).animate().fadeIn(duration: 300.ms),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

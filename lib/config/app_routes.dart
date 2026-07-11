@@ -114,7 +114,7 @@ class AppRoutes {
   /// Computes the redirect target given the current session state and path.
   /// Returns null if no redirect is needed.
   @visibleForTesting
-  static String? computeRedirect(AppSessionState session, String currentPath) {
+  static String? computeRedirect(AppSessionState session, String currentPath, {bool isEditing = false}) {
     // ── RULE 1: Not ready → stay on splash ──────────────────────────────────
     if (!session.isReady) {
       return currentPath == splash ? null : splash;
@@ -139,10 +139,13 @@ class AppRoutes {
     }
 
     // ── RULE 5: Authenticated user on restricted route → /home ──────────────
-    final isOnRestricted = _restrictedWhenAuthenticated.contains(currentPath);
+    // Guest users are allowed to access public auth routes for account upgrading/linking
+    final isOnRestricted = session.isGuest
+        ? (currentPath == splash || currentPath == onboarding)
+        : _restrictedWhenAuthenticated.contains(currentPath);
 
-    // Also redirect away from /profile-setup if profile is already complete
-    final isProfileDone = session.isProfileComplete && currentPath == profileSetup;
+    // Also redirect away from /profile-setup if profile is already complete and not editing
+    final isProfileDone = session.isProfileComplete && currentPath == profileSetup && !isEditing;
 
     if (isOnRestricted || isProfileDone) {
       return currentPath == home ? null : home;
@@ -166,7 +169,8 @@ class AppRoutes {
   ) {
     final session = authProvider.sessionState;
     final currentPath = state.matchedLocation;
-    final target = computeRedirect(session, currentPath);
+    final isEditing = state.uri.queryParameters['edit'] == 'true';
+    final target = computeRedirect(session, currentPath, isEditing: isEditing);
 
     debugPrint(
       'ROUTER → $session → '

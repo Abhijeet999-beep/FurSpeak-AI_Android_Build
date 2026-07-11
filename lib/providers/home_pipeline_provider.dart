@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -273,15 +272,28 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _error = null;
     _hasNavigated = false;
 
+    final completer = Completer<void>();
+
     // Route through the orchestrator so processing always preempts any
     // queued preview requests (e.g. video initialisation on other screens).
     await mediaOrchestrator.request(
       MediaRequest(
         MediaIntent.processing,
-        () async => _executePipeline(authProvider),
+        () async {
+          try {
+            await _executePipeline(authProvider);
+            completer.complete();
+          } catch (e, stack) {
+            if (!completer.isCompleted) {
+              completer.completeError(e, stack);
+            }
+          }
+        },
         _requestId!,
       ),
     );
+
+    return completer.future;
   }
 
   // ─── RETRY ────────────────────────────────────────────────────────────
@@ -315,19 +327,32 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
     debugPrint(
         "🔄 [PIPELINE] Retrying request: $_requestId (Attempt $_retryCount)");
 
+    final completer = Completer<void>();
+
     // Start processing via orchestrator
-    mediaOrchestrator.request(
+    await mediaOrchestrator.request(
       MediaRequest(
         MediaIntent.processing,
         () async {
           // Guard: ensure the request hasn't been reset before this task runs.
           if (_requestId != null) {
-            await _executePipeline(authProvider);
+            try {
+              await _executePipeline(authProvider);
+              completer.complete();
+            } catch (e, stack) {
+              if (!completer.isCompleted) {
+                completer.completeError(e, stack);
+              }
+            }
+          } else {
+            completer.complete();
           }
         },
         _requestId!,
       ),
     );
+
+    return completer.future;
   }
 
   // ─── RETRY STORAGE ────────────────────────────────────────────────────
@@ -397,6 +422,21 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
         name: "FurSpeak");
 
     _cancelToken = CancelToken();
+
+    // ─── PRE-FLIGHT CONNECTIVITY CHECK ──────────────────────────────────────
+    final apiService = GetIt.instance<ApiService>();
+    if (!apiService.isBackendConnected) {
+      debugPrint("🔍 [PIPELINE] Backend not marked connected. Re-running health check...");
+      final reconnected = await apiService.discoverAndValidateBackend();
+      if (!reconnected) {
+        throw const PipelineException(
+          message: 'Cannot connect to backend server. Please make sure the FastAPI server is running on port 8000.',
+          stage: PipelineStage.idle,
+          canRetry: true,
+        );
+      }
+    }
+
     _changeState(HomeState.compressing);
 
     File? compressedFile;
@@ -488,24 +528,6 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       bool pipelineSuccess = false;
 
-      void deleteCompressedFile() {
-        if (compressedFile != null) {
-          final path = compressedFile.path;
-          getTemporaryDirectory().then((tempDir) {
-            if (path.startsWith(tempDir.path)) {
-              try {
-                if (compressedFile?.existsSync() == true) {
-                  compressedFile?.deleteSync();
-                  developer.log(
-                      "PIPELINE CLEANUP: temp file deleted safely: $path",
-                      name: "FurSpeak");
-                  debugPrint("🗑️ Safe to delete compressed file");
-                }
-              } catch (_) {}
-            }
-          }).catchError((_) {});
-        }
-      }
 
       // ── UPLOAD (orchestrator lock is HELD for the entire duration) ────
       debugPrint('[PIPELINE] ════ UPLOAD PHASE START ════');
@@ -645,10 +667,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
         await authProvider.incrementGuestScanCount();
       }
 
-      if (pipelineSuccess == true) {
-        // [STABILIZATION] Do NOT delete the compressed file yet, as it's needed for the ResultScreen/History previews.
-        // deleteCompressedFile();
-      }
+
     } catch (e) {
       if (_state == HomeState.cancelled) {
         debugPrint("🛑 [PIPELINE] Cancelled state active. Suppressing error.");
@@ -686,6 +705,7 @@ class HomePipelineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ─── STATE MACHINE GUARD ──────────────────────────────────────────────
   void _changeState(HomeState newState) {
+    if (_state == newState) return;
     bool isValid = false;
     switch (_state) {
       case HomeState.idle:
